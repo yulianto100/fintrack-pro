@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { TransactionModal } from './TransactionModal'
 import type { TransactionType } from '@/types'
 
 export function QuickAddFAB() {
-  const [open, setOpen] = useState(false)
-  const [type, setType] = useState<TransactionType>('expense')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [modalType, setModalType] = useState<TransactionType | null>(null)
 
   const options = [
     { type: 'income' as TransactionType, icon: '💰', label: 'Pemasukan', color: 'var(--accent)' },
@@ -16,11 +16,34 @@ export function QuickAddFAB() {
     { type: 'transfer' as TransactionType, icon: '🔄', label: 'Transfer', color: 'var(--blue)' },
   ]
 
+  const handleOptionClick = (type: TransactionType) => {
+    setMenuOpen(false)
+    setModalType(type)
+  }
+
+  const handleClose = () => {
+    setModalType(null)
+  }
+
   return (
     <>
+      {/* Backdrop to close menu */}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            key="backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-30"
+            onClick={() => setMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sub buttons */}
       <AnimatePresence>
-        {open && (
+        {menuOpen && (
           <div className="fixed bottom-24 right-4 z-40 flex flex-col items-end gap-3">
             {options.map((opt, i) => (
               <motion.button
@@ -29,7 +52,7 @@ export function QuickAddFAB() {
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, x: 20, scale: 0.8 }}
                 transition={{ delay: i * 0.05, type: 'spring', stiffness: 400, damping: 25 }}
-                onClick={() => { setType(opt.type); setOpen(false) }}
+                onClick={() => handleOptionClick(opt.type)}
                 className="flex items-center gap-3 pr-4 pl-3 py-2.5 rounded-2xl shadow-lg"
                 style={{
                   background: 'var(--surface-2)',
@@ -48,29 +71,29 @@ export function QuickAddFAB() {
       {/* Main FAB */}
       <motion.button
         whileTap={{ scale: 0.92 }}
-        onClick={() => setOpen(!open)}
+        onClick={() => setMenuOpen((prev) => !prev)}
         className="fixed bottom-20 right-4 z-40 w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl"
         style={{
-          background: open
+          background: menuOpen
             ? 'linear-gradient(135deg, #ef4444, #dc2626)'
             : 'linear-gradient(135deg, #22c55e, #16a34a)',
-          boxShadow: open
+          boxShadow: menuOpen
             ? '0 8px 25px rgba(239,68,68,0.4)'
             : '0 8px 25px rgba(34,197,94,0.4)',
         }}
       >
-        <motion.div animate={{ rotate: open ? 45 : 0 }} transition={{ duration: 0.2 }}>
+        <motion.div animate={{ rotate: menuOpen ? 45 : 0 }} transition={{ duration: 0.2 }}>
           <Plus size={24} color="#fff" strokeWidth={2.5} />
         </motion.div>
       </motion.button>
 
-      {/* Modal */}
+      {/* Transaction Modal — only opens when modalType is explicitly set */}
       <AnimatePresence>
-        {!open && type && (
+        {modalType !== null && (
           <TransactionModal
-            key={type}
-            defaultType={type}
-            onClose={() => setType('expense')}
+            key={modalType}
+            defaultType={modalType}
+            onClose={handleClose}
           />
         )}
       </AnimatePresence>
