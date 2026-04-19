@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useSession } from "next-auth/react"
 import { X, ArrowDownCircle, ArrowUpCircle, ArrowLeftRight } from 'lucide-react'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useFirebaseList } from '@/hooks/useFirebaseRealtime'

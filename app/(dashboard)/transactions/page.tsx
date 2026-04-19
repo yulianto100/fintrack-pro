@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTransactions } from '@/hooks/useTransactions'
+import { useSession } from "next-auth/react"
 import { useFirebaseList } from '@/hooks/useFirebaseRealtime'
 import { formatCurrency, formatDate, getMonthOptions } from '@/lib/utils'
 import type { Category, Transaction } from '@/types'
