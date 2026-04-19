@@ -31,7 +31,7 @@ export async function sendPushNotification(
     })
     
     const results = await Promise.allSettled(
-      subscriptions.map((sub) => webpush.sendNotification(sub as webpush.PushSubscription, payload))
+      subscriptions.map((sub) => webpush.sendNotification(sub as unknown as webpush.PushSubscription, payload))
     )
     
     // Remove invalid subscriptions
