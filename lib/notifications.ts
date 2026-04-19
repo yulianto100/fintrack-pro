@@ -61,8 +61,8 @@ export async function checkDepositNotifications(): Promise<void> {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
-    for (const [userId, userData] of Object.entries(users as Record<string, Record<string, unknown>>)) {
-      const deposits = userData.portfolio?.deposits
+    for (const [userId, userData] of Object.entries(users as Record<string, any>)) {
+      const deposits = (userData as any)?.portfolio?.deposits
       if (!deposits) continue
       
       for (const [depositId, deposit] of Object.entries(deposits as Record<string, Record<string, unknown>>)) {
