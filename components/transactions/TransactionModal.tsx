@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useSession } from "next-auth/react"
 import { X, ArrowDownCircle, ArrowUpCircle, ArrowLeftRight } from 'lucide-react'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useFirebaseList } from '@/hooks/useFirebaseRealtime'
@@ -29,13 +28,8 @@ const WALLETS: { value: WalletType; icon: string; label: string }[] = [
 ]
 
 export function TransactionModal({ transaction, defaultType = 'expense', onClose }: Props) {
-  const { data: session } = useSession()
-  const userId = session?.user?.id
-
-  if (!userId) return null
-
   const { addTransaction, updateTransaction } = useTransactions()
-  const { data: categories } = useFirebaseList<Category>(`users/${userId}/categories`)
+  const { data: categories } = useFirebaseList<Category>('categories')
 
   const [type, setType] = useState<TransactionType>(transaction?.type || defaultType)
   const [amount, setAmount] = useState(transaction?.amount?.toString() || '')

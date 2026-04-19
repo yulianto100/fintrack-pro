@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTransactions } from '@/hooks/useTransactions'
-import { useSession } from "next-auth/react"
 import { useFirebaseList } from '@/hooks/useFirebaseRealtime'
 import { formatCurrency, formatDate, getMonthOptions } from '@/lib/utils'
 import type { Category, Transaction } from '@/types'
@@ -13,17 +12,11 @@ import { TransactionModal } from '@/components/transactions/TransactionModal'
 import toast from 'react-hot-toast'
 
 export default function TransactionsPage() {
-  const { data: session } = useSession()
-  const userId = session?.user?.id
-
-  if (!userId) return null
-
   const {
     transactions, loading, filters, setFilters, stats,
     deleteTransaction,
   } = useTransactions()
-
-  const { data: categories } = useFirebaseList<Category>(`users/${userId}/categories`)
+  const { data: categories } = useFirebaseList<Category>('categories')
 
   const [showFilters, setShowFilters] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)

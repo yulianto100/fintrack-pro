@@ -21,8 +21,8 @@ async function fetchAntamPrice(): Promise<GoldPrice | null> {
     
     // Parse price from HTML (the table structure on logammulia.com)
     // Look for 1 gram buy price
-const buyMatch = html.match(/Rp[\s]*([0-9.,]+)(?=[\s\S]*?Jual)/)
-const sellMatch = html.match(/Rp[\s]*([0-9.,]+)(?=[\s\S]*?Buyback)/)
+    const buyMatch = html.match(/Rp[\s]*([0-9.,]+)(?=.*?Jual)/s)
+    const sellMatch = html.match(/Rp[\s]*([0-9.,]+)(?=.*?Buyback)/s)
     
     // Fallback: use a reasonable estimate if scraping fails
     const buyPrice = parseFloat((buyMatch?.[1] || '1100000').replace(/\./g, '').replace(',', '.'))

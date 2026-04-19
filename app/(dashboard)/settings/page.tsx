@@ -12,12 +12,8 @@ import toast from 'react-hot-toast'
 
 export default function SettingsPage() {
   const { data: session } = useSession()
-  const userId = session?.user?.id
-
-  if (!userId) return null
-
   const { supported, subscribed, loading: notifLoading, subscribe, unsubscribe } = usePushNotifications()
-  const { data: categories } = useFirebaseList<Category>(`users/${userId}/categories`)
+  const { data: categories } = useFirebaseList<Category>('categories')
   const [showCatModal, setShowCatModal] = useState(false)
   const [catForm, setCatForm] = useState({ name: '', icon: '📋', type: 'expense', color: '#6b7280' })
   const [saving, setSaving] = useState(false)
