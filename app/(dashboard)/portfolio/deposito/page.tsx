@@ -1,0 +1,285 @@
+'use client'
+
+import { useState, useMemo } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useFirebaseList } from '@/hooks/useFirebaseRealtime'
+import { formatCurrency, formatDate, formatNumber, enrichDeposit } from '@/lib/utils'
+import type { Deposit } from '@/types'
+import { Plus, Trash2, Bell, Clock, CheckCircle, X } from 'lucide-react'
+import toast from 'react-hot-toast'
+
+export default function DepositoPage() {
+  const { data: deposits, loading } = useFirebaseList<Deposit>('portfolio/deposits')
+  const [showAdd, setShowAdd] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({
+    bankName: '', nominal: '', interestRate: '', tenorMonths: '', startDate: new Date().toISOString().split('T')[0], notes: '',
+  })
+
+  const enriched = useMemo(() => (deposits || []).map(enrichDeposit), [deposits])
+  const active = useMemo(() => enriched.filter((d) => d.status === 'active').sort((a, b) => a.daysRemaining - b.daysRemaining), [enriched])
+  const history = useMemo(() => enriched.filter((d) => d.status !== 'active'), [enriched])
+
+  const totals = useMemo(() => ({
+    nominal: active.reduce((s, d) => s + d.nominal, 0),
+    finalValue: active.reduce((s, d) => s + d.finalValue, 0),
+    interest: active.reduce((s, d) => s + d.totalInterest, 0),
+  }), [active])
+
+  const handleAdd = async () => {
+    if (!form.bankName || !form.nominal || !form.interestRate || !form.tenorMonths || !form.startDate) {
+      toast.error('Isi semua field'); return
+    }
+    setSaving(true)
+    try {
+      const res = await fetch('/api/portfolio/deposits', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error)
+      toast.success('Deposito berhasil ditambahkan!')
+      setShowAdd(false)
+      setForm({ bankName: '', nominal: '', interestRate: '', tenorMonths: '', startDate: new Date().toISOString().split('T')[0], notes: '' })
+    } catch { toast.error('Gagal menambahkan deposito') }
+    finally { setSaving(false) }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Hapus deposito ini?')) return
+    await fetch(`/api/portfolio/deposits?id=${id}`, { method: 'DELETE' })
+    toast.success('Deposito dihapus')
+  }
+
+  const getDaysColor = (days: number) => {
+    if (days <= 1) return 'var(--red)'
+    if (days <= 7) return '#f97316'
+    if (days <= 30) return '#f59e0b'
+    return 'var(--accent)'
+  }
+
+  // Preview calculation
+  const preview = useMemo(() => {
+    if (!form.nominal || !form.interestRate || !form.tenorMonths) return null
+    const nom = parseFloat(form.nominal)
+    const rate = parseFloat(form.interestRate)
+    const tenor = parseInt(form.tenorMonths)
+    const interest = nom * (rate / 100 / 12) * tenor
+    return { interest, finalValue: nom + interest }
+  }, [form.nominal, form.interestRate, form.tenorMonths])
+
+  return (
+    <div className="px-4 py-6 max-w-2xl mx-auto">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-xl font-display font-bold" style={{ color: 'var(--text-primary)' }}>🏦 Deposito</h1>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Notifikasi otomatis jatuh tempo</p>
+        </div>
+        <button onClick={() => setShowAdd(true)} className="btn-primary px-4 py-2 flex items-center gap-1.5 text-sm">
+          <Plus size={16} /> Tambah
+        </button>
+      </div>
+
+      {/* Summary */}
+      <div className="glass-card p-5 mb-5" style={{ borderColor: 'rgba(168,85,247,0.2)' }}>
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <div>
+            <p className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>Total Modal</p>
+            <p className="text-sm font-bold font-mono" style={{ color: '#a855f7' }}>{formatCurrency(totals.nominal)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>Total Bunga</p>
+            <p className="text-sm font-bold font-mono" style={{ color: 'var(--accent)' }}>{formatCurrency(totals.interest)}</p>
+          </div>
+          <div>
+            <p className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>Nilai Akhir</p>
+            <p className="text-sm font-bold font-mono" style={{ color: 'var(--text-primary)' }}>{formatCurrency(totals.finalValue)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Active deposits */}
+      {loading ? (
+        <div className="space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="skeleton h-32 rounded-2xl" />)}</div>
+      ) : !active.length ? (
+        <div className="text-center py-16">
+          <p className="text-4xl mb-3">🏦</p>
+          <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Belum ada deposito aktif</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {active.map((d) => {
+            const dayColor = getDaysColor(d.daysRemaining)
+            const isUrgent = d.daysRemaining <= 3
+            return (
+              <motion.div key={d.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className="glass-card p-4 relative overflow-hidden"
+                style={{ borderColor: isUrgent ? 'rgba(239,68,68,0.3)' : 'var(--border)' }}>
+                {isUrgent && (
+                  <div className="absolute top-0 right-0 left-0 h-0.5"
+                    style={{ background: 'linear-gradient(90deg, transparent, var(--red), transparent)' }} />
+                )}
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-bold" style={{ color: 'var(--text-primary)' }}>{d.bankName}</p>
+                      {isUrgent && <Bell size={14} color="var(--red)" className="animate-pulse" />}
+                    </div>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {d.interestRate}% / thn · {d.tenorMonths} bulan
+                    </p>
+                  </div>
+                  <button onClick={() => handleDelete(d.id)} className="w-7 h-7 rounded-lg flex items-center justify-center"
+                    style={{ background: 'var(--red-dim)', color: 'var(--red)' }}>
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 mb-3">
+                  <div>
+                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Modal</p>
+                    <p className="text-xs font-bold font-mono" style={{ color: '#a855f7' }}>{formatCurrency(d.nominal)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Nilai Akhir</p>
+                    <p className="text-xs font-bold font-mono" style={{ color: 'var(--accent)' }}>{formatCurrency(d.finalValue)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Sisa Hari</p>
+                    <p className="text-xs font-bold" style={{ color: dayColor }}>
+                      {d.daysRemaining <= 0 ? 'HARI INI!' : `${d.daysRemaining} hari`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div className="progress-bar mb-2">
+                  <div className="progress-bar-fill" style={{ width: `${d.percentComplete}%`, background: dayColor }} />
+                </div>
+                <div className="flex items-center justify-between text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                  <span>{formatDate(d.startDate, 'dd MMM yy')}</span>
+                  <div className="flex items-center gap-1">
+                    <Clock size={10} />
+                    <span>{d.percentComplete.toFixed(0)}%</span>
+                  </div>
+                  <span>{formatDate(d.maturityDate, 'dd MMM yy')}</span>
+                </div>
+              </motion.div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* History toggle */}
+      {history.length > 0 && (
+        <div className="mt-6">
+          <button onClick={() => setShowHistory(!showHistory)}
+            className="w-full flex items-center justify-between py-3 px-4 rounded-xl mb-3"
+            style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)' }}>
+            <span className="text-sm font-medium">Riwayat Deposito ({history.length})</span>
+            <CheckCircle size={16} color="var(--text-muted)" />
+          </button>
+          <AnimatePresence>
+            {showHistory && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }} className="overflow-hidden space-y-2">
+                {history.map((d) => (
+                  <div key={d.id} className="glass-card p-3 flex items-center justify-between opacity-60">
+                    <div>
+                      <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{d.bankName}</p>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        {formatCurrency(d.nominal)} · Cair {formatDate(d.maturityDate)}
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold" style={{ color: 'var(--accent)' }}>+{formatCurrency(d.totalInterest)}</p>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* Add modal */}
+      <AnimatePresence>
+        {showAdd && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+              onClick={() => setShowAdd(false)} />
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+              className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl p-6"
+              style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', maxHeight: '90dvh', overflowY: 'auto' }}>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Tambah Deposito</h2>
+                <button onClick={() => setShowAdd(false)} className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)' }}>
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Nama Bank</label>
+                  <input type="text" className="input-glass" placeholder="contoh: BCA, Mandiri, BRI"
+                    value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-xs mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Nominal (Rp)</label>
+                  <input type="number" className="input-glass" placeholder="contoh: 10000000"
+                    value={form.nominal} onChange={(e) => setForm({ ...form, nominal: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Bunga (%/thn)</label>
+                    <input type="number" step="0.01" className="input-glass" placeholder="contoh: 4.5"
+                      value={form.interestRate} onChange={(e) => setForm({ ...form, interestRate: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-xs mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Tenor (bulan)</label>
+                    <input type="number" className="input-glass" placeholder="contoh: 12"
+                      value={form.tenorMonths} onChange={(e) => setForm({ ...form, tenorMonths: e.target.value })} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Tanggal Mulai</label>
+                  <input type="date" className="input-glass"
+                    value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+                </div>
+                {preview && (
+                  <div className="p-3 rounded-xl space-y-1" style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)' }}>
+                    <p className="text-xs font-semibold mb-2" style={{ color: '#a855f7' }}>Preview Perhitungan</p>
+                    <div className="flex justify-between text-xs">
+                      <span style={{ color: 'var(--text-muted)' }}>Total Bunga</span>
+                      <span style={{ color: 'var(--accent)' }}>+{formatCurrency(preview.interest)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span style={{ color: 'var(--text-muted)' }}>Nilai Akhir</span>
+                      <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(preview.finalValue)}</span>
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <label className="text-xs mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Catatan (opsional)</label>
+                  <input type="text" className="input-glass" placeholder="Misal: Untuk dana darurat"
+                    value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+                </div>
+                <div className="flex items-start gap-2 p-3 rounded-xl" style={{ background: 'rgba(59,130,246,0.08)' }}>
+                  <Bell size={14} color="#3b82f6" style={{ marginTop: 1, flexShrink: 0 }} />
+                  <p className="text-xs" style={{ color: '#3b82f6' }}>
+                    Anda akan mendapat notifikasi H-3, H-2, H-1, dan hari jatuh tempo
+                  </p>
+                </div>
+                <button onClick={handleAdd} disabled={saving} className="btn-primary w-full py-3.5"
+                  style={{ background: 'linear-gradient(135deg, #a855f7, #7c3aed)' }}>
+                  {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" /> : 'Simpan Deposito'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
