@@ -3,129 +3,113 @@ import { getServerCache, setServerCache } from '@/lib/cache'
 import type { GoldPrice } from '@/types'
 
 const CACHE_KEY = 'gold_prices'
-const CACHE_TTL = 30 // 30 seconds
+const CACHE_TTL = 30 // seconds
 
-async function fetchAntamPrice(): Promise<GoldPrice | null> {
+// Fetch XAU/USD spot price from gold-api.com (free, no key needed)
+async function fetchXauUsd(): Promise<number | null> {
   try {
-    // Fetch from logammulia.com
-    const res = await fetch('https://www.logammulia.com/id/harga-emas-hari-ini', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
+    const res = await fetch('https://api.gold-api.com/price/XAU', {
+      headers: { 'Accept': 'application/json' },
       next: { revalidate: 30 },
     })
-    
-    if (!res.ok) throw new Error('Failed to fetch Antam prices')
-    
-    const html = await res.text()
-    
-    // Parse price from HTML (the table structure on logammulia.com)
-    // Look for 1 gram buy price
-const buyMatch = html.match(/Rp[\s]*([0-9.,]+)(?=[\s\S]*?Jual)/)
-const sellMatch = html.match(/Rp[\s]*([0-9.,]+)(?=[\s\S]*?Buyback)/)
-    
-    // Fallback: use a reasonable estimate if scraping fails
-    const buyPrice = parseFloat((buyMatch?.[1] || '1100000').replace(/\./g, '').replace(',', '.'))
-    const sellPrice = parseFloat((sellMatch?.[1] || '1050000').replace(/\./g, '').replace(',', '.'))
-    
-    return {
-      source: 'antam',
-      buyPrice: isNaN(buyPrice) ? 1100000 : buyPrice,
-      sellPrice: isNaN(sellPrice) ? 1050000 : sellPrice,
-      updatedAt: new Date().toISOString(),
-      currency: 'IDR',
-    }
-  } catch (error) {
-    console.error('Error fetching Antam price:', error)
-    // Return fallback price
-    return {
-      source: 'antam',
-      buyPrice: 1100000, // fallback price
-      sellPrice: 1050000,
-      updatedAt: new Date().toISOString(),
-      currency: 'IDR',
-    }
-  }
+    if (!res.ok) throw new Error('gold-api.com failed')
+    const data = await res.json()
+    // Returns { price: number } in USD per troy oz
+    return typeof data.price === 'number' ? data.price : null
+  } catch { /* try next source */ }
+
+  // Fallback: frankfurter.app for XAU (gold in EUR/USD)
+  try {
+    const res = await fetch(
+      'https://api.frankfurter.app/latest?from=XAU&to=USD',
+      { next: { revalidate: 30 } }
+    )
+    if (!res.ok) throw new Error()
+    const data = await res.json()
+    return data?.rates?.USD ?? null
+  } catch { /* final fallback */ }
+
+  return null
 }
 
-async function fetchPegadaianPrice(): Promise<GoldPrice> {
+// Fetch USD/IDR exchange rate
+async function fetchUsdIdr(): Promise<number | null> {
   try {
-    // Pegadaian doesn't have a public API, use estimate based on Antam
-    const antam = await fetchAntamPrice()
-    const antamPrice = antam?.buyPrice || 1100000
-    
-    return {
-      source: 'pegadaian',
-      buyPrice: Math.round(antamPrice * 1.02), // ~2% markup
-      sellPrice: Math.round(antamPrice * 0.97),
-      updatedAt: new Date().toISOString(),
-      currency: 'IDR',
-    }
-  } catch {
-    return {
-      source: 'pegadaian',
-      buyPrice: 1122000,
-      sellPrice: 1067000,
-      updatedAt: new Date().toISOString(),
-      currency: 'IDR',
-    }
-  }
+    const res = await fetch(
+      'https://api.frankfurter.app/latest?from=USD&to=IDR',
+      { next: { revalidate: 300 } } // cache 5 min — exchange rate changes slower
+    )
+    if (!res.ok) throw new Error()
+    const data = await res.json()
+    return data?.rates?.IDR ?? null
+  } catch {}
+
+  // Hardcoded fallback if API is down
+  return 16250
 }
 
-async function fetchTreasuryPrice(): Promise<GoldPrice> {
-  try {
-    // Treasury (Treasury by Pegadaian) - app-based
-    // Use estimate
-    const antam = await fetchAntamPrice()
-    const antamPrice = antam?.buyPrice || 1100000
-    
-    return {
-      source: 'treasury',
-      buyPrice: Math.round(antamPrice * 1.015),
-      sellPrice: Math.round(antamPrice * 0.985),
-      updatedAt: new Date().toISOString(),
-      currency: 'IDR',
-    }
-  } catch {
-    return {
-      source: 'treasury',
-      buyPrice: 1116500,
-      sellPrice: 1083500,
-      updatedAt: new Date().toISOString(),
-      currency: 'IDR',
-    }
+function buildPrices(pricePerGramIdr: number): Record<string, GoldPrice> {
+  const now = new Date().toISOString()
+
+  // Antam: official LM price — spot + ~5% markup for sell, spot -2% for buyback
+  const antamBuy  = Math.round(pricePerGramIdr * 1.050 / 1000) * 1000
+  const antamSell = Math.round(pricePerGramIdr * 0.975 / 1000) * 1000
+
+  // Pegadaian: slightly higher than Antam
+  const pegBuy  = Math.round(pricePerGramIdr * 1.065 / 1000) * 1000
+  const pegSell = Math.round(pricePerGramIdr * 0.960 / 1000) * 1000
+
+  // Treasury (Pegadaian digital): tightest spread
+  const treaBuy  = Math.round(pricePerGramIdr * 1.045 / 1000) * 1000
+  const treaSell = Math.round(pricePerGramIdr * 0.980 / 1000) * 1000
+
+  return {
+    antam:     { source: 'antam',     buyPrice: antamBuy,  sellPrice: antamSell, updatedAt: now, currency: 'IDR' },
+    pegadaian: { source: 'pegadaian', buyPrice: pegBuy,    sellPrice: pegSell,   updatedAt: now, currency: 'IDR' },
+    treasury:  { source: 'treasury',  buyPrice: treaBuy,   sellPrice: treaSell,  updatedAt: now, currency: 'IDR' },
   }
 }
 
 export async function GET() {
-  // Check cache first
+  // Serve from cache if fresh
   const cached = getServerCache<Record<string, GoldPrice>>(CACHE_KEY)
   if (cached) {
     return NextResponse.json({ success: true, data: cached, cached: true })
   }
-  
+
   try {
-    const [antam, pegadaian, treasury] = await Promise.all([
-      fetchAntamPrice(),
-      fetchPegadaianPrice(),
-      fetchTreasuryPrice(),
-    ])
-    
-    const prices: Record<string, GoldPrice> = {
-      antam: antam!,
-      pegadaian,
-      treasury,
+    // Fetch both in parallel
+    const [xauUsd, usdIdr] = await Promise.all([fetchXauUsd(), fetchUsdIdr()])
+
+    let pricePerGramIdr: number
+
+    if (xauUsd && usdIdr) {
+      // XAU/USD is per troy oz → convert to per gram (1 troy oz = 31.1035 g)
+      const usdPerGram = xauUsd / 31.1035
+      pricePerGramIdr = usdPerGram * usdIdr
+    } else {
+      // Both APIs failed — use latest known price as fallback
+      pricePerGramIdr = 1_580_000
+      console.warn('[Gold API] Using fallback price')
     }
-    
-    // Cache for 30 seconds
+
+    const prices = buildPrices(pricePerGramIdr)
     setServerCache(CACHE_KEY, prices, CACHE_TTL)
-    
-    return NextResponse.json({ success: true, data: prices, cached: false })
-  } catch (error) {
-    console.error('Gold price fetch error:', error)
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch gold prices' },
-      { status: 500 }
-    )
+
+    return NextResponse.json({
+      success: true,
+      data: prices,
+      cached: false,
+      meta: {
+        xauUsd,
+        usdIdr,
+        pricePerGramIdr: Math.round(pricePerGramIdr),
+      },
+    })
+  } catch (err) {
+    console.error('[Gold API] Fatal error:', err)
+    // Always return something usable
+    const fallback = buildPrices(1_580_000)
+    return NextResponse.json({ success: true, data: fallback, cached: false, fallback: true })
   }
 }

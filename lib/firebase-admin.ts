@@ -3,7 +3,7 @@ import { getDatabase } from 'firebase-admin/database'
 
 let adminApp: App
 
-function getAdminApp(): App {
+export function getAdminApp(): App {
   if (getApps().length === 0) {
     adminApp = initializeApp({
       credential: cert({
@@ -21,18 +21,4 @@ function getAdminApp(): App {
 
 export function getAdminDatabase() {
   return getDatabase(getAdminApp())
-}
-
-// Helper: Get user-scoped database ref
-export function getUserRef(userId: string, path: string) {
-  const db = getAdminDatabase()
-  return db.ref(`users/${userId}/${path}`)
-}
-
-// Helper: Get all data from a ref
-export async function getRefData<T>(ref: ReturnType<typeof db.ref>): Promise<T | null> {
-  const db = getAdminDatabase()
-  const snapshot = await ref.get()
-  if (!snapshot.exists()) return null
-  return snapshot.val() as T
 }
