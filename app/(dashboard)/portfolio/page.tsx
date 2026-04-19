@@ -78,7 +78,7 @@ export default function PortfolioPage() {
       color: '#3b82f6',
       bg: 'rgba(59,130,246,0.1)',
       meta: stockSummary.totalCost > 0
-        ? `${formatPercent(stockSummary.profitLossPercent)} (${formatCurrency(stockSummary.profitLoss)})`
+        ? `${formatPercent(stockSummary.profitLoss || 0)} (${formatCurrency(stockSummary.profitLoss)})`
         : 'Belum ada saham',
       metaColor: stockSummary.profitLoss >= 0 ? 'var(--accent)' : 'var(--red)',
       pct: totalPortfolio > 0 ? (stockSummary.totalValue / totalPortfolio) * 100 : 0,
