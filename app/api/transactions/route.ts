@@ -2,145 +2,121 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getAdminDatabase } from '@/lib/firebase-admin'
-import type { Transaction, TransactionFilters } from '@/types'
+import type { Transaction } from '@/types'
 
-function requireAuth() {
-  return getServerSession(authOptions)
+async function getUserId(): Promise<string | null> {
+  const session = await getServerSession(authOptions)
+  return session?.user?.id || null
 }
 
-// GET /api/transactions - list with filters
 export async function GET(request: Request) {
-  const session = await requireAuth()
-  if (!session?.user?.id) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-  }
-  
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ success: false, error: 'Sesi tidak valid. Silakan login ulang.' }, { status: 401 })
+
   const { searchParams } = new URL(request.url)
-  const month = searchParams.get('month') // format: "2024-07"
+  const month      = searchParams.get('month')
   const categoryId = searchParams.get('categoryId')
-  const type = searchParams.get('type')
-  const wallet = searchParams.get('wallet')
-  const limit = parseInt(searchParams.get('limit') || '100')
-  
+  const type       = searchParams.get('type')
+  const wallet     = searchParams.get('wallet')
+  const limit      = Math.min(parseInt(searchParams.get('limit') || '200'), 500)
+
   try {
-    const db = getAdminDatabase()
-    const ref = db.ref(`users/${session.user.id}/transactions`)
-    const snapshot = await ref.orderByChild('date').get()
-    
-    if (!snapshot.exists()) {
-      return NextResponse.json({ success: true, data: [] })
-    }
-    
-    let transactions: Transaction[] = Object.values(snapshot.val())
-    
-    // Apply filters
-    if (month) {
-      transactions = transactions.filter((t) => t.date.startsWith(month))
-    }
-    if (categoryId) {
-      transactions = transactions.filter((t) => t.categoryId === categoryId)
-    }
-    if (type) {
-      transactions = transactions.filter((t) => t.type === type)
-    }
-    if (wallet) {
-      transactions = transactions.filter((t) => t.wallet === wallet || t.toWallet === wallet)
-    }
-    
-    // Sort by date descending
-    transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    
-    // Limit results
-    transactions = transactions.slice(0, limit)
-    
-    return NextResponse.json({ success: true, data: transactions })
-  } catch (error) {
-    console.error('Error fetching transactions:', error)
-    return NextResponse.json({ success: false, error: 'Failed to fetch transactions' }, { status: 500 })
+    const db  = getAdminDatabase()
+    const snap = await db.ref(`users/${userId}/transactions`).orderByChild('date').get()
+
+    if (!snap.exists()) return NextResponse.json({ success: true, data: [] })
+
+    let list: Transaction[] = Object.values(snap.val())
+    if (month)      list = list.filter((t) => t.date.startsWith(month))
+    if (categoryId) list = list.filter((t) => t.categoryId === categoryId)
+    if (type)       list = list.filter((t) => t.type === type)
+    if (wallet)     list = list.filter((t) => t.wallet === wallet || t.toWallet === wallet)
+
+    list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    return NextResponse.json({ success: true, data: list.slice(0, limit) })
+  } catch (err) {
+    console.error('[GET /api/transactions]', err)
+    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
   }
 }
 
-// POST /api/transactions - create
 export async function POST(request: Request) {
-  const session = await requireAuth()
-  if (!session?.user?.id) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-  }
-  
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ success: false, error: 'Sesi tidak valid. Silakan login ulang.' }, { status: 401 })
+
   try {
     const body = await request.json()
     const { type, amount, categoryId, description, date, wallet, toWallet, tags } = body
-    
-    if (!type || !amount || !categoryId || !date || !wallet) {
-      return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 })
+
+    // Validate
+    if (!type)       return NextResponse.json({ success: false, error: 'Tipe transaksi wajib diisi' }, { status: 400 })
+    if (!amount || Number(amount) <= 0) return NextResponse.json({ success: false, error: 'Jumlah tidak valid' }, { status: 400 })
+    if (!date)       return NextResponse.json({ success: false, error: 'Tanggal wajib diisi' }, { status: 400 })
+    if (!wallet)     return NextResponse.json({ success: false, error: 'Wallet wajib dipilih' }, { status: 400 })
+    if (!categoryId && type !== 'transfer') return NextResponse.json({ success: false, error: 'Kategori wajib dipilih' }, { status: 400 })
+
+    const db     = getAdminDatabase()
+    const txRef  = db.ref(`users/${userId}/transactions`)
+    const newRef = txRef.push()
+
+    // Fetch category info — non-blocking, fallback to empty
+    let categoryName = '', categoryIcon = ''
+    if (categoryId && categoryId !== 'transfer') {
+      try {
+        const catSnap = await db.ref(`users/${userId}/categories/${categoryId}`).get()
+        if (catSnap.exists()) {
+          const cat = catSnap.val()
+          categoryName = cat.name  || ''
+          categoryIcon = cat.icon  || ''
+        }
+      } catch { /* ignore */ }
     }
-    
-    const db = getAdminDatabase()
-    const ref = db.ref(`users/${session.user.id}/transactions`)
-    const newRef = ref.push()
-    
-    // Get category info
-    const catSnapshot = await db.ref(`users/${session.user.id}/categories/${categoryId}`).get()
-    const category = catSnapshot.val()
-    
-    const transaction: Transaction = {
-      id: newRef.key!,
-      userId: session.user.id,
+
+    const tx: Transaction = {
+      id:           newRef.key!,
+      userId,
       type,
-      amount: parseFloat(amount),
-      categoryId,
-      categoryName: category?.name || '',
-      categoryIcon: category?.icon || '',
-      description: description || '',
+      amount:       Number(amount),
+      categoryId:   categoryId || 'transfer',
+      categoryName,
+      categoryIcon,
+      description:  description || '',
       date,
       wallet,
-      toWallet: toWallet || undefined,
-      tags: tags || [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      toWallet:     toWallet || undefined,
+      tags:         tags || [],
+      createdAt:    new Date().toISOString(),
+      updatedAt:    new Date().toISOString(),
     }
-    
-    await newRef.set(transaction)
-    
-    return NextResponse.json({ success: true, data: transaction }, { status: 201 })
-  } catch (error) {
-    console.error('Error creating transaction:', error)
-    return NextResponse.json({ success: false, error: 'Failed to create transaction' }, { status: 500 })
+
+    await newRef.set(tx)
+    return NextResponse.json({ success: true, data: tx }, { status: 201 })
+  } catch (err) {
+    console.error('[POST /api/transactions]', err)
+    return NextResponse.json({ success: false, error: `Server error: ${String(err)}` }, { status: 500 })
   }
 }
 
-// PUT /api/transactions - bulk update (for import)
 export async function PUT(request: Request) {
-  const session = await requireAuth()
-  if (!session?.user?.id) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-  }
-  
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+
   try {
     const { transactions } = await request.json()
-    if (!Array.isArray(transactions)) {
-      return NextResponse.json({ success: false, error: 'transactions array required' }, { status: 400 })
-    }
-    
-    const db = getAdminDatabase()
-    const ref = db.ref(`users/${session.user.id}/transactions`)
-    
+    if (!Array.isArray(transactions)) return NextResponse.json({ success: false, error: 'transactions array required' }, { status: 400 })
+
+    const db  = getAdminDatabase()
+    const ref = db.ref(`users/${userId}/transactions`)
     const batch: Record<string, Transaction> = {}
+
     transactions.forEach((t: Partial<Transaction>) => {
       const key = ref.push().key!
-      batch[key] = {
-        ...t,
-        id: key,
-        userId: session.user.id,
-        createdAt: t.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as Transaction
+      batch[key] = { ...t, id: key, userId, createdAt: t.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() } as Transaction
     })
-    
+
     await ref.update(batch)
-    
     return NextResponse.json({ success: true, data: { imported: transactions.length } })
-  } catch (error) {
-    return NextResponse.json({ success: false, error: 'Failed to import transactions' }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
   }
 }
