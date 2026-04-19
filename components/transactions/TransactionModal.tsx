@@ -29,7 +29,7 @@ const WALLETS: { value: WalletType; icon: string; label: string }[] = [
 
 export function TransactionModal({ transaction, defaultType = 'expense', onClose }: Props) {
   const { addTransaction, updateTransaction } = useTransactions()
-  const { data: categories } = useFirebaseList<Category>('categories')
+  const { data: categories } = useFirebaseList<Category>(`users/${userId}/categories`)
 
   const [type, setType] = useState<TransactionType>(transaction?.type || defaultType)
   const [amount, setAmount] = useState(transaction?.amount?.toString() || '')

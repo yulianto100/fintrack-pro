@@ -16,7 +16,7 @@ export default function TransactionsPage() {
     transactions, loading, filters, setFilters, stats,
     deleteTransaction,
   } = useTransactions()
-  const { data: categories } = useFirebaseList<Category>('categories')
+  const { data: categories } = useFirebaseList<Category>(`users/${userId}/categories`)
 
   const [showFilters, setShowFilters] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
