@@ -56,5 +56,10 @@ export function useFirebaseList<T>(path: string | null) {
     (val: Record<string, T>) => Object.values(val),
     []
   )
-  return useFirebaseRealtime<T[]>(path, transform as (val: Record<string, T>) => T[])
+
+  return useFirebaseRealtime(path, transform) as {
+    data: T[] | null
+    loading: boolean
+    error: string | null
+  }
 }
