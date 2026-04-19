@@ -12,10 +12,16 @@ import { TransactionModal } from '@/components/transactions/TransactionModal'
 import toast from 'react-hot-toast'
 
 export default function TransactionsPage() {
+  const { data: session } = useSession()
+  const userId = session?.user?.id
+
+  if (!userId) return null
+
   const {
     transactions, loading, filters, setFilters, stats,
     deleteTransaction,
   } = useTransactions()
+
   const { data: categories } = useFirebaseList<Category>(`users/${userId}/categories`)
 
   const [showFilters, setShowFilters] = useState(false)
