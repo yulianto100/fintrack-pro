@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useFirebaseList } from '@/hooks/useFirebaseRealtime'
+import { useApiList } from '@/hooks/useApiData'
 import { useStockPrices } from '@/hooks/usePrices'
 import { formatCurrency, formatPercent, parseLotValue, calcProfitLoss } from '@/lib/utils'
 import type { StockHolding } from '@/types'
@@ -10,7 +10,7 @@ import { Plus, Trash2, TrendingUp, TrendingDown, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function SahamPage() {
-  const { data: holdings, loading } = useFirebaseList<StockHolding>('portfolio/stocks')
+  const { data: holdings, loading, refetch } = useApiList<StockHolding>('/api/portfolio/stocks', { refreshMs: 15000 })
   const symbols = useMemo(() => (holdings || []).map((s) => s.symbol), [holdings])
   const { prices, loading: pricesLoading } = useStockPrices(symbols)
 
@@ -32,8 +32,9 @@ export default function SahamPage() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
-      toast.success('Saham berhasil ditambahkan!')
+      toast.success('Saham berhasil ditambahkan! ✓')
       setShowAdd(false)
+      refetch()
       setForm({ symbol: '', lots: '', avgPrice: '', buyDate: '', notes: '' })
     } catch {
       toast.error('Gagal menambahkan saham')
@@ -46,6 +47,7 @@ export default function SahamPage() {
     if (!confirm('Hapus saham ini?')) return
     await fetch(`/api/portfolio/stocks?id=${id}`, { method: 'DELETE' })
     toast.success('Saham dihapus')
+    refetch()
   }
 
   // Portfolio totals

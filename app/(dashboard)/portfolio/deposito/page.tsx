@@ -2,14 +2,14 @@
 
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useFirebaseList } from '@/hooks/useFirebaseRealtime'
+import { useApiList } from '@/hooks/useApiData'
 import { formatCurrency, formatDate, formatNumber, enrichDeposit } from '@/lib/utils'
 import type { Deposit } from '@/types'
 import { Plus, Trash2, Bell, Clock, CheckCircle, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function DepositoPage() {
-  const { data: deposits, loading } = useFirebaseList<Deposit>('portfolio/deposits')
+  const { data: deposits, loading, refetch } = useApiList<Deposit>('/api/portfolio/deposits?status=all', { refreshMs: 30000 })
   const [showAdd, setShowAdd] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -39,8 +39,9 @@ export default function DepositoPage() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
-      toast.success('Deposito berhasil ditambahkan!')
+      toast.success('Deposito berhasil ditambahkan! ✓')
       setShowAdd(false)
+      refetch()
       setForm({ bankName: '', nominal: '', interestRate: '', tenorMonths: '', startDate: new Date().toISOString().split('T')[0], notes: '' })
     } catch { toast.error('Gagal menambahkan deposito') }
     finally { setSaving(false) }
@@ -50,6 +51,7 @@ export default function DepositoPage() {
     if (!confirm('Hapus deposito ini?')) return
     await fetch(`/api/portfolio/deposits?id=${id}`, { method: 'DELETE' })
     toast.success('Deposito dihapus')
+    refetch()
   }
 
   const getDaysColor = (days: number) => {

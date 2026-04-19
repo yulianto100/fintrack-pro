@@ -1,42 +1,47 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import { useFirebaseList } from './useFirebaseRealtime'
+import { useApiList } from './useApiData'
 import { getCurrentMonth } from '@/lib/utils'
 import type { Transaction, TransactionFilters } from '@/types'
 import toast from 'react-hot-toast'
 
 export function useTransactions() {
-  const { data: transactions, loading } = useFirebaseList<Transaction>('transactions')
-  const [filters, setFilters] = useState<TransactionFilters>({
-    month: getCurrentMonth(),
-  })
+  const [filters, setFilters] = useState<TransactionFilters>({ month: getCurrentMonth() })
+
+  // Build query string from filters
+  const url = useMemo(() => {
+    const p = new URLSearchParams()
+    if (filters.month)      p.set('month',      filters.month)
+    if (filters.categoryId) p.set('categoryId', filters.categoryId)
+    if (filters.type)       p.set('type',        filters.type)
+    if (filters.wallet)     p.set('wallet',      filters.wallet)
+    return `/api/transactions?${p.toString()}&limit=500`
+  }, [filters])
+
+  const { data: transactions, loading, refetch } = useApiList<Transaction>(url, { refreshMs: 5000 })
+
+  // Client-side search (not passed to API)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const filteredTransactions = useMemo(() => {
-    if (!transactions) return []
     let list = [...transactions]
-
-    if (filters.month) list = list.filter((t) => t.date.startsWith(filters.month!))
-    if (filters.categoryId) list = list.filter((t) => t.categoryId === filters.categoryId)
-    if (filters.type) list = list.filter((t) => t.type === filters.type)
-    if (filters.wallet) list = list.filter((t) => t.wallet === filters.wallet || t.toWallet === filters.wallet)
-    if (filters.search) {
-      const q = filters.search.toLowerCase()
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
       list = list.filter(
         (t) =>
-          t.description.toLowerCase().includes(q) ||
+          t.description?.toLowerCase().includes(q) ||
           t.categoryName?.toLowerCase().includes(q)
       )
     }
-
     return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  }, [transactions, filters])
+  }, [transactions, searchQuery])
 
   const stats = useMemo(() => {
-    const income = filteredTransactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-    const expense = filteredTransactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+    const income  = transactions.filter((t) => t.type === 'income') .reduce((s, t) => s + t.amount, 0)
+    const expense = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
     return { income, expense, balance: income - expense }
-  }, [filteredTransactions])
+  }, [transactions])
 
   const addTransaction = useCallback(async (data: Partial<Transaction>) => {
     try {
@@ -47,13 +52,14 @@ export function useTransactions() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
-      toast.success('Transaksi berhasil ditambahkan!')
+      toast.success('Transaksi berhasil ditambahkan! ✓')
+      refetch()
       return json.data
     } catch (err) {
       toast.error('Gagal menambahkan transaksi')
       throw err
     }
-  }, [])
+  }, [refetch])
 
   const deleteTransaction = useCallback(async (id: string) => {
     try {
@@ -61,11 +67,11 @@ export function useTransactions() {
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
       toast.success('Transaksi dihapus')
-    } catch (err) {
+      refetch()
+    } catch {
       toast.error('Gagal menghapus transaksi')
-      throw err
     }
-  }, [])
+  }, [refetch])
 
   const updateTransaction = useCallback(async (id: string, data: Partial<Transaction>) => {
     try {
@@ -76,23 +82,26 @@ export function useTransactions() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
-      toast.success('Transaksi diperbarui!')
+      toast.success('Transaksi diperbarui! ✓')
+      refetch()
       return json.data
-    } catch (err) {
+    } catch {
       toast.error('Gagal memperbarui transaksi')
-      throw err
     }
-  }, [])
+  }, [refetch])
 
   return {
     transactions: filteredTransactions,
-    allTransactions: transactions || [],
+    allTransactions: transactions,
     loading,
     filters,
     setFilters,
     stats,
+    searchQuery,
+    setSearchQuery,
     addTransaction,
     deleteTransaction,
     updateTransaction,
+    refetch,
   }
 }

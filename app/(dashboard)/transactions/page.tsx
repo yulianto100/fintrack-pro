@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTransactions } from '@/hooks/useTransactions'
-import { useFirebaseList } from '@/hooks/useFirebaseRealtime'
+import { useApiList } from '@/hooks/useApiData'
 import { formatCurrency, formatDate, getMonthOptions } from '@/lib/utils'
 import type { Category, Transaction } from '@/types'
 import { Filter, Download, Search, ChevronDown, Trash2, Edit3 } from 'lucide-react'
@@ -16,7 +16,7 @@ export default function TransactionsPage() {
     transactions, loading, filters, setFilters, stats,
     deleteTransaction,
   } = useTransactions()
-  const { data: categories } = useFirebaseList<Category>('categories')
+  const { data: categories } = useApiList<Category>('/api/categories')
 
   const [showFilters, setShowFilters] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
