@@ -9,6 +9,19 @@ type StoredSubscription = {
   }
 }
 
+type UserData = {
+  portfolio?: {
+    deposits?: Record<string, any>
+  }
+}
+
+type Deposit = {
+  status: string
+  maturityDate: string
+  bankName: string
+  notificationSent?: Record<string, boolean>
+}
+
 // Configure web-push
 webpush.setVapidDetails(
   process.env.VAPID_EMAIL || 'mailto:admin@fintrackpro.com',
@@ -84,7 +97,7 @@ export async function checkDepositNotifications(): Promise<void> {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
-    for (const [userId, userData] of Object.entries(users as Record<string, Record<string, unknown>>)) {
+    for (const [userId, userData] of Object.entries(users as Record<string, UserData>)) {
       const deposits = userData.portfolio?.deposits
       if (!deposits) continue
       
