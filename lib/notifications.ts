@@ -31,8 +31,23 @@ export async function sendPushNotification(
     })
     
     const results = await Promise.allSettled(
-      subscriptions.map((sub) => webpush.sendNotification(sub as webpush.PushSubscription, payload))
-    )
+  subscriptions.map((sub) => {
+    // validasi dulu biar gak crash
+    if (!sub.endpoint || !sub.keys?.p256dh || !sub.keys?.auth) {
+      return Promise.reject('Invalid subscription format')
+    }
+
+    const pushSub: webpush.PushSubscription = {
+      endpoint: sub.endpoint,
+      keys: {
+        p256dh: sub.keys.p256dh,
+        auth: sub.keys.auth,
+      },
+    }
+
+    return webpush.sendNotification(pushSub, payload)
+  })
+)
     
     // Remove invalid subscriptions
     const subEntries = Object.entries(snapshot.val())
