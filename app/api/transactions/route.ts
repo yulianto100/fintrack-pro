@@ -28,7 +28,17 @@ export async function GET(request: Request) {
 
     const raw = snap.val() || {}
 
-    let list: Transaction[] = Object.values(raw).filter(Boolean)
+    let list: Transaction[] = Object.values(raw).filter(
+  (t): t is Transaction => {
+    return (
+      t &&
+      typeof t === 'object' &&
+      'id' in t &&
+      'date' in t &&
+      'type' in t
+    )
+  }
+)
     if (month)      list = list.filter((t) => t.date.startsWith(month))
     if (categoryId) list = list.filter((t) => t.categoryId === categoryId)
     if (type)       list = list.filter((t) => t.type === type)
