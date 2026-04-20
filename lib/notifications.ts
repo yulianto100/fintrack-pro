@@ -1,4 +1,4 @@
-const webpush = require('web-push')
+import webpush, { PushSubscription } from 'web-push'
 import { getAdminDatabase } from './firebase-admin'
 
 type StoredSubscription = {
@@ -58,7 +58,7 @@ export async function sendPushNotification(
       return Promise.reject('Invalid subscription format')
     }
 
-    const pushSub: webpush.PushSubscription = {
+    const pushSub: PushSubscription = {
       endpoint: sub.endpoint,
       keys: {
         p256dh: sub.keys.p256dh,
