@@ -2,99 +2,101 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus } from 'lucide-react'
+import { Plus, TrendingUp } from 'lucide-react'
 import { TransactionModal } from './TransactionModal'
 import type { TransactionType } from '@/types'
+import Link from 'next/link'
+
+type Option =
+  | { kind: 'tx';  type: TransactionType; icon: string; label: string; color: string }
+  | { kind: 'nav'; href: string;          icon: string; label: string; color: string }
+
+const OPTIONS: Option[] = [
+  { kind: 'tx',  type: 'income',          icon: '💰', label: 'Pemasukan',  color: 'var(--accent)' },
+  { kind: 'tx',  type: 'expense',         icon: '💸', label: 'Pengeluaran',color: 'var(--red)'    },
+  { kind: 'tx',  type: 'transfer',        icon: '🔄', label: 'Transfer',   color: 'var(--blue)'   },
+  { kind: 'nav', href: '/portfolio/emas', icon: '🥇', label: 'Investasi',  color: 'var(--gold)'   },
+]
 
 export function QuickAddFAB() {
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuOpen,  setMenuOpen ] = useState(false)
   const [modalType, setModalType] = useState<TransactionType | null>(null)
 
-  const options = [
-    { type: 'income' as TransactionType, icon: '💰', label: 'Pemasukan', color: 'var(--accent)' },
-    { type: 'expense' as TransactionType, icon: '💸', label: 'Pengeluaran', color: 'var(--red)' },
-    { type: 'transfer' as TransactionType, icon: '🔄', label: 'Transfer', color: 'var(--blue)' },
-  ]
-
-  const handleOptionClick = (type: TransactionType) => {
-    setMenuOpen(false)
-    setModalType(type)
-  }
-
-  const handleClose = () => {
-    setModalType(null)
-  }
+  const handleTx = (type: TransactionType) => { setMenuOpen(false); setModalType(type) }
 
   return (
     <>
-      {/* Backdrop to close menu */}
+      {/* Backdrop */}
       <AnimatePresence>
         {menuOpen && (
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-30"
-            onClick={() => setMenuOpen(false)}
-          />
+          <motion.div key="bg" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
         )}
       </AnimatePresence>
 
-      {/* Sub buttons */}
-      <AnimatePresence>
-        {menuOpen && (
-          <div className="fixed bottom-24 right-4 z-40 flex flex-col items-end gap-3">
-            {options.map((opt, i) => (
-              <motion.button
-                key={opt.type}
-                initial={{ opacity: 0, x: 20, scale: 0.8 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: 20, scale: 0.8 }}
-                transition={{ delay: i * 0.05, type: 'spring', stiffness: 400, damping: 25 }}
-                onClick={() => handleOptionClick(opt.type)}
-                className="flex items-center gap-3 pr-4 pl-3 py-2.5 rounded-2xl shadow-lg"
-                style={{
-                  background: 'var(--surface-2)',
-                  border: `1px solid ${opt.color}40`,
-                  color: 'var(--text-primary)',
-                }}
-              >
-                <span className="text-lg">{opt.icon}</span>
-                <span className="text-sm font-medium">{opt.label}</span>
-              </motion.button>
-            ))}
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Sub-options — appear ABOVE the FAB, which is itself above navbar */}
+      <div className="fab-container">
+        <AnimatePresence>
+          {menuOpen && (
+            <div className="absolute bottom-16 right-0 flex flex-col items-end gap-2.5 mb-2">
+              {OPTIONS.map((opt, i) => (
+                <motion.div
+                  key={opt.kind === 'tx' ? opt.type : opt.href}
+                  initial={{ opacity: 0, x: 16, scale: 0.85 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: 16, scale: 0.85 }}
+                  transition={{ delay: (OPTIONS.length - 1 - i) * 0.05, type: 'spring', stiffness: 380, damping: 26 }}
+                >
+                  {opt.kind === 'tx' ? (
+                    <button
+                      onClick={() => handleTx(opt.type)}
+                      className="flex items-center gap-3 pr-4 pl-3 py-2.5 rounded-2xl shadow-lg whitespace-nowrap"
+                      style={{ background: 'var(--surface-3)', border: `1px solid ${opt.color}35`, color: 'var(--text-primary)' }}
+                    >
+                      <span className="text-lg">{opt.icon}</span>
+                      <span className="text-sm font-medium">{opt.label}</span>
+                    </button>
+                  ) : (
+                    <Link href={opt.href} onClick={() => setMenuOpen(false)}>
+                      <div
+                        className="flex items-center gap-3 pr-4 pl-3 py-2.5 rounded-2xl shadow-lg whitespace-nowrap cursor-pointer"
+                        style={{ background: 'var(--surface-3)', border: `1px solid ${opt.color}35`, color: 'var(--text-primary)' }}
+                      >
+                        <span className="text-lg">{opt.icon}</span>
+                        <span className="text-sm font-medium">{opt.label}</span>
+                      </div>
+                    </Link>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </AnimatePresence>
 
-      {/* Main FAB */}
-      <motion.button
-        whileTap={{ scale: 0.92 }}
-        onClick={() => setMenuOpen((prev) => !prev)}
-        className="fixed bottom-20 right-4 z-40 w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl"
-        style={{
-          background: menuOpen
-            ? 'linear-gradient(135deg, #ef4444, #dc2626)'
-            : 'linear-gradient(135deg, #22c55e, #16a34a)',
-          boxShadow: menuOpen
-            ? '0 8px 25px rgba(239,68,68,0.4)'
-            : '0 8px 25px rgba(34,197,94,0.4)',
-        }}
-      >
-        <motion.div animate={{ rotate: menuOpen ? 45 : 0 }} transition={{ duration: 0.2 }}>
-          <Plus size={24} color="#fff" strokeWidth={2.5} />
-        </motion.div>
-      </motion.button>
+        {/* Main FAB button */}
+        <motion.button
+          whileTap={{ scale: 0.90 }}
+          onClick={() => setMenuOpen((p) => !p)}
+          className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl"
+          style={{
+            background: menuOpen
+              ? 'linear-gradient(135deg,#fc8181,#e53e3e)'
+              : 'linear-gradient(135deg,#34d36e,#1fa855)',
+            boxShadow: menuOpen
+              ? '0 8px 24px rgba(252,129,129,0.40)'
+              : '0 8px 24px rgba(52,211,110,0.40)',
+          }}
+        >
+          <motion.div animate={{ rotate: menuOpen ? 45 : 0 }} transition={{ duration: 0.2 }}>
+            <Plus size={24} color="#fff" strokeWidth={2.5} />
+          </motion.div>
+        </motion.button>
+      </div>
 
-      {/* Transaction Modal — only opens when modalType is explicitly set */}
+      {/* Transaction modal */}
       <AnimatePresence>
         {modalType !== null && (
-          <TransactionModal
-            key={modalType}
-            defaultType={modalType}
-            onClose={handleClose}
-          />
+          <TransactionModal key={modalType} defaultType={modalType} onClose={() => setModalType(null)} />
         )}
       </AnimatePresence>
     </>

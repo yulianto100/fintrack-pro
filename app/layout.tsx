@@ -4,49 +4,25 @@ import './globals.css'
 import { Providers } from './providers'
 import { Toaster } from 'react-hot-toast'
 
-const syne = Syne({
-  subsets: ['latin'],
-  variable: '--font-syne',
-  display: 'swap',
-})
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  variable: '--font-space',
-  display: 'swap',
-})
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-jetbrains',
-  display: 'swap',
-})
+const syne         = Syne({ subsets: ['latin'], variable: '--font-syne', display: 'swap' })
+const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space', display: 'swap' })
+const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains', display: 'swap' })
 
 export const metadata: Metadata = {
-  title: {
-    default: 'FinTrack Pro',
-    template: '%s | FinTrack Pro',
-  },
-  description: 'Kelola keuangan & portofolio investasi Anda dengan cerdas',
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,  // Next.js uses mobile-web-app-capable
-    statusBarStyle: 'black-translucent',
-    title: 'FinTrack Pro',
-  },
-  icons: {
-    icon: '/icons/icon-192x192.png',
-    apple: '/icons/apple-touch-icon.png',
-  },
+  title:       { default: 'FinTrack Pro', template: '%s | FinTrack Pro' },
+  description: 'Kelola keuangan & portofolio investasi Anda',
+  manifest:    '/manifest.json',
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'FinTrack Pro' },
+  icons:       { icon: '/icons/icon-192x192.png', apple: '/icons/apple-touch-icon.png' },
 }
 
 export const viewport: Viewport = {
-  themeColor: '#071c0f',
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: 'cover',
+  themeColor:     '#061510',
+  width:          'device-width',
+  initialScale:   1,
+  maximumScale:   1,
+  userScalable:   false,
+  viewportFit:    'cover',           // ← enables safe-area-inset-* on iPhone
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -59,15 +35,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             position="top-center"
             toastOptions={{
               style: {
-                background: '#1c2433',
-                color: '#f1f5f9',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'var(--surface-3)',
+                color:      'var(--text-primary)',
+                border:     '1px solid var(--border)',
                 borderRadius: '12px',
                 fontFamily: 'var(--font-space)',
-                fontSize: '0.875rem',
+                fontSize:   '0.875rem',
               },
-              success: { iconTheme: { primary: '#22c55e', secondary: '#fff' } },
-              error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+              success: { iconTheme: { primary: '#34d36e', secondary: '#fff' } },
+              error:   { iconTheme: { primary: '#fc8181', secondary: '#fff' } },
             }}
           />
         </Providers>

@@ -30,14 +30,14 @@ export async function POST(request: Request) {
   if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   try {
     const body = await request.json()
-    const { grams, source, buyPrice, buyDate, notes } = body
+    const { grams, source, goldType, buyPrice, buyDate, notes } = body
     if (!grams || !source) return NextResponse.json({ success: false, error: 'grams dan source wajib diisi' }, { status: 400 })
 
     const db     = getAdminDatabase()
     const ref    = db.ref(`users/${userId}/portfolio/gold`)
     const newRef = ref.push()
     const holding: GoldHolding = {
-      id: newRef.key!, userId, grams: parseFloat(grams), source,
+      id: newRef.key!, userId, grams: parseFloat(grams), source, goldType: goldType || 'fisik',
       buyPrice: buyPrice ? parseFloat(buyPrice) : undefined,
       buyDate: buyDate || new Date().toISOString().split('T')[0],
       notes: notes || '',

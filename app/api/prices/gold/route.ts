@@ -1,115 +1,126 @@
 import { NextResponse } from 'next/server'
 import { getServerCache, setServerCache } from '@/lib/cache'
-import type { GoldPrice } from '@/types'
+import type { GoldPrice, GoldPriceMap, GoldSource } from '@/types'
 
-const CACHE_KEY = 'gold_prices'
-const CACHE_TTL = 30 // seconds
+const CACHE_KEY  = 'gold_prices_v2'
+const CACHE_TTL  = 10    // 10 seconds per spec
+const MAX_SPREAD = 200_000  // IDR
 
-// Fetch XAU/USD spot price from gold-api.com (free, no key needed)
+// ─── Fetch XAU/USD spot ─────────────────────────────────────────────────────
 async function fetchXauUsd(): Promise<number | null> {
-  try {
-    const res = await fetch('https://api.gold-api.com/price/XAU', {
-      headers: { 'Accept': 'application/json' },
-      next: { revalidate: 30 },
-    })
-    if (!res.ok) throw new Error('gold-api.com failed')
-    const data = await res.json()
-    // Returns { price: number } in USD per troy oz
-    return typeof data.price === 'number' ? data.price : null
-  } catch { /* try next source */ }
-
-  // Fallback: frankfurter.app for XAU (gold in EUR/USD)
-  try {
-    const res = await fetch(
-      'https://api.frankfurter.app/latest?from=XAU&to=USD',
-      { next: { revalidate: 30 } }
-    )
-    if (!res.ok) throw new Error()
-    const data = await res.json()
-    return data?.rates?.USD ?? null
-  } catch { /* final fallback */ }
-
+  const sources = [
+    async () => {
+      const r = await fetch('https://api.gold-api.com/price/XAU', {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(4000),
+      })
+      const d = await r.json()
+      return typeof d.price === 'number' ? d.price : null
+    },
+    async () => {
+      const r = await fetch('https://api.frankfurter.app/latest?from=XAU&to=USD', {
+        signal: AbortSignal.timeout(4000),
+      })
+      const d = await r.json()
+      return d?.rates?.USD ?? null
+    },
+  ]
+  for (const src of sources) {
+    try { const v = await src(); if (v) return v } catch { /* next */ }
+  }
   return null
 }
 
-// Fetch USD/IDR exchange rate
-async function fetchUsdIdr(): Promise<number | null> {
+// ─── Fetch USD/IDR ──────────────────────────────────────────────────────────
+async function fetchUsdIdr(): Promise<number> {
   try {
-    const res = await fetch(
-      'https://api.frankfurter.app/latest?from=USD&to=IDR',
-      { next: { revalidate: 300 } } // cache 5 min — exchange rate changes slower
-    )
-    if (!res.ok) throw new Error()
-    const data = await res.json()
-    return data?.rates?.IDR ?? null
-  } catch {}
-
-  // Hardcoded fallback if API is down
-  return 16250
+    const r = await fetch('https://api.frankfurter.app/latest?from=USD&to=IDR', {
+      signal: AbortSignal.timeout(4000),
+    })
+    const d = await r.json()
+    if (d?.rates?.IDR) return d.rates.IDR
+  } catch { /* fallback */ }
+  return 16_350  // latest fallback
 }
 
-function buildPrices(pricePerGramIdr: number): Record<string, GoldPrice> {
-  const now = new Date().toISOString()
-
-  // Antam: official LM price — spot + ~5% markup for sell, spot -2% for buyback
-  const antamBuy  = Math.round(pricePerGramIdr * 1.050 / 1000) * 1000
-  const antamSell = Math.round(pricePerGramIdr * 0.975 / 1000) * 1000
-
-  // Pegadaian: slightly higher than Antam
-  const pegBuy  = Math.round(pricePerGramIdr * 1.065 / 1000) * 1000
-  const pegSell = Math.round(pricePerGramIdr * 0.960 / 1000) * 1000
-
-  // Treasury (Pegadaian digital): tightest spread
-  const treaBuy  = Math.round(pricePerGramIdr * 1.045 / 1000) * 1000
-  const treaSell = Math.round(pricePerGramIdr * 0.980 / 1000) * 1000
-
-  return {
-    antam:     { source: 'antam',     buyPrice: antamBuy,  sellPrice: antamSell, updatedAt: now, currency: 'IDR' },
-    pegadaian: { source: 'pegadaian', buyPrice: pegBuy,    sellPrice: pegSell,   updatedAt: now, currency: 'IDR' },
-    treasury:  { source: 'treasury',  buyPrice: treaBuy,   sellPrice: treaSell,  updatedAt: now, currency: 'IDR' },
+// ─── Normalize spread (max 200k IDR) ────────────────────────────────────────
+function normalizeSpread(buy: number, sell: number): { buy: number; sell: number } {
+  const spread = buy - sell
+  if (spread > MAX_SPREAD) {
+    const mid  = (buy + sell) / 2
+    buy  = Math.round((mid + MAX_SPREAD / 2) / 1000) * 1000
+    sell = Math.round((mid - MAX_SPREAD / 2) / 1000) * 1000
   }
+  return { buy, sell }
+}
+
+// ─── Build all 6 provider prices from base XAU price ────────────────────────
+function buildAllPrices(pricePerGramIdr: number, isLive: boolean): GoldPriceMap {
+  const now = new Date().toISOString()
+  const p   = pricePerGramIdr
+  const r   = (v: number) => Math.round(v / 1000) * 1000
+
+  const providers: Array<{ source: GoldSource; buyMul: number; sellMul: number }> = [
+    { source: 'antam',     buyMul: 1.052, sellMul: 0.975 },  // official LM spread
+    { source: 'pegadaian', buyMul: 1.065, sellMul: 0.960 },  // slightly higher
+    { source: 'treasury',  buyMul: 1.045, sellMul: 0.982 },  // digital, tightest spread
+    { source: 'ubs',       buyMul: 1.058, sellMul: 0.970 },  // mock
+    { source: 'galeri24',  buyMul: 1.055, sellMul: 0.972 },  // mock
+    { source: 'emasku',    buyMul: 1.042, sellMul: 0.985 },  // digital, tightest
+  ]
+
+  const result: GoldPriceMap = {}
+  providers.forEach(({ source, buyMul, sellMul }) => {
+    const rawBuy  = r(p * buyMul)
+    const rawSell = r(p * sellMul)
+    const { buy, sell } = normalizeSpread(rawBuy, rawSell)
+    result[source] = {
+      source, buyPrice: buy, sellPrice: sell,
+      spread: buy - sell, updatedAt: now,
+      currency: 'IDR', isLive,
+    }
+  })
+  return result
 }
 
 export async function GET() {
-  // Serve from cache if fresh
-  const cached = getServerCache<Record<string, GoldPrice>>(CACHE_KEY)
+  // Serve from cache if fresh (10s)
+  const cached = getServerCache<GoldPriceMap>(CACHE_KEY)
   if (cached) {
     return NextResponse.json({ success: true, data: cached, cached: true })
   }
 
   try {
-    // Fetch both in parallel
     const [xauUsd, usdIdr] = await Promise.all([fetchXauUsd(), fetchUsdIdr()])
 
     let pricePerGramIdr: number
+    let isLive = false
 
-    if (xauUsd && usdIdr) {
-      // XAU/USD is per troy oz → convert to per gram (1 troy oz = 31.1035 g)
-      const usdPerGram = xauUsd / 31.1035
-      pricePerGramIdr = usdPerGram * usdIdr
+    if (xauUsd) {
+      const usdPerGram = xauUsd / 31.1035  // troy oz → gram
+      pricePerGramIdr  = usdPerGram * usdIdr
+      isLive = true
     } else {
-      // Both APIs failed — use latest known price as fallback
-      pricePerGramIdr = 1_580_000
-      console.warn('[Gold API] Using fallback price')
+      // Use last cached or hardcoded fallback
+      const last = getServerCache<GoldPriceMap>(`${CACHE_KEY}_last`)
+      pricePerGramIdr = last?.antam
+        ? last.antam.buyPrice / 1.052
+        : 1_590_000
+      console.warn('[Gold API] Using fallback price:', pricePerGramIdr)
     }
 
-    const prices = buildPrices(pricePerGramIdr)
+    const prices = buildAllPrices(pricePerGramIdr, isLive)
+
     setServerCache(CACHE_KEY, prices, CACHE_TTL)
+    setServerCache(`${CACHE_KEY}_last`, prices, 86400) // keep last known for 24h
 
     return NextResponse.json({
-      success: true,
-      data: prices,
-      cached: false,
-      meta: {
-        xauUsd,
-        usdIdr,
-        pricePerGramIdr: Math.round(pricePerGramIdr),
-      },
+      success: true, data: prices, cached: false,
+      meta: { xauUsd, usdIdr, pricePerGramIdr: Math.round(pricePerGramIdr), isLive },
     })
   } catch (err) {
-    console.error('[Gold API] Fatal error:', err)
-    // Always return something usable
-    const fallback = buildPrices(1_580_000)
+    console.error('[Gold API] Fatal:', err)
+    const fallback = buildAllPrices(1_590_000, false)
     return NextResponse.json({ success: true, data: fallback, cached: false, fallback: true })
   }
 }

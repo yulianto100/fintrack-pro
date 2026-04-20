@@ -17,7 +17,7 @@ const NAV_ITEMS = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession()
-  const router = useRouter()
+  const router   = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
@@ -26,13 +26,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (status === 'loading') {
     return (
-      <div className="min-h-dvh flex items-center justify-center" style={{ background: 'var(--surface-0)' }}>
-        <div className="text-center">
-          <div className="relative mx-auto w-12 h-12 mb-4">
-            <div className="w-12 h-12 rounded-full border-2 absolute" style={{ borderColor: 'rgba(34,197,94,0.2)' }} />
-            <div className="w-12 h-12 rounded-full border-2 border-t-green-500 animate-spin absolute" />
-          </div>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Memuat...</p>
+      <div className="min-h-dvh flex items-center justify-center" style={{ background: '#061510' }}>
+        <div className="relative w-12 h-12">
+          <div className="absolute inset-0 rounded-full border-2" style={{ borderColor: 'rgba(52,211,110,0.15)' }} />
+          <div className="absolute inset-0 rounded-full border-2 border-t-transparent animate-spin"
+            style={{ borderColor: 'var(--accent)' }} />
         </div>
       </div>
     )
@@ -41,21 +39,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!session) return null
 
   return (
-    <div className="min-h-dvh flex flex-col" style={{ background: 'var(--surface-0)' }}>
+    <div className="min-h-dvh flex flex-col" style={{ background: 'transparent' }}>
+
+      {/* ─── Top header ─── */}
       <header
-        className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-14"
-        style={{ background: 'rgba(5,13,10,0.90)', backdropFilter: 'blur(20px)', borderBottom: '1px solid var(--border)' }}
+        className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4"
+        style={{
+          height: 'calc(var(--nav-height) + env(safe-area-inset-top, 0px))',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          background: 'rgba(6,21,16,0.88)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderBottom: '1px solid var(--border)',
+        }}
       >
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm"
-            style={{ background: 'linear-gradient(135deg,#22c55e,#16a34a)', boxShadow: '0 0 12px rgba(34,197,94,0.4)' }}>
-            ₿
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold"
+            style={{ background: 'linear-gradient(135deg,#34d36e,#22a855)', boxShadow: '0 0 10px rgba(52,211,110,0.35)' }}>
+            ₣
           </div>
           <span className="font-display font-bold text-base"
-            style={{ background: 'linear-gradient(90deg,#4ade80,#22c55e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            style={{ background: 'linear-gradient(90deg,#6ee89a,#34d36e)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>
             FinTrack Pro
           </span>
         </div>
+
         <Link href="/settings">
           <div className="w-8 h-8 rounded-full overflow-hidden" style={{ boxShadow: '0 0 0 2px var(--accent)' }}>
             {session.user?.image ? (
@@ -70,7 +79,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </Link>
       </header>
 
-      <main className="flex-1 pt-14 pb-safe overflow-y-auto">
+      {/* ─── Main content — padded for header + bottom nav + safe area ─── */}
+      <main
+        className="flex-1 overflow-y-auto"
+        style={{
+          paddingTop: 'calc(var(--nav-height) + env(safe-area-inset-top, 0px))',
+          paddingBottom: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 16px)',
+        }}
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={pathname}
@@ -84,14 +100,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </AnimatePresence>
       </main>
 
+      {/* ─── Bottom nav with safe-area ─── */}
       <nav
         className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around"
         style={{
-          background: 'rgba(5,13,10,0.94)',
+          height: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          background: 'rgba(6,21,16,0.94)',
           backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
           borderTop: '1px solid var(--border)',
-          height: 'var(--bottom-nav-height)',
-          paddingBottom: 'env(safe-area-inset-bottom,0px)',
         }}
       >
         {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
@@ -100,16 +118,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Link
               key={href}
               href={href}
-              className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all duration-200 relative"
+              className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl relative transition-all"
               style={{ color: active ? 'var(--accent)' : 'var(--text-muted)' }}
             >
               {active && (
-                <motion.div
-                  layoutId="nav-pill"
-                  className="absolute inset-0 rounded-xl"
+                <motion.div layoutId="nav-pill" className="absolute inset-0 rounded-xl"
                   style={{ background: 'var(--accent-dim)' }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
               )}
               <Icon size={20} strokeWidth={active ? 2.5 : 1.8} className="relative z-10" />
               <span className="text-[10px] font-medium relative z-10">{label}</span>
