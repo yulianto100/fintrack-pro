@@ -26,20 +26,35 @@ export async function GET(request: Request) {
 
     if (!snap.exists()) return NextResponse.json({ success: true, data: [] })
 
-    const raw = snap.val() || {}
+const raw = snap.val() || {}
+console.log('RAW DATA:', raw) // 👈 TARUH DI SINI
 
-    let list: Transaction[] = Object.values(raw).filter(
+let list: Transaction[] = Object.values(raw).filter(
   (t): t is Transaction =>
     !!t &&
     typeof t === 'object' &&
     'date' in (t as any)
 )
-    if (month)      list = list.filter((t) => t.date.startsWith(month))
-    if (categoryId) list = list.filter((t) => t.categoryId === categoryId)
-    if (type)       list = list.filter((t) => t.type === type)
-    if (wallet) {
+
+if (month) {
   list = list.filter(
-    (t) => t.wallet === wallet || (t.toWallet && t.toWallet === wallet)
+    (t) => t.date && typeof t.date === 'string' && t.date.startsWith(month)
+  )
+}
+
+if (categoryId) {
+  list = list.filter((t) => t.categoryId === categoryId)
+}
+
+if (type) {
+  list = list.filter((t) => t.type === type)
+}
+
+if (wallet) {
+  list = list.filter(
+    (t) =>
+      t.wallet === wallet ||
+      (t.toWallet && t.toWallet === wallet)
   )
 }
 
