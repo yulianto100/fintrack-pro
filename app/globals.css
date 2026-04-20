@@ -177,6 +177,46 @@ select.input-glass option { background: #0a2e18; color: var(--text-primary); }
 .badge-expense  { background:var(--red-dim);    color:var(--red); }
 .badge-transfer { background:var(--blue-dim);   color:var(--blue); }
 
+/* ─── FLOATING ACTION BUTTON (FAB) ─── */
+.fab {
+  position: fixed;
+  right: 20px;
+  animation: float 3s ease-in-out infinite;
+
+  /* pakai variable biar konsisten */
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 12px);
+
+  z-index: 9999;
+
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: linear-gradient(135deg, #ff4d4d, #ff2d2d);
+  color: white;
+
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+/* ─── BOTTOM NAV ─── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+
+  height: var(--bottom-nav-height);
+
+  z-index: 1000;
+
+  background: rgba(10, 40, 22, 0.95);
+  backdrop-filter: blur(12px);
+}
+
 /* ─── SKELETON ─── */
 .skeleton {
   background: linear-gradient(90deg,
