@@ -72,24 +72,28 @@ export async function POST(request: Request) {
       } catch { /* ignore */ }
     }
 
-    const tx: Transaction = {
-      id:           newRef.key!,
-      userId,
-      type,
-      amount:       Number(amount),
-      categoryId:   categoryId || 'transfer',
-      categoryName,
-      categoryIcon,
-      description:  description || '',
-      date,
-      wallet,
-      toWallet:     toWallet || undefined,
-      tags:         tags || [],
-      createdAt:    new Date().toISOString(),
-      updatedAt:    new Date().toISOString(),
-    }
+  const tx: Transaction = {
+  id: newRef.key!,
+  userId,
+  type,
+  amount: Number(amount),
+  categoryId: categoryId || 'transfer',
+  categoryName,
+  categoryIcon,
+  description: description || '',
+  date,
+  wallet,
+  ...(type === 'transfer' && toWallet ? { toWallet } : {}),
+  tags: tags || [],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  }
 
-    await newRef.set(tx)
+    const cleanTx = Object.fromEntries(
+  Object.entries(tx).filter(([_, v]) => v !== undefined)
+)
+
+await newRef.set(cleanTx)
     return NextResponse.json({ success: true, data: tx }, { status: 201 })
   } catch (err) {
     console.error('[POST /api/transactions]', err)
