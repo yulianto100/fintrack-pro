@@ -7,63 +7,141 @@ import { useGoldPrices } from '@/hooks/usePrices'
 import { formatCurrency, formatNumber, formatDate } from '@/lib/utils'
 import type { GoldHolding, GoldSource, GoldType } from '@/types'
 import { Plus, Trash2, RefreshCw, X, Wifi, WifiOff, TrendingUp, TrendingDown } from 'lucide-react'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import toast from 'react-hot-toast'
 
-const PROVIDERS: Record<GoldSource, { label: string; icon: string; color: string; type: GoldType }> = {
+// ─── Provider config — Emasku dihapus ──────────────────────────────────────
+const PROVIDERS: Record<string, { label: string; icon: string; color: string; type: GoldType }> = {
   antam:     { label: 'Antam',     icon: '🏅', color: '#f6cc60', type: 'fisik'   },
   pegadaian: { label: 'Pegadaian', icon: '🟡', color: '#f97316', type: 'digital' },
   treasury:  { label: 'Treasury',  icon: '💛', color: '#eab308', type: 'digital' },
   ubs:       { label: 'UBS',       icon: '🥈', color: '#94a3b8', type: 'fisik'   },
   galeri24:  { label: 'Galeri24',  icon: '🔶', color: '#fb923c', type: 'fisik'   },
-  emasku:    { label: 'Emasku',    icon: '💚', color: '#4ade80', type: 'digital' },
 }
 
 const GOLD_TYPES: { value: GoldType; label: string; icon: string }[] = [
+  { value: 'fisik',   label: 'Fisik',   icon: '🪙' },
   { value: 'digital', label: 'Digital', icon: '📲' },
-  { value: 'fisik',   label: 'Fisik',   icon: '🪙'  },
 ]
 
+// ─── Fintech-style price card ───────────────────────────────────────────────
+function PriceCard({ source, price, selected, onClick }: {
+  source: string
+  price: { buyPrice: number; sellPrice: number; isLive?: boolean }
+  selected?: boolean
+  onClick?: () => void
+}) {
+  const cfg = PROVIDERS[source]
+  if (!cfg) return null
+  const spread = price.buyPrice - price.sellPrice
+
+  return (
+    <motion.div
+      whileTap={{ scale: 0.97 }}
+      onClick={onClick}
+      className="relative rounded-2xl p-3.5 cursor-pointer transition-all"
+      style={{
+        background: selected
+          ? `linear-gradient(135deg, ${cfg.color}22, ${cfg.color}0a)`
+          : 'var(--surface-3)',
+        border: `1px solid ${selected ? cfg.color + '55' : 'var(--border)'}`,
+        boxShadow: selected ? `0 0 16px ${cfg.color}18` : 'none',
+      }}
+    >
+      {selected && (
+        <div className="absolute top-2 right-2 w-4 h-4 rounded-full flex items-center justify-center"
+          style={{ background: cfg.color }}>
+          <svg width="8" height="8" viewBox="0 0 8 8">
+            <path d="M1.5 4L3 5.5L6.5 2.5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+          </svg>
+        </div>
+      )}
+      <div className="flex items-center gap-2 mb-2.5">
+        <span className="text-xl">{cfg.icon}</span>
+        <div>
+          <p className="text-xs font-bold leading-tight" style={{ color: selected ? cfg.color : 'var(--text-primary)' }}>
+            {cfg.label}
+          </p>
+          <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{cfg.type}</p>
+        </div>
+      </div>
+      <div className="space-y-1">
+        <div className="flex justify-between items-center">
+          <p className="text-[9px] font-medium" style={{ color: 'var(--text-muted)' }}>BELI</p>
+          <p className="text-xs font-bold font-mono" style={{ color: 'var(--text-primary)' }}>
+            {formatCurrency(price.buyPrice)}
+          </p>
+        </div>
+        <div className="h-px" style={{ background: 'var(--border)' }} />
+        <div className="flex justify-between items-center">
+          <p className="text-[9px] font-medium" style={{ color: 'var(--text-muted)' }}>BUYBACK</p>
+          <p className="text-xs font-mono" style={{ color: cfg.color }}>
+            {formatCurrency(price.sellPrice)}
+          </p>
+        </div>
+        <div className="mt-1.5">
+          <div className="flex justify-between items-center mb-0.5">
+            <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Spread</p>
+            <p className="text-[9px] font-mono" style={{ color: 'var(--text-muted)' }}>
+              {formatCurrency(spread)}
+            </p>
+          </div>
+          {/* Spread bar */}
+          <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+            <div className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${Math.min(100, (spread / 200000) * 100)}%`,
+                background: `linear-gradient(90deg, ${cfg.color}, ${cfg.color}88)`,
+              }} />
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+// ─── Main page ───────────────────────────────────────────────────────────────
 export default function EmasPage() {
   const { data: holdings, loading, refetch } = useApiList<GoldHolding>('/api/portfolio/gold', { refreshMs: 10000 })
   const { prices, lastUpdated, isLive, refetch: refetchPrices } = useGoldPrices()
 
   const [showAdd,  setShowAdd ] = useState(false)
   const [saving,   setSaving  ] = useState(false)
-  const [goldType, setGoldType] = useState<GoldType>('fisik')
   const [form,     setForm    ] = useState({
     grams: '', source: 'antam' as GoldSource, goldType: 'fisik' as GoldType,
     buyPrice: '', buyDate: new Date().toISOString().split('T')[0], notes: '',
   })
 
-  // Filter providers by selected type
   const availableProviders = Object.entries(PROVIDERS)
-    .filter(([, v]) => v.type === form.goldType) as [GoldSource, typeof PROVIDERS.antam][]
+    .filter(([, v]) => v.type === form.goldType) as [string, typeof PROVIDERS.antam][]
 
-  // Totals
   const totalGrams = holdings.reduce((s, h) => s + h.grams, 0)
   const totalValue = holdings.reduce((s, h) => s + h.grams * (prices?.[h.source]?.sellPrice || 0), 0)
-  const totalCost  = holdings.reduce((s, h) => s + h.grams * (h.buyPrice || 0), 0)
+  const totalCost  = holdings.filter((h) => h.buyPrice).reduce((s, h) => s + h.grams * (h.buyPrice || 0), 0)
   const totalPnl   = totalCost > 0 ? totalValue - totalCost : null
 
-  // Bar chart data
-  const chartData = useMemo(() => {
-    if (!prices) return []
-    return Object.entries(PROVIDERS).map(([src, cfg]) => ({
-      name:   cfg.label,
-      jual:   prices[src as GoldSource]?.buyPrice  || 0,
-      buyback: prices[src as GoldSource]?.sellPrice || 0,
-      color:  cfg.color,
-    })).filter((d) => d.jual > 0)
-  }, [prices])
-
   const handleAdd = async () => {
-    if (!form.grams || parseFloat(form.grams) <= 0) { toast.error('Masukkan jumlah gram yang valid'); return }
+    if (!form.grams || parseFloat(form.grams) <= 0) {
+      toast.error('Masukkan jumlah gram yang valid')
+      return
+    }
     setSaving(true)
     try {
+      // Send buyPrice only if user filled it in
+      const payload: Record<string, unknown> = {
+        grams:    form.grams,
+        source:   form.source,
+        goldType: form.goldType,
+        buyDate:  form.buyDate,
+        notes:    form.notes,
+      }
+      // Only include buyPrice if non-empty
+      if (form.buyPrice && parseFloat(form.buyPrice) > 0) {
+        payload.buyPrice = form.buyPrice
+      }
+
       const res  = await fetch('/api/portfolio/gold', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, goldType: form.goldType }),
+        body: JSON.stringify(payload),
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
@@ -71,8 +149,11 @@ export default function EmasPage() {
       setShowAdd(false)
       setForm({ grams:'', source:'antam', goldType:'fisik', buyPrice:'', buyDate: new Date().toISOString().split('T')[0], notes:'' })
       refetch()
-    } catch { toast.error('Gagal menambahkan emas') }
-    finally   { setSaving(false) }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Gagal menambahkan emas')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDelete = async (id: string) => {
@@ -82,16 +163,35 @@ export default function EmasPage() {
     refetch()
   }
 
+  // Grouped holdings for display
+  const holdingsBySource = useMemo(() => {
+    const groups: Record<string, { grams: number; value: number; pnl: number | null; entries: GoldHolding[] }> = {}
+    holdings.forEach((h) => {
+      const price = prices?.[h.source]?.sellPrice || 0
+      if (!groups[h.source]) groups[h.source] = { grams: 0, value: 0, pnl: null, entries: [] }
+      groups[h.source].grams += h.grams
+      groups[h.source].value += h.grams * price
+      if (h.buyPrice) {
+        const thisPnl = h.grams * (price - h.buyPrice)
+        groups[h.source].pnl = (groups[h.source].pnl || 0) + thisPnl
+      }
+      groups[h.source].entries.push(h)
+    })
+    return groups
+  }, [holdings, prices])
+
   return (
     <div className="px-4 py-5 max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-xl font-display font-bold" style={{ color: 'var(--text-primary)' }}>🥇 Portofolio Emas</h1>
+          <h1 className="text-xl font-display font-bold" style={{ color: 'var(--text-primary)' }}>
+            🥇 Portofolio Emas
+          </h1>
           <div className="flex items-center gap-1.5 mt-0.5">
             {isLive ? <Wifi size={11} color="var(--accent)"/> : <WifiOff size={11} color="var(--text-muted)"/>}
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              {isLive ? 'Live' : 'Estimasi'} · {lastUpdated?.toLocaleTimeString('id-ID') || '—'} · Auto 10s
+              {isLive ? 'Harga live' : 'Harga estimasi'} · {lastUpdated?.toLocaleTimeString('id-ID') || '—'} · auto 10s
             </p>
           </div>
         </div>
@@ -108,270 +208,314 @@ export default function EmasPage() {
       </div>
 
       {/* Summary hero */}
-      <div className="glass-hero p-5 mb-4" style={{ borderColor:'rgba(246,204,96,0.25)' }}>
-        <div className="grid grid-cols-3 gap-3">
+      <div className="glass-hero p-5 mb-4" style={{ borderColor:'rgba(246,204,96,0.22)' }}>
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-xs mb-1" style={{ color:'var(--text-muted)' }}>Total Gram</p>
+            <p className="text-xs mb-0.5" style={{ color:'var(--text-muted)' }}>Total Kepemilikan</p>
             <p className="text-2xl font-display font-bold" style={{ color:'#f6cc60' }}>
-              {formatNumber(totalGrams, 3)} <span className="text-base">gr</span>
+              {formatNumber(totalGrams, 3)} <span className="text-base font-normal">gram</span>
             </p>
           </div>
-          <div>
-            <p className="text-xs mb-1" style={{ color:'var(--text-muted)' }}>Nilai Pasar</p>
-            <p className="text-base font-bold font-mono" style={{ color:'var(--text-primary)' }}>
+          <div className="text-right">
+            <p className="text-xs mb-0.5" style={{ color:'var(--text-muted)' }}>Nilai Pasar</p>
+            <p className="text-lg font-bold font-mono" style={{ color:'var(--text-primary)' }}>
               {formatCurrency(totalValue)}
             </p>
           </div>
-          <div>
-            <p className="text-xs mb-1" style={{ color:'var(--text-muted)' }}>P&L</p>
-            {totalPnl !== null ? (
-              <div className="flex items-center gap-1">
-                {totalPnl >= 0
-                  ? <TrendingUp size={14} color="var(--accent)"/>
-                  : <TrendingDown size={14} color="var(--red)"/>}
-                <p className="text-sm font-bold" style={{ color: totalPnl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
-                  {totalPnl >= 0 ? '+' : ''}{formatCurrency(totalPnl)}
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm" style={{ color:'var(--text-muted)' }}>—</p>
-            )}
-          </div>
         </div>
+        {totalPnl !== null && (
+          <div className="flex items-center gap-2 pt-3"
+            style={{ borderTop: '1px solid var(--border)' }}>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+              style={{
+                background: totalPnl >= 0 ? 'rgba(52,211,110,0.12)' : 'rgba(252,129,129,0.12)',
+                border: `1px solid ${totalPnl >= 0 ? 'rgba(52,211,110,0.25)' : 'rgba(252,129,129,0.25)'}`,
+              }}>
+              {totalPnl >= 0 ? <TrendingUp size={13} color="var(--accent)"/> : <TrendingDown size={13} color="var(--red)"/>}
+              <p className="text-xs font-bold" style={{ color: totalPnl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
+                {totalPnl >= 0 ? '+' : ''}{formatCurrency(totalPnl)} P&L
+              </p>
+            </div>
+            <p className="text-xs" style={{ color:'var(--text-muted)' }}>
+              dari {formatCurrency(totalCost)} modal
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Price comparison chart */}
-      {chartData.length > 0 && (
-        <div className="glass-card p-4 mb-4">
-          <p className="text-xs font-semibold mb-3" style={{ color:'var(--text-muted)' }}>
-            PERBANDINGAN HARGA / GRAM (Rp)
+      {/* Live price cards — fintech style grid */}
+      {prices && (
+        <div className="mb-4">
+          <p className="text-[11px] font-semibold px-1 mb-2.5" style={{ color:'var(--text-muted)' }}>
+            HARGA REAL-TIME / GRAM
           </p>
-          <ResponsiveContainer width="100%" height={130}>
-            <BarChart data={chartData} barCategoryGap="30%">
-              <XAxis dataKey="name" tick={{ fontSize:9, fill:'var(--text-muted)' }} axisLine={false} tickLine={false}/>
-              <YAxis hide domain={['auto','auto']}/>
-              <Tooltip
-                formatter={(v: number, name: string) => [formatCurrency(v), name === 'jual' ? 'Harga Beli' : 'Buyback']}
-                contentStyle={{ background:'var(--surface-3)',border:'1px solid var(--border)',borderRadius:8,fontSize:11 }}
-              />
-              <Bar dataKey="jual"    fill="#f6cc60" radius={[4,4,0,0]} opacity={0.9}/>
-              <Bar dataKey="buyback" fill="#f6cc6060" radius={[4,4,0,0]}/>
-            </BarChart>
-          </ResponsiveContainer>
-          <div className="flex items-center gap-4 mt-2">
-            {[{ color:'#f6cc60', label:'Harga Beli' },{ color:'#f6cc6060', label:'Buyback' }].map((l) => (
-              <div key={l.label} className="flex items-center gap-1">
-                <div className="w-2.5 h-2.5 rounded-sm" style={{ background:l.color }}/>
-                <span className="text-[10px]" style={{ color:'var(--text-muted)' }}>{l.label}</span>
-              </div>
-            ))}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {(Object.entries(PROVIDERS) as [string, typeof PROVIDERS.antam][]).map(([src]) => {
+              const p = prices[src]
+              if (!p) return null
+              return (
+                <PriceCard key={src} source={src} price={p} />
+              )
+            })}
           </div>
         </div>
       )}
 
-      {/* Live prices grid */}
-      {prices && (
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          {(Object.entries(PROVIDERS) as [GoldSource, typeof PROVIDERS.antam][]).map(([src, cfg]) => {
-            const p = prices[src]
-            if (!p) return null
-            return (
-              <div key={src} className="glass-card p-3 text-center">
-                <p className="text-xl mb-1">{cfg.icon}</p>
-                <p className="text-[10px] font-semibold mb-0.5" style={{ color:cfg.color }}>{cfg.label}</p>
-                <p className="text-[9px] mb-1.5 px-1 py-0.5 rounded-full inline-block"
-                  style={{ background:`${cfg.color}18`, color:cfg.color }}>
-                  {cfg.type}
-                </p>
-                <p className="text-[10px]" style={{ color:'var(--text-muted)' }}>Beli</p>
-                <p className="text-[11px] font-bold font-mono" style={{ color:'var(--text-primary)' }}>
-                  {formatCurrency(p.buyPrice)}
-                </p>
-                <p className="text-[10px] mt-1" style={{ color:'var(--text-muted)' }}>Buyback</p>
-                <p className="text-[11px] font-mono" style={{ color:cfg.color }}>
-                  {formatCurrency(p.sellPrice)}
-                </p>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {/* Holdings list */}
+      {/* Holdings */}
       {loading ? (
-        <div className="space-y-3">{[...Array(2)].map((_,i) => <div key={i} className="skeleton h-24 rounded-2xl"/>)}</div>
+        <div className="space-y-3">
+          {[...Array(2)].map((_,i) => <div key={i} className="skeleton h-20 rounded-2xl"/>)}
+        </div>
       ) : holdings.length === 0 ? (
-        <div className="text-center py-14">
+        <div className="text-center py-14 glass-card">
           <p className="text-4xl mb-3">🥇</p>
-          <p className="font-medium mb-1" style={{ color:'var(--text-primary)' }}>Belum ada emas</p>
-          <p className="text-sm" style={{ color:'var(--text-muted)' }}>Tekan + Tambah untuk input kepemilikan emas</p>
+          <p className="font-medium mb-1" style={{ color:'var(--text-primary)' }}>Belum ada kepemilikan emas</p>
+          <p className="text-sm" style={{ color:'var(--text-muted)' }}>Tekan + Tambah untuk mulai</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {holdings.map((h) => {
-            const price = prices?.[h.source]?.sellPrice || 0
-            const value = h.grams * price
-            const pl    = h.buyPrice ? value - h.grams * h.buyPrice : null
-            const cfg   = PROVIDERS[h.source]
+          <p className="text-[11px] font-semibold px-1" style={{ color:'var(--text-muted)' }}>
+            KEPEMILIKAN ({holdings.length} entri)
+          </p>
+          {Object.entries(holdingsBySource).map(([src, group]) => {
+            const cfg = PROVIDERS[src]
+            if (!cfg) return null
             return (
-              <motion.div key={h.id} initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
-                className="glass-card p-4 flex items-start gap-3">
-                <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
-                  style={{ background:`${cfg.color}18` }}>
-                  {cfg.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <div>
-                      <span className="font-semibold mr-2" style={{ color:'var(--text-primary)' }}>{cfg.label}</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background:`${cfg.color}18`, color:cfg.color }}>
-                        {h.goldType || cfg.type}
-                      </span>
+              <motion.div key={src} initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
+                className="glass-card overflow-hidden">
+                {/* Group header */}
+                <div className="flex items-center justify-between px-4 py-3"
+                  style={{ borderBottom: group.entries.length > 1 ? '1px solid var(--border)' : 'none' }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+                      style={{ background:`${cfg.color}18` }}>
+                      {cfg.icon}
                     </div>
-                    <button onClick={() => handleDelete(h.id)} className="w-7 h-7 rounded-lg flex items-center justify-center"
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-semibold text-sm" style={{ color:'var(--text-primary)' }}>{cfg.label}</p>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium"
+                          style={{ background:`${cfg.color}18`, color:cfg.color }}>{cfg.type}</span>
+                      </div>
+                      <p className="text-xs font-bold" style={{ color:'#f6cc60' }}>
+                        {formatNumber(group.grams, 3)} gr
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold font-mono" style={{ color:'var(--text-primary)' }}>
+                      {formatCurrency(group.value)}
+                    </p>
+                    {group.pnl !== null && (
+                      <p className="text-xs font-medium"
+                        style={{ color: group.pnl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
+                        {group.pnl >= 0 ? '+' : ''}{formatCurrency(group.pnl)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Individual entries */}
+                {group.entries.map((h, i) => (
+                  <div key={h.id}
+                    className="flex items-center justify-between px-4 py-2.5"
+                    style={{
+                      borderBottom: i < group.entries.length - 1 ? '1px solid var(--border)' : 'none',
+                      background: 'rgba(255,255,255,0.015)',
+                    }}>
+                    <div>
+                      <p className="text-xs font-mono" style={{ color:'var(--text-secondary)' }}>
+                        {formatNumber(h.grams, 3)} gr
+                        {h.buyPrice ? ` · beli ${formatCurrency(h.buyPrice)}/gr` : ''}
+                      </p>
+                      {h.buyDate && (
+                        <p className="text-[10px]" style={{ color:'var(--text-muted)' }}>
+                          {formatDate(h.buyDate)}
+                        </p>
+                      )}
+                    </div>
+                    <button onClick={() => handleDelete(h.id)}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                       style={{ background:'var(--red-dim)', color:'var(--red)' }}>
-                      <Trash2 size={13}/>
+                      <Trash2 size={12}/>
                     </button>
                   </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                    <div>
-                      <p className="text-[10px]" style={{ color:'var(--text-muted)' }}>Gram</p>
-                      <p className="text-sm font-bold" style={{ color:'#f6cc60' }}>{formatNumber(h.grams, 3)} gr</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px]" style={{ color:'var(--text-muted)' }}>Nilai</p>
-                      <p className="text-sm font-bold font-mono" style={{ color:'var(--text-primary)' }}>{formatCurrency(value)}</p>
-                    </div>
-                    {pl !== null && (
-                      <div>
-                        <p className="text-[10px]" style={{ color:'var(--text-muted)' }}>P&L</p>
-                        <p className="text-xs font-semibold" style={{ color: pl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
-                          {pl >= 0 ? '+' : ''}{formatCurrency(pl)}
-                        </p>
-                      </div>
-                    )}
-                    {h.buyDate && (
-                      <div>
-                        <p className="text-[10px]" style={{ color:'var(--text-muted)' }}>Tgl Beli</p>
-                        <p className="text-xs" style={{ color:'var(--text-secondary)' }}>{formatDate(h.buyDate)}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                ))}
               </motion.div>
             )
           })}
         </div>
       )}
 
-      {/* Add modal */}
+      {/* ─── Add Modal ─── */}
       <AnimatePresence>
         {showAdd && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
             <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
-              className="absolute inset-0" style={{ background:'rgba(0,0,0,0.65)', backdropFilter:'blur(6px)' }}
+              className="absolute inset-0"
+              style={{ background:'rgba(0,0,0,0.65)', backdropFilter:'blur(6px)' }}
               onClick={() => setShowAdd(false)}/>
             <motion.div initial={{ y:'100%' }} animate={{ y:0 }} exit={{ y:'100%' }}
               transition={{ type:'spring', damping:30, stiffness:350 }}
-              className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl p-6"
-              style={{ background:'var(--surface-1)', border:'1px solid var(--border)', maxHeight:'90dvh', overflowY:'auto' }}
+              className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
+              style={{ background:'var(--surface-1)', border:'1px solid var(--border)', maxHeight:'92dvh', overflowY:'auto' }}
               onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="font-display font-bold text-lg" style={{ color:'var(--text-primary)' }}>Tambah Emas</h2>
-                <button onClick={() => setShowAdd(false)} className="w-9 h-9 rounded-full flex items-center justify-center"
+
+              <div className="drag-indicator mt-3 sm:hidden"/>
+
+              <div className="flex items-center justify-between px-5 py-4">
+                <h2 className="font-display font-bold text-lg" style={{ color:'var(--text-primary)' }}>
+                  Tambah Emas
+                </h2>
+                <button onClick={() => setShowAdd(false)}
+                  className="w-9 h-9 rounded-full flex items-center justify-center"
                   style={{ background:'var(--surface-3)', color:'var(--text-secondary)' }}>
                   <X size={18}/>
                 </button>
               </div>
 
-              <div className="space-y-4">
-                {/* Type selector */}
+              <div className="px-5 pb-7 space-y-4">
+                {/* Jenis */}
                 <div>
-                  <label className="text-xs mb-2 block font-semibold" style={{ color:'var(--text-muted)' }}>Jenis</label>
+                  <label className="text-xs mb-2 block font-semibold" style={{ color:'var(--text-muted)' }}>
+                    Jenis Emas
+                  </label>
                   <div className="grid grid-cols-2 gap-2">
                     {GOLD_TYPES.map((t) => (
-                      <button key={t.value} onClick={() => {
-                        setForm({ ...form, goldType: t.value, source: t.value === 'digital' ? 'pegadaian' : 'antam' })
-                      }}
-                        className="py-3 rounded-xl flex items-center justify-center gap-2 transition-all"
+                      <button key={t.value}
+                        onClick={() => setForm({
+                          ...form,
+                          goldType: t.value,
+                          source: t.value === 'digital' ? 'pegadaian' : 'antam',
+                        })}
+                        className="py-3 rounded-xl flex items-center justify-center gap-2 font-medium text-sm transition-all"
                         style={{
-                          background: form.goldType === t.value ? 'rgba(246,204,96,0.15)' : 'var(--surface-3)',
-                          border: `1px solid ${form.goldType === t.value ? '#f6cc6060' : 'var(--border)'}`,
+                          background: form.goldType === t.value ? 'rgba(246,204,96,0.14)' : 'var(--surface-3)',
+                          border: `1px solid ${form.goldType === t.value ? '#f6cc6050' : 'var(--border)'}`,
                           color: form.goldType === t.value ? '#f6cc60' : 'var(--text-muted)',
                         }}>
-                        <span>{t.icon}</span><span className="font-medium text-sm">{t.label}</span>
+                        <span className="text-lg">{t.icon}</span> {t.label}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Provider selector */}
+                {/* Provider */}
                 <div>
-                  <label className="text-xs mb-2 block font-semibold" style={{ color:'var(--text-muted)' }}>Provider</label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <label className="text-xs mb-2 block font-semibold" style={{ color:'var(--text-muted)' }}>
+                    Provider
+                  </label>
+                  <div className={`grid gap-2 ${availableProviders.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                     {availableProviders.map(([src, cfg]) => (
-                      <button key={src} onClick={() => setForm({ ...form, source: src })}
-                        className="py-2.5 rounded-xl text-center transition-all"
+                      <button key={src}
+                        onClick={() => setForm({ ...form, source: src as GoldSource })}
+                        className="py-3 rounded-xl text-center transition-all"
                         style={{
-                          background: form.source === src ? `${cfg.color}18` : 'var(--surface-3)',
-                          border: `1px solid ${form.source === src ? cfg.color + '55' : 'var(--border)'}`,
-                          color: form.source === src ? cfg.color : 'var(--text-muted)',
+                          background: form.source === src ? `${cfg.color}16` : 'var(--surface-3)',
+                          border: `1px solid ${form.source === src ? cfg.color + '50' : 'var(--border)'}`,
                         }}>
-                        <p className="text-lg">{cfg.icon}</p>
-                        <p className="text-xs mt-0.5">{cfg.label}</p>
+                        <p className="text-xl mb-1">{cfg.icon}</p>
+                        <p className="text-xs font-medium" style={{ color: form.source === src ? cfg.color : 'var(--text-muted)' }}>
+                          {cfg.label}
+                        </p>
                         {prices?.[src] && (
-                          <p className="text-[9px] mt-0.5 font-mono">{formatCurrency(prices[src].buyPrice)}</p>
+                          <p className="text-[9px] font-mono mt-0.5" style={{ color:'var(--text-muted)' }}>
+                            {formatCurrency(prices[src].buyPrice)}
+                          </p>
                         )}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Gram input */}
+                {/* Gram */}
                 <div>
-                  <label className="text-xs mb-1.5 block font-semibold" style={{ color:'var(--text-muted)' }}>Jumlah Gram</label>
-                  <input type="number" step="0.001" className="input-glass" placeholder="contoh: 5.5"
-                    value={form.grams} onChange={(e) => setForm({ ...form, grams: e.target.value })}/>
+                  <label className="text-xs mb-1.5 block font-semibold" style={{ color:'var(--text-muted)' }}>
+                    Jumlah Gram <span style={{ color:'var(--accent)' }}>*</span>
+                  </label>
+                  <input type="number" step="0.001" min="0.001" className="input-glass"
+                    placeholder="Contoh: 5.5"
+                    value={form.grams}
+                    onChange={(e) => setForm({ ...form, grams: e.target.value })}/>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
+                  {/* Buy price — truly optional */}
                   <div>
-                    <label className="text-xs mb-1.5 block font-semibold" style={{ color:'var(--text-muted)' }}>Harga Beli/gr (opsional)</label>
-                    <input type="number" className="input-glass" placeholder={prices?.[form.source] ? String(prices[form.source].buyPrice) : 'Rp'}
-                      value={form.buyPrice} onChange={(e) => setForm({ ...form, buyPrice: e.target.value })}/>
+                    <label className="text-xs mb-1.5 block font-semibold" style={{ color:'var(--text-muted)' }}>
+                      Harga Beli/gr
+                      <span className="ml-1 text-[9px] font-normal px-1.5 py-0.5 rounded-full"
+                        style={{ background:'rgba(52,211,110,0.12)', color:'var(--accent)' }}>
+                        opsional
+                      </span>
+                    </label>
+                    <input type="number" className="input-glass"
+                      placeholder={prices?.[form.source] ? String(prices[form.source].buyPrice) : 'Rp'}
+                      value={form.buyPrice}
+                      onChange={(e) => setForm({ ...form, buyPrice: e.target.value })}/>
                   </div>
                   <div>
-                    <label className="text-xs mb-1.5 block font-semibold" style={{ color:'var(--text-muted)' }}>Tanggal Beli</label>
+                    <label className="text-xs mb-1.5 block font-semibold" style={{ color:'var(--text-muted)' }}>
+                      Tanggal Beli
+                    </label>
                     <input type="date" className="input-glass"
-                      value={form.buyDate} onChange={(e) => setForm({ ...form, buyDate: e.target.value })}/>
+                      value={form.buyDate}
+                      onChange={(e) => setForm({ ...form, buyDate: e.target.value })}/>
                   </div>
                 </div>
 
-                {/* Preview */}
-                {prices?.[form.source] && form.grams && (
-                  <div className="p-3 rounded-xl" style={{ background:'rgba(246,204,96,0.08)', border:'1px solid rgba(246,204,96,0.20)' }}>
-                    <div className="flex justify-between text-xs">
-                      <span style={{ color:'var(--text-muted)' }}>Nilai sekarang</span>
-                      <span className="font-bold font-mono" style={{ color:'#f6cc60' }}>
-                        {formatCurrency(parseFloat(form.grams || '0') * prices[form.source].sellPrice)}
-                      </span>
+                {/* Live preview */}
+                {prices?.[form.source] && form.grams && parseFloat(form.grams) > 0 && (
+                  <div className="p-3.5 rounded-xl"
+                    style={{ background:'rgba(246,204,96,0.07)', border:'1px solid rgba(246,204,96,0.18)' }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-semibold" style={{ color:'#f6cc60' }}>Preview</p>
+                      <p className="text-[10px]" style={{ color:'var(--text-muted)' }}>
+                        {parseFloat(form.grams)} gr × {formatCurrency(prices[form.source].sellPrice)}
+                      </p>
                     </div>
-                    {form.buyPrice && (
-                      <div className="flex justify-between text-xs mt-1">
-                        <span style={{ color:'var(--text-muted)' }}>P&L estimasi</span>
-                        <span className="font-semibold" style={{ color: parseFloat(form.grams||'0') * prices[form.source].sellPrice >= parseFloat(form.grams||'0') * parseFloat(form.buyPrice||'0') ? 'var(--accent)' : 'var(--red)' }}>
-                          {formatCurrency(parseFloat(form.grams||'0') * (prices[form.source].sellPrice - parseFloat(form.buyPrice||'0')))}
-                        </span>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs" style={{ color:'var(--text-muted)' }}>Nilai pasar saat ini</p>
+                      <p className="text-sm font-bold font-mono" style={{ color:'var(--text-primary)' }}>
+                        {formatCurrency(parseFloat(form.grams) * prices[form.source].sellPrice)}
+                      </p>
+                    </div>
+                    {form.buyPrice && parseFloat(form.buyPrice) > 0 && (
+                      <div className="flex items-center justify-between mt-1.5 pt-1.5"
+                        style={{ borderTop:'1px solid rgba(246,204,96,0.15)' }}>
+                        <p className="text-xs" style={{ color:'var(--text-muted)' }}>Estimasi P&L</p>
+                        {(() => {
+                          const pnl = parseFloat(form.grams) * (prices[form.source].sellPrice - parseFloat(form.buyPrice))
+                          return (
+                            <p className="text-sm font-bold" style={{ color: pnl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
+                              {pnl >= 0 ? '+' : ''}{formatCurrency(pnl)}
+                            </p>
+                          )
+                        })()}
                       </div>
                     )}
                   </div>
                 )}
 
-                <button onClick={handleAdd} disabled={saving} className="btn-primary w-full py-4"
+                {/* Notes */}
+                <div>
+                  <label className="text-xs mb-1.5 block font-semibold" style={{ color:'var(--text-muted)' }}>
+                    Catatan
+                    <span className="ml-1 text-[9px] font-normal px-1.5 py-0.5 rounded-full"
+                      style={{ background:'rgba(52,211,110,0.12)', color:'var(--accent)' }}>
+                      opsional
+                    </span>
+                  </label>
+                  <input type="text" className="input-glass" placeholder="Misal: Kado ulang tahun"
+                    value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}/>
+                </div>
+
+                <button onClick={handleAdd} disabled={saving}
+                  className="btn-primary w-full py-4 text-base font-bold"
                   style={{ background:'linear-gradient(135deg,#f6cc60,#d97706)' }}>
                   {saving
                     ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto"/>
-                    : 'Simpan Emas'
+                    : '💾 Simpan'
                   }
                 </button>
               </div>

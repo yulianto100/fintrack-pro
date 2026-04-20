@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getAdminDatabase } from '@/lib/firebase-admin'
-import type { GoldHolding } from '@/types'
 
 async function getUserId(): Promise<string | null> {
   try {
@@ -31,22 +30,41 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { grams, source, goldType, buyPrice, buyDate, notes } = body
-    if (!grams || !source) return NextResponse.json({ success: false, error: 'grams dan source wajib diisi' }, { status: 400 })
+
+    if (!grams || parseFloat(grams) <= 0)
+      return NextResponse.json({ success: false, error: 'Jumlah gram harus lebih dari 0' }, { status: 400 })
+    if (!source)
+      return NextResponse.json({ success: false, error: 'Provider wajib dipilih' }, { status: 400 })
 
     const db     = getAdminDatabase()
-    const ref    = db.ref(`users/${userId}/portfolio/gold`)
-    const newRef = ref.push()
-    const holding: GoldHolding = {
-      id: newRef.key!, userId, grams: parseFloat(grams), source, goldType: goldType || 'fisik',
-      buyPrice: buyPrice ? parseFloat(buyPrice) : undefined,
-      buyDate: buyDate || new Date().toISOString().split('T')[0],
-      notes: notes || '',
+    const newRef = db.ref(`users/${userId}/portfolio/gold`).push()
+
+    // ⚠️ Firebase Realtime DB rejects `undefined` values — build object without undefined fields
+    const holding: Record<string, unknown> = {
+      id:        newRef.key!,
+      userId,
+      grams:     parseFloat(grams),
+      source,
+      goldType:  goldType || 'fisik',
+      buyDate:   buyDate  || new Date().toISOString().split('T')[0],
+      notes:     notes    || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
+
+    // Only add buyPrice if it's a valid number (truly optional)
+    const parsedBuyPrice = buyPrice !== undefined && buyPrice !== '' && buyPrice !== null
+      ? parseFloat(String(buyPrice))
+      : NaN
+    if (!isNaN(parsedBuyPrice) && parsedBuyPrice > 0) {
+      holding.buyPrice = parsedBuyPrice
+    }
+    // buyPrice intentionally omitted if not provided — no undefined in Firebase
+
     await newRef.set(holding)
     return NextResponse.json({ success: true, data: holding }, { status: 201 })
   } catch (err) {
+    console.error('[POST /api/portfolio/gold]', err)
     return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
   }
 }

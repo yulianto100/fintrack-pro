@@ -66,7 +66,6 @@ function buildAllPrices(pricePerGramIdr: number, isLive: boolean): GoldPriceMap 
     { source: 'treasury',  buyMul: 1.045, sellMul: 0.982 },  // digital, tightest spread
     { source: 'ubs',       buyMul: 1.058, sellMul: 0.970 },  // mock
     { source: 'galeri24',  buyMul: 1.055, sellMul: 0.972 },  // mock
-    { source: 'emasku',    buyMul: 1.042, sellMul: 0.985 },  // digital, tightest
   ]
 
   const result: GoldPriceMap = {}

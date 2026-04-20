@@ -28,7 +28,7 @@ export interface WalletBalance { cash: number; bank: number; ewallet: number; to
 export interface MonthlyStats  { income: number; expense: number; balance: number; month: string }
 
 // ---- PORTFOLIO: GOLD ----
-export type GoldSource  = 'antam' | 'pegadaian' | 'treasury' | 'ubs' | 'galeri24' | 'emasku'
+export type GoldSource  = 'antam' | 'pegadaian' | 'treasury' | 'ubs' | 'galeri24'
 export type GoldType    = 'digital' | 'fisik'
 
 export interface GoldHolding {
