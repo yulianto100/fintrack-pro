@@ -12,51 +12,37 @@ async function getUserId(): Promise<string | null> {
   } catch { return null }
 }
 
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
 
-// PATCH /api/transactions/[id]
-export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-  }
-  
   try {
     const body = await request.json()
-    const db = getAdminDatabase()
-    const ref = db.ref(`users/${userId}/transactions/${params.id}`)
-    
-    const snapshot = await ref.get()
-    if (!snapshot.exists()) {
-      return NextResponse.json({ success: false, error: 'Transaction not found' }, { status: 404 })
-    }
-    
+    const db   = getAdminDatabase()
+    const ref  = db.ref(`users/${userId}/transactions/${params.id}`)
+
+    const snap = await ref.get()
+    if (!snap.exists()) return NextResponse.json({ success: false, error: 'Transaksi tidak ditemukan' }, { status: 404 })
+
     await ref.update({ ...body, updatedAt: new Date().toISOString() })
     const updated = await ref.get()
-    
     return NextResponse.json({ success: true, data: updated.val() })
-  } catch (error) {
-    return NextResponse.json({ success: false, error: 'Failed to update transaction' }, { status: 500 })
+  } catch (err) {
+    console.error('[PATCH /api/transactions/id]', err)
+    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
   }
 }
 
-// DELETE /api/transactions/[id]
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-  }
-  
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+
   try {
     const db = getAdminDatabase()
     await db.ref(`users/${userId}/transactions/${params.id}`).remove()
     return NextResponse.json({ success: true })
-  } catch (error) {
-    return NextResponse.json({ success: false, error: 'Failed to delete transaction' }, { status: 500 })
+  } catch (err) {
+    console.error('[DELETE /api/transactions/id]', err)
+    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
   }
 }

@@ -12,20 +12,27 @@ async function getUserId(): Promise<string | null> {
   } catch { return null }
 }
 
-
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const userId = await getUserId()
   if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-  const body = await request.json()
-  const db = getAdminDatabase()
-  await db.ref(`users/${userId}/categories/${params.id}`).update({ ...body, updatedAt: new Date().toISOString() })
-  return NextResponse.json({ success: true })
+  try {
+    const body = await request.json()
+    const db   = getAdminDatabase()
+    await db.ref(`users/${userId}/categories/${params.id}`).update({ ...body, updatedAt: new Date().toISOString() })
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+  }
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const userId = await getUserId()
   if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-  const db = getAdminDatabase()
-  await db.ref(`users/${userId}/categories/${params.id}`).remove()
-  return NextResponse.json({ success: true })
+  try {
+    const db = getAdminDatabase()
+    await db.ref(`users/${userId}/categories/${params.id}`).remove()
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+  }
 }

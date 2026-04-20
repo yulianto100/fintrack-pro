@@ -13,44 +13,45 @@ async function getUserId(): Promise<string | null> {
   } catch { return null }
 }
 
-
 export async function GET(request: Request) {
   const userId = await getUserId()
   if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-  
+
   const { searchParams } = new URL(request.url)
   const type = searchParams.get('type')
-  
-  const db = getAdminDatabase()
-  const snapshot = await db.ref(`users/${userId}/categories`).get()
-  
-  if (!snapshot.exists()) return NextResponse.json({ success: true, data: [] })
-  
-  let categories: Category[] = Object.values(snapshot.val())
-  if (type) categories = categories.filter((c) => c.type === type)
-  categories.sort((a, b) => a.name.localeCompare(b.name))
-  
-  return NextResponse.json({ success: true, data: categories })
+
+  try {
+    const db   = getAdminDatabase()
+    const snap = await db.ref(`users/${userId}/categories`).get()
+    if (!snap.exists()) return NextResponse.json({ success: true, data: [] })
+
+    let cats: Category[] = Object.values(snap.val())
+    if (type) cats = cats.filter((c) => c.type === type)
+    cats.sort((a, b) => a.name.localeCompare(b.name))
+    return NextResponse.json({ success: true, data: cats })
+  } catch (err) {
+    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+  }
 }
 
 export async function POST(request: Request) {
   const userId = await getUserId()
   if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-  
-  const { name, icon, type, color } = await request.json()
-  if (!name || !type) return NextResponse.json({ error: 'name and type required' }, { status: 400 })
-  
-  const db = getAdminDatabase()
-  const ref = db.ref(`users/${userId}/categories`)
-  const newRef = ref.push()
-  
-  const category: Category = {
-    id: newRef.key!,
-    name, icon: icon || '📋', type, color: color || '#6b7280',
-    userId: userId,
-    createdAt: new Date().toISOString(),
+
+  try {
+    const { name, icon, type, color } = await request.json()
+    if (!name || !type) return NextResponse.json({ success: false, error: 'name dan type wajib diisi' }, { status: 400 })
+
+    const db     = getAdminDatabase()
+    const ref    = db.ref(`users/${userId}/categories`)
+    const newRef = ref.push()
+    const cat: Category = {
+      id: newRef.key!, name, icon: icon || '📋', type, color: color || '#34d36e',
+      userId, createdAt: new Date().toISOString(),
+    }
+    await newRef.set(cat)
+    return NextResponse.json({ success: true, data: cat }, { status: 201 })
+  } catch (err) {
+    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
   }
-  
-  await newRef.set(category)
-  return NextResponse.json({ success: true, data: category }, { status: 201 })
 }
