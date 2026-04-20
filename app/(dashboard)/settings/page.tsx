@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { signOut, useSession } from 'next-auth/react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useApiList } from '@/hooks/useApiData'
 import { Bell, BellOff, Download, Upload, LogOut, Tag, Plus, Trash2, X } from 'lucide-react'
@@ -128,6 +129,18 @@ export default function SettingsPage() {
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{session?.user?.email}</p>
           </div>
         </div>
+        <Link href="/profile">
+          <div
+            className="mt-4 w-full py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all"
+            style={{
+              background: 'var(--accent-dim)',
+              color: 'var(--accent)',
+              border: '1px solid rgba(52,211,110,0.3)',
+              cursor: 'pointer',
+            }}>
+            ✏️ Edit Profil
+          </div>
+        </Link>
       </motion.div>
 
       {/* Push notifications */}

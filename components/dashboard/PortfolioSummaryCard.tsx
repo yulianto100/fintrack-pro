@@ -1,68 +1,63 @@
 'use client'
 
+import Link from 'next/link'
 import { formatCurrency, formatNumber } from '@/lib/utils'
+import { ArrowRight } from 'lucide-react'
 
 interface Props {
-  goldValue: number
-  goldGrams: number
-  stockCount: number
-  depositValue: number
-  depositCount: number
+  goldValue:     number
+  goldGrams:     number
+  stockCount:    number
+  depositValue:  number
+  depositCount:  number
 }
 
+const items = [
+  { label: 'Emas',     icon: '🥇', href: '/portfolio/emas',     color: '#f6cc60', bg: 'rgba(246,204,96,0.12)' },
+  { label: 'Saham',    icon: '📈', href: '/portfolio/saham',    color: '#63b3ed', bg: 'rgba(99,179,237,0.12)' },
+  { label: 'Deposito', icon: '🏦', href: '/portfolio/deposito', color: '#d6aaff', bg: 'rgba(214,170,255,0.12)' },
+]
+
 export function PortfolioSummaryCard({ goldValue, goldGrams, stockCount, depositValue, depositCount }: Props) {
-  const items = [
-    {
-      icon: '🥇',
-      label: 'Emas',
-      sub: `${formatNumber(goldGrams, 2)} gram`,
-      value: goldValue,
-      color: '#f59e0b',
-      bg: 'rgba(245,158,11,0.1)',
-    },
-    {
-      icon: '📈',
-      label: 'Saham',
-      sub: `${stockCount} emiten`,
-      value: null,
-      color: '#3b82f6',
-      bg: 'rgba(59,130,246,0.1)',
-    },
-    {
-      icon: '🏦',
-      label: 'Deposito',
-      sub: `${depositCount} aktif`,
-      value: depositValue,
-      color: '#a855f7',
-      bg: 'rgba(168,85,247,0.1)',
-    },
+  const values = [
+    { sub: `${formatNumber(goldGrams, 2)} gram`, value: goldValue,   showValue: true  },
+    { sub: `${stockCount} emiten`,               value: null,         showValue: false },
+    { sub: `${depositCount} aktif`,              value: depositValue, showValue: true  },
   ]
 
   return (
-    <div className="glass-card p-4 space-y-3">
-      {items.map((item) => (
-        <div key={item.label} className="flex items-center gap-3">
+    <div className="glass-card overflow-hidden">
+      {items.map((item, i) => (
+        <Link key={item.label} href={item.href}>
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-            style={{ background: item.bg }}
+            className="flex items-center gap-3 px-4 py-3 transition-all active:scale-[0.99]"
+            style={{
+              borderBottom: i < items.length - 1 ? '1px solid var(--border)' : 'none',
+              cursor: 'pointer',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(52,211,110,0.04)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            {item.icon}
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+              style={{ background: item.bg }}>
+              {item.icon}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.label}</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{values[i].sub}</p>
+            </div>
+            {values[i].showValue ? (
+              <p className="text-sm font-bold font-mono flex-shrink-0" style={{ color: item.color }}>
+                {formatCurrency(values[i].value || 0)}
+              </p>
+            ) : (
+              <div className="flex items-center gap-1 flex-shrink-0" style={{ color: item.color }}>
+                <span className="text-xs font-medium">Detail</span>
+                <ArrowRight size={13} />
+              </div>
+            )}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-              {item.label}
-            </p>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{item.sub}</p>
-          </div>
-          {item.value !== null && (
-            <p className="text-sm font-bold font-mono" style={{ color: item.color }}>
-              {formatCurrency(item.value)}
-            </p>
-          )}
-          {item.value === null && (
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Lihat detail →</p>
-          )}
-        </div>
+        </Link>
       ))}
     </div>
   )
