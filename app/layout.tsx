@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   description: 'Kelola keuangan & portofolio investasi Anda dengan cerdas',
   manifest: '/manifest.json',
   appleWebApp: {
-    capable: true,
+    capable: true,  // Next.js uses mobile-web-app-capable
     statusBarStyle: 'black-translucent',
     title: 'FinTrack Pro',
   },
@@ -41,7 +41,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0a0f1a',
+  themeColor: '#071c0f',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
