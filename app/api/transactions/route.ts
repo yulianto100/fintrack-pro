@@ -27,14 +27,23 @@ export async function GET(request: Request) {
     if (!snap.exists()) return NextResponse.json({ success: true, data: [] })
 
 const raw = snap.val() || {}
-console.log('RAW DATA:', raw) // 👈 TARUH DI SINI
 
-let list: Transaction[] = Object.values(raw).filter(
-  (t): t is Transaction =>
-    !!t &&
-    typeof t === 'object' &&
-    'date' in (t as any)
-)
+console.log('RAW DATA:', raw)
+
+let list: Transaction[] = Object.values(raw).filter((t): t is Transaction => {
+  if (!t || typeof t !== 'object') return false
+
+  const tx = t as any
+
+  return (
+    tx.amount !== undefined &&
+    tx.type &&
+    tx.date
+  )
+}).map((t: any) => ({
+  ...t,
+  amount: Number(t.amount) || 0, // 🔥 normalize
+}))
 
 if (month) {
   list = list.filter(
