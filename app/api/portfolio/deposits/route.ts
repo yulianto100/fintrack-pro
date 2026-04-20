@@ -5,15 +5,25 @@ import { getAdminDatabase } from '@/lib/firebase-admin'
 import { calculateDepositMaturity } from '@/lib/utils'
 import type { Deposit } from '@/types'
 
+async function getUserId(): Promise<string | null> {
+  try {
+    const session = await getServerSession(authOptions)
+    const id = session?.user?.id
+    if (!id || id === 'undefined' || id === 'null') return null
+    return id
+  } catch { return null }
+}
+
+
 export async function GET(request: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status') || 'active'
 
   const db = getAdminDatabase()
-  const snapshot = await db.ref(`users/${session.user.id}/portfolio/deposits`).get()
+  const snapshot = await db.ref(`users/${userId}/portfolio/deposits`).get()
 
   if (!snapshot.exists()) return NextResponse.json({ success: true, data: [] })
 
@@ -25,8 +35,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
   const { bankName, nominal, interestRate, tenorMonths, startDate, notes } = body
@@ -42,12 +52,12 @@ export async function POST(request: Request) {
   )
 
   const db = getAdminDatabase()
-  const ref = db.ref(`users/${session.user.id}/portfolio/deposits`)
+  const ref = db.ref(`users/${userId}/portfolio/deposits`)
   const newRef = ref.push()
 
   const deposit: Deposit = {
     id: newRef.key!,
-    userId: session.user.id,
+    userId: userId,
     bankName,
     nominal: parseFloat(nominal),
     interestRate: parseFloat(interestRate),
@@ -68,29 +78,29 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
 
   const { id, ...updates } = await request.json()
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
   const db = getAdminDatabase()
   await db
-    .ref(`users/${session.user.id}/portfolio/deposits/${id}`)
+    .ref(`users/${userId}/portfolio/deposits/${id}`)
     .update({ ...updates, updatedAt: new Date().toISOString() })
 
   return NextResponse.json({ success: true })
 }
 
 export async function DELETE(request: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
   const db = getAdminDatabase()
-  await db.ref(`users/${session.user.id}/portfolio/deposits/${id}`).remove()
+  await db.ref(`users/${userId}/portfolio/deposits/${id}`).remove()
   return NextResponse.json({ success: true })
 }

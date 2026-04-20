@@ -4,9 +4,19 @@ import { authOptions } from '@/lib/auth'
 import { getAdminDatabase } from '@/lib/firebase-admin'
 import * as XLSX from 'xlsx'
 
+async function getUserId(): Promise<string | null> {
+  try {
+    const session = await getServerSession(authOptions)
+    const id = session?.user?.id
+    if (!id || id === 'undefined' || id === 'null') return null
+    return id
+  } catch { return null }
+}
+
+
 export async function GET(request: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = new URL(request.url)
   const month = searchParams.get('month')
@@ -14,7 +24,7 @@ export async function GET(request: Request) {
 
   try {
     const db = getAdminDatabase()
-    const userId = session.user.id
+    const userId = userId
 
     // Fetch all data
     const [txSnap, catSnap, goldSnap, stockSnap, depositSnap] = await Promise.all([

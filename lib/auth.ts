@@ -4,68 +4,57 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import { getAdminDatabase } from './firebase-admin'
 import bcrypt from 'bcryptjs'
 
-// ─────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────
-export async function ensureUserSetup(userId: string, profile: {
-  email?: string | null
-  name?: string | null
-  image?: string | null
+// ─── Setup user profile + default categories on first login ───────────────────
+export async function ensureUserSetup(uid: string, data: {
+  email?: string | null; name?: string | null; image?: string | null
 }) {
-  const db = getAdminDatabase()
-  const userRef = db.ref(`users/${userId}/profile`)
-  const snap = await userRef.get()
-
-  if (!snap.exists()) {
-    await userRef.set({
-      id: userId,
-      email: profile.email ?? '',
-      name: profile.name ?? '',
-      image: profile.image ?? '',
-      createdAt: new Date().toISOString(),
-    })
-    await createDefaultCategories(userId)
-  } else {
-    await userRef.update({
-      lastLogin: new Date().toISOString(),
-      ...(profile.name  && { name:  profile.name  }),
-      ...(profile.image && { image: profile.image }),
-    })
+  try {
+    const db  = getAdminDatabase()
+    const ref = db.ref(`users/${uid}/profile`)
+    const snap = await ref.get()
+    if (!snap.exists()) {
+      await ref.set({ id: uid, email: data.email ?? '', name: data.name ?? '', image: data.image ?? '', createdAt: new Date().toISOString() })
+      await createDefaultCategories(uid)
+    } else {
+      const updates: Record<string, string> = { lastLogin: new Date().toISOString() }
+      if (data.name)  updates.name  = data.name
+      if (data.image) updates.image = data.image
+      await ref.update(updates)
+    }
+  } catch (err) {
+    // Log but don't block login
+    console.error('[ensureUserSetup]', err)
   }
 }
 
-async function createDefaultCategories(userId: string) {
-  const db = getAdminDatabase()
-  const ref = db.ref(`users/${userId}/categories`)
-
+async function createDefaultCategories(uid: string) {
+  const db  = getAdminDatabase()
+  const ref = db.ref(`users/${uid}/categories`)
   const defaults = [
-    { name: 'Gaji',        icon: '💼', type: 'income',  color: '#22c55e' },
-    { name: 'Freelance',   icon: '💻', type: 'income',  color: '#3b82f6' },
-    { name: 'Investasi',   icon: '📈', type: 'income',  color: '#a855f7' },
-    { name: 'Bonus',       icon: '🎁', type: 'income',  color: '#f59e0b' },
-    { name: 'Lainnya',     icon: '💰', type: 'income',  color: '#6b7280' },
-    { name: 'Makan & Minum',icon:'🍜', type: 'expense', color: '#ef4444' },
-    { name: 'Transport',   icon: '🚗', type: 'expense', color: '#f97316' },
-    { name: 'Belanja',     icon: '🛍️', type: 'expense', color: '#ec4899' },
-    { name: 'Tagihan',     icon: '📱', type: 'expense', color: '#8b5cf6' },
-    { name: 'Kesehatan',   icon: '🏥', type: 'expense', color: '#14b8a6' },
-    { name: 'Hiburan',     icon: '🎬', type: 'expense', color: '#f59e0b' },
-    { name: 'Pendidikan',  icon: '📚', type: 'expense', color: '#3b82f6' },
-    { name: 'Tabungan',    icon: '🏦', type: 'expense', color: '#22c55e' },
-    { name: 'Lainnya',     icon: '📋', type: 'expense', color: '#6b7280' },
+    { name:'Gaji',         icon:'💼', type:'income',  color:'#34d36e' },
+    { name:'Freelance',    icon:'💻', type:'income',  color:'#63b3ed' },
+    { name:'Investasi',    icon:'📈', type:'income',  color:'#d6aaff' },
+    { name:'Bonus',        icon:'🎁', type:'income',  color:'#f6cc60' },
+    { name:'Lainnya',      icon:'💰', type:'income',  color:'#68d391' },
+    { name:'Makan & Minum',icon:'🍜', type:'expense', color:'#fc8181' },
+    { name:'Transport',    icon:'🚗', type:'expense', color:'#f6ad55' },
+    { name:'Belanja',      icon:'🛍️', type:'expense', color:'#f687b3' },
+    { name:'Tagihan',      icon:'📱', type:'expense', color:'#b794f4' },
+    { name:'Kesehatan',    icon:'🏥', type:'expense', color:'#4fd1c5' },
+    { name:'Hiburan',      icon:'🎬', type:'expense', color:'#fbd38d' },
+    { name:'Pendidikan',   icon:'📚', type:'expense', color:'#63b3ed' },
+    { name:'Tabungan',     icon:'🏦', type:'expense', color:'#34d36e' },
+    { name:'Lainnya',      icon:'📋', type:'expense', color:'#718096' },
   ]
-
   const batch: Record<string, object> = {}
   defaults.forEach((cat) => {
     const key = ref.push().key!
-    batch[key] = { ...cat, id: key, userId, createdAt: new Date().toISOString() }
+    batch[key] = { ...cat, id: key, userId: uid, createdAt: new Date().toISOString() }
   })
   await ref.set(batch)
 }
 
-// ─────────────────────────────────────────────
-// NextAuth config
-// ─────────────────────────────────────────────
+// ─── NextAuth config ──────────────────────────────────────────────────────────
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -77,59 +66,56 @@ export const authOptions: NextAuthOptions = {
       id: 'credentials',
       name: 'Email & Password',
       credentials: {
-        email:    { label: 'Email',    type: 'email'    },
-        password: { label: 'Password', type: 'password' },
-        otp:      { label: 'OTP',      type: 'text'     },
-        deviceId: { label: 'DeviceId', type: 'text'     },
+        identifier: { label: 'Email atau Username', type: 'text'     },
+        password:   { label: 'Password',            type: 'password' },
       },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
+      async authorize(creds) {
+        if (!creds?.identifier || !creds?.password) return null
 
-        const db  = getAdminDatabase()
-        const email = credentials.email.toLowerCase().trim()
+        const db         = getAdminDatabase()
+        const identifier = creds.identifier.trim().toLowerCase()
 
-        // Find user by email
-        const usersSnap = await db.ref('users').orderByChild('profile/email').equalTo(email).get()
-        if (!usersSnap.exists()) return null
+        // ── Try find by email first ──
+        let uid: string | null = null
+        let userData: Record<string, unknown> | null = null
 
-        const users = Object.values(usersSnap.val()) as Record<string, unknown>[]
-        const userData = users[0] as { profile?: Record<string, unknown>; auth?: Record<string, unknown> }
-        if (!userData?.auth) return null
+        const byEmail = await db.ref('users')
+          .orderByChild('profile/email')
+          .equalTo(identifier)
+          .get()
 
-        const { passwordHash, uid } = userData.auth as { passwordHash: string; uid: string }
-
-        // Check password
-        const valid = await bcrypt.compare(credentials.password, passwordHash)
-        if (!valid) return null
-
-        // Check if this deviceId is trusted
-        const deviceId = credentials.deviceId || ''
-        const trustedSnap = await db.ref(`users/${uid}/trustedDevices/${deviceId}`).get()
-        const isTrusted = trustedSnap.exists()
-
-        if (!isTrusted) {
-          // Require OTP
-          if (!credentials.otp) {
-            // Signal frontend to ask for OTP (throw special error)
-            throw new Error('OTP_REQUIRED')
+        if (byEmail.exists()) {
+          const entries = Object.entries(byEmail.val())
+          uid      = entries[0][0]
+          userData = entries[0][1] as Record<string, unknown>
+        } else {
+          // ── Try find by username ──
+          const byUsername = await db.ref('users')
+            .orderByChild('auth/username')
+            .equalTo(creds.identifier.trim()) // username is case-sensitive
+            .get()
+          if (byUsername.exists()) {
+            const entries = Object.entries(byUsername.val())
+            uid      = entries[0][0]
+            userData = entries[0][1] as Record<string, unknown>
           }
-          // Verify OTP
-          const otpSnap = await db.ref(`users/${uid}/otp`).get()
-          if (!otpSnap.exists()) throw new Error('OTP kadaluarsa, minta OTP baru')
-          const { code, expiresAt } = otpSnap.val() as { code: string; expiresAt: number }
-          if (Date.now() > expiresAt) throw new Error('OTP kadaluarsa')
-          if (code !== credentials.otp.trim()) throw new Error('OTP tidak valid')
-
-          // Trust this device
-          await db.ref(`users/${uid}/trustedDevices/${deviceId}`).set({
-            trusted: true, addedAt: new Date().toISOString(),
-          })
-          // Delete OTP
-          await db.ref(`users/${uid}/otp`).remove()
         }
 
-        const profile = userData.profile as Record<string, string>
-        return { id: uid, email, name: profile.username || email, image: null }
+        if (!uid || !userData) throw new Error('Email/username tidak ditemukan')
+
+        const auth = userData.auth as { passwordHash?: string; username?: string } | undefined
+        if (!auth?.passwordHash) throw new Error('Akun ini tidak memiliki password. Gunakan login Google.')
+
+        const valid = await bcrypt.compare(creds.password, auth.passwordHash)
+        if (!valid) throw new Error('Password salah')
+
+        const profile = userData.profile as Record<string, string> | undefined
+        return {
+          id:    uid,
+          email: profile?.email || identifier,
+          name:  auth.username  || profile?.name || identifier,
+          image: profile?.image || null,
+        }
       },
     }),
   ],
@@ -138,41 +124,28 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async jwt({ token, user, account }) {
-      // On every sign-in, persist the user's ID into the token
-      if (user?.id) token.uid = user.id
-      if (account?.providerAccountId && !token.uid) token.uid = account.providerAccountId
-      // Fallback: token.sub is set by NextAuth from Google's sub claim
+      // Persist uid on sign-in
+      if (user?.id)   token.uid = user.id
+      // For Google, use providerAccountId as stable uid
+      if (account?.provider === 'google' && account.providerAccountId) {
+        token.uid = account.providerAccountId
+      }
       return token
     },
     async session({ session, token }) {
-      if (session.user) {
-        // Use our explicit uid, then sub as fallback
-        session.user.id = (token.uid as string) || token.sub || ''
-      }
+      session.user.id = (token.uid as string) || token.sub || ''
       return session
     },
-    async signIn({ user, account, profile: oAuthProfile }) {
-      // Google OAuth — setup user on first login
+    async signIn({ user, account }) {
       if (account?.provider === 'google') {
-        // For Google, uid = providerAccountId (stable Google sub)
         const uid = account.providerAccountId
-        // Patch user.id so JWT callback gets it
-        user.id = uid
-        try {
-          await ensureUserSetup(uid, {
-            email: user.email,
-            name:  user.name,
-            image: user.image,
-          })
-        } catch (err) {
-          console.error('[signIn] ensureUserSetup failed:', err)
-          // Don't block login — Firebase issue shouldn't lock users out
-        }
+        user.id   = uid  // patch so jwt callback gets it
+        await ensureUserSetup(uid, { email: user.email, name: user.name, image: user.image })
       }
       return true
     },
   },
 
-  pages: { signIn: '/login', error: '/login' },
+  pages:  { signIn: '/login', error: '/login' },
   secret: process.env.NEXTAUTH_SECRET,
 }

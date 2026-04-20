@@ -4,15 +4,25 @@ import { authOptions } from '@/lib/auth'
 import { getAdminDatabase } from '@/lib/firebase-admin'
 import type { Category } from '@/types'
 
+async function getUserId(): Promise<string | null> {
+  try {
+    const session = await getServerSession(authOptions)
+    const id = session?.user?.id
+    if (!id || id === 'undefined' || id === 'null') return null
+    return id
+  } catch { return null }
+}
+
+
 export async function GET(request: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   
   const { searchParams } = new URL(request.url)
   const type = searchParams.get('type')
   
   const db = getAdminDatabase()
-  const snapshot = await db.ref(`users/${session.user.id}/categories`).get()
+  const snapshot = await db.ref(`users/${userId}/categories`).get()
   
   if (!snapshot.exists()) return NextResponse.json({ success: true, data: [] })
   
@@ -24,20 +34,20 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   
   const { name, icon, type, color } = await request.json()
   if (!name || !type) return NextResponse.json({ error: 'name and type required' }, { status: 400 })
   
   const db = getAdminDatabase()
-  const ref = db.ref(`users/${session.user.id}/categories`)
+  const ref = db.ref(`users/${userId}/categories`)
   const newRef = ref.push()
   
   const category: Category = {
     id: newRef.key!,
     name, icon: icon || '📋', type, color: color || '#6b7280',
-    userId: session.user.id,
+    userId: userId,
     createdAt: new Date().toISOString(),
   }
   

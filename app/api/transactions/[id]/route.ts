@@ -3,6 +3,16 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getAdminDatabase } from '@/lib/firebase-admin'
 
+async function getUserId(): Promise<string | null> {
+  try {
+    const session = await getServerSession(authOptions)
+    const id = session?.user?.id
+    if (!id || id === 'undefined' || id === 'null') return null
+    return id
+  } catch { return null }
+}
+
+
 // PATCH /api/transactions/[id]
 export async function PATCH(
   request: Request,
@@ -16,7 +26,7 @@ export async function PATCH(
   try {
     const body = await request.json()
     const db = getAdminDatabase()
-    const ref = db.ref(`users/${session.user.id}/transactions/${params.id}`)
+    const ref = db.ref(`users/${userId}/transactions/${params.id}`)
     
     const snapshot = await ref.get()
     if (!snapshot.exists()) {
@@ -44,7 +54,7 @@ export async function DELETE(
   
   try {
     const db = getAdminDatabase()
-    await db.ref(`users/${session.user.id}/transactions/${params.id}`).remove()
+    await db.ref(`users/${userId}/transactions/${params.id}`).remove()
     return NextResponse.json({ success: true })
   } catch (error) {
     return NextResponse.json({ success: false, error: 'Failed to delete transaction' }, { status: 500 })

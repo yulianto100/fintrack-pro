@@ -71,7 +71,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
         type, amount: raw,
         categoryId: categoryId || 'transfer',
         description, date, wallet,
-        ...(type === 'transfer' ? { toWallet } : {}),
+        toWallet: type === 'transfer' ? toWallet : undefined,
       }
       if (isEdit) await updateTransaction(transaction.id, data)
       else        await addTransaction(data)
