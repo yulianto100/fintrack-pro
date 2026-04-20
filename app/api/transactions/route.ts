@@ -26,16 +26,22 @@ export async function GET(request: Request) {
 
     if (!snap.exists()) return NextResponse.json({ success: true, data: [] })
 
-    let list: Transaction[] = Object.values(snap.val())
+    const raw = snap.val() || {}
+
+    let list: Transaction[] = Object.values(raw).filter(Boolean)
     if (month)      list = list.filter((t) => t.date.startsWith(month))
     if (categoryId) list = list.filter((t) => t.categoryId === categoryId)
     if (type)       list = list.filter((t) => t.type === type)
-    if (wallet)     list = list.filter((t) => t.wallet === wallet || t.toWallet === wallet)
+    if (wallet) {
+  list = list.filter(
+    (t) => t.wallet === wallet || (t.toWallet && t.toWallet === wallet)
+  )
+}
 
     list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     return NextResponse.json({ success: true, data: list.slice(0, limit) })
   } catch (err) {
-    console.error('[GET /api/transactions]', err)
+    console.error('[GET /api/transactions FULL ERROR]', JSON.stringify(err, null, 2))
     return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
   }
 }
