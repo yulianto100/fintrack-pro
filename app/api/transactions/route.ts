@@ -93,7 +93,7 @@ export async function POST(request: Request) {
       description:  description || '',
       date,
       wallet,
-      toWallet:     toWallet || undefined,
+      ...(toWallet && { toWallet }),
       tags:         Array.isArray(tags) ? tags : [],
       createdAt:    new Date().toISOString(),
       updatedAt:    new Date().toISOString(),
