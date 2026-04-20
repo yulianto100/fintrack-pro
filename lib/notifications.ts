@@ -1,6 +1,14 @@
 import webpush from 'web-push'
 import { getAdminDatabase } from './firebase-admin'
 
+type StoredSubscription = {
+  endpoint: string
+  keys: {
+    p256dh: string
+    auth: string
+  }
+}
+
 // Configure web-push
 webpush.setVapidDetails(
   process.env.VAPID_EMAIL || 'mailto:admin@fintrackpro.com',
@@ -21,7 +29,7 @@ export async function sendPushNotification(
     
     if (!snapshot.exists()) return false
     
-    const subscriptions = Object.values(snapshot.val()) as PushSubscription[]
+    const subscriptions = Object.values(snapshot.val()) as StoredSubscription[]
     const payload = JSON.stringify({
       title,
       body,
