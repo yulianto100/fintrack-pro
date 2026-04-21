@@ -20,14 +20,13 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { image, mimeType = 'image/jpeg' } = body
-    const cleanBase64 = image.replace(/^data:image\/\w+;base64,/, '')
 
     if (!image || typeof image !== 'string') {
       return NextResponse.json({ success: false, error: 'Data gambar tidak valid' }, { status: 400 })
     }
 
     // Validate base64 (basic check)
-    if (!cleanBase64 || cleanBase64.length < 10000) {
+    if (image.length < 100) {
       return NextResponse.json({ success: false, error: 'Gambar terlalu kecil atau tidak valid' }, { status: 400 })
     }
 
@@ -38,56 +37,64 @@ export async function POST(request: Request) {
 
     // Use supported MIME type for Anthropic API
     const supportedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-    const safeMime = 'image/jpeg'
+    const safeMime = supportedMimes.includes(mimeType) ? mimeType : 'image/jpeg'
 
-const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type':      'application/json',
+        'x-api-key':         apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model:      'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type:   'image',
+              source: { type: 'base64', media_type: safeMime, data: image },
+            },
+            {
+              type: 'text',
+              text: `Kamu adalah sistem OCR untuk aplikasi keuangan Indonesia.
+Analisis struk/nota/bukti pembayaran ini dengan teliti.
 
+PENTING tentang cara menghitung total:
+- "Total Belanja" atau "Total Bayar" = jumlah yang benar-benar dibayar (sudah termasuk diskon)
+- Jika ada baris "Total Belanja" atau "Grand Total" gunakan itu
+- Jangan pakai "Total Item" (itu sebelum diskon)
+- Contoh: Jika Total Belanja = 27.400, maka amount = 27400
 
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "x-api-key": process.env.ANTHROPIC_API_KEY!,
-    "anthropic-version": "2023-06-01"
-  },
-  body: JSON.stringify({
-    model: "claude-3-5-sonnet-20241022",
-    max_tokens: 1500,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: "image/jpeg",
-              data: cleanBase64
-            }
-          },
-          {
-            type: "text",
-            text: "Ekstrak struk ini jadi JSON dengan format: tanggal, total, items (nama + harga)."
-          }
-        ]
-      }
-    ]
-  })
-})
-
-// 👇 TARO DI SINI
-const text = await response.text()
-console.log("RAW RESPONSE:", text)
-
-// 👇 ERROR HANDLER
-if (!response.ok) {
-  return NextResponse.json({
-    success: false,
-    error: text
-  }, { status: response.status })
+Kembalikan HANYA objek JSON valid (tanpa markdown, tanpa backtick, tanpa penjelasan):
+{
+  "amount": <integer rupiah, Total Belanja/Grand Total, TANPA titik atau koma>,
+  "date": "<YYYY-MM-DD, gunakan hari ini jika tidak ada>",
+  "merchant": "<nama toko/merchant>",
+  "items": "<daftar item singkat, max 80 karakter>",
+  "category": "<salah satu: Makan & Minum, Transport, Belanja, Tagihan, Kesehatan, Hiburan, Pendidikan, Lainnya>",
+  "wallet": "bank",
+  "confidence": <angka 0.0-1.0>
 }
 
-// 👇 baru parse JSON
-const data = JSON.parse(text)
+Aturan kategori:
+- Indomaret/Alfamart/supermarket/minimarket → Belanja
+- Restoran/cafe/warung/makanan → Makan & Minum  
+- Grab/Gojek/ojek/bensin/SPBU → Transport
+- Listrik/air/internet/PLN/Telkom → Tagihan
+- Apotek/klinik/dokter/rumah sakit → Kesehatan
+- Bioskop/Netflix/game/hiburan → Hiburan
+- Sekolah/kursus/buku → Pendidikan
+
+Jika bukan struk atau tidak terbaca → {"error": "Bukan struk yang valid atau gambar tidak terbaca dengan jelas"}
+
+Hanya JSON, tidak ada teks lain sama sekali.`,
+            },
+          ],
+        }],
+      }),
+    })
 
     if (!response.ok) {
       const errText = await response.text().catch(() => 'unknown')
