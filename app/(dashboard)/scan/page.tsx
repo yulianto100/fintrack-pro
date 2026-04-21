@@ -42,6 +42,32 @@ function fileToBase64(file: File): Promise<string> {
   })
 }
 
+async function convertToJpeg(file: File): Promise<File> {
+  const img = document.createElement('img')
+  const url = URL.createObjectURL(file)
+
+  return new Promise((resolve, reject) => {
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return reject('Canvas error')
+
+      ctx.drawImage(img, 0, 0)
+
+      canvas.toBlob((blob) => {
+        if (!blob) return reject('Conversion gagal')
+        resolve(new File([blob], 'converted.jpg', { type: 'image/jpeg' }))
+      }, 'image/jpeg', 0.9)
+    }
+
+    img.onerror = reject
+    img.src = url
+  })
+}
+
 export default function ScanPage() {
   const { data: categories } = useApiList<Category>('/api/categories?type=expense')
 
@@ -83,12 +109,14 @@ export default function ScanPage() {
 
     try {
       // iOS-safe base64 conversion
-      const base64 = await fileToBase64(file)
+      let processedFile = file
 
-      // Use image/jpeg as fallback for HEIC/HEIF (common on iPhone)
-      const mimeType = file.type === 'image/heic' || file.type === 'image/heif'
-        ? 'image/jpeg'
-        : (file.type || 'image/jpeg')
+if (file.type === 'image/heic' || file.type === 'image/heif') {
+  processedFile = await convertToJpeg(file)
+}
+
+const base64 = await fileToBase64(processedFile)
+const mimeType = processedFile.type || 'image/jpeg'
 
       const resp = await fetch('/api/receipt/scan', {
         method:  'POST',
