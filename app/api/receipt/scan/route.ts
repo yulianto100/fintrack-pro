@@ -41,6 +41,8 @@ export async function POST(request: Request) {
     const safeMime = 'image/jpeg'
 
 const response = await fetch("https://api.anthropic.com/v1/messages", {
+
+
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -50,7 +52,25 @@ const response = await fetch("https://api.anthropic.com/v1/messages", {
   body: JSON.stringify({
     model: "claude-3-5-sonnet-20241022",
     max_tokens: 1500,
-    messages: [...]
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: "image/jpeg",
+              data: cleanBase64
+            }
+          },
+          {
+            type: "text",
+            text: "Ekstrak struk ini jadi JSON dengan format: tanggal, total, items (nama + harga)."
+          }
+        ]
+      }
+    ]
   })
 })
 
