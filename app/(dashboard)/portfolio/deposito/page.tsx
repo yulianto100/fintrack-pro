@@ -138,19 +138,24 @@ export default function DepositoPage() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 mb-3">
-                  <div>
-                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Modal</p>
-                    <p className="text-xs font-bold font-mono" style={{ color: '#a855f7' }}>{formatCurrency(d.nominal)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Nilai Akhir</p>
-                    <p className="text-xs font-bold font-mono" style={{ color: 'var(--accent)' }}>{formatCurrency(d.finalValue)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Sisa Hari</p>
+                <div className="flex flex-col gap-2 mb-3 rounded-xl overflow-hidden"
+                  style={{ background: 'var(--surface-3)' }}>
+                  {[
+                    { label: 'Modal',      value: formatCurrency(d.nominal),   color: '#d6aaff' },
+                    { label: 'Bunga',      value: formatCurrency(d.totalInterest), color: 'var(--accent)' },
+                    { label: 'Nilai Akhir',value: formatCurrency(d.finalValue), color: 'var(--text-primary)' },
+                  ].map((row, ri) => (
+                    <div key={row.label}
+                      className="flex items-center justify-between px-3 py-2"
+                      style={{ borderBottom: ri < 2 ? '1px solid var(--border)' : 'none' }}>
+                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{row.label}</p>
+                      <p className="text-xs font-bold font-mono" style={{ color: row.color }}>{row.value}</p>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between px-3 pb-2">
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Sisa Hari</p>
                     <p className="text-xs font-bold" style={{ color: dayColor }}>
-                      {d.daysRemaining <= 0 ? 'HARI INI!' : `${d.daysRemaining} hari`}
+                      {d.daysRemaining <= 0 ? '🔔 HARI INI!' : `${d.daysRemaining} hari`}
                     </p>
                   </div>
                 </div>
