@@ -50,27 +50,24 @@ const response = await fetch("https://api.anthropic.com/v1/messages", {
   body: JSON.stringify({
     model: "claude-3-5-sonnet-20241022",
     max_tokens: 1500,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: "image/jpeg",
-              data: cleanBase64
-            }
-          },
-          {
-            type: "text",
-            text: "Ekstrak struk ini jadi JSON dengan format: tanggal, total, items (nama + harga)."
-          }
-        ]
-      }
-    ]
+    messages: [...]
   })
 })
+
+// 👇 TARO DI SINI
+const text = await response.text()
+console.log("RAW RESPONSE:", text)
+
+// 👇 ERROR HANDLER
+if (!response.ok) {
+  return NextResponse.json({
+    success: false,
+    error: text
+  }, { status: response.status })
+}
+
+// 👇 baru parse JSON
+const data = JSON.parse(text)
 
     if (!response.ok) {
       const errText = await response.text().catch(() => 'unknown')
