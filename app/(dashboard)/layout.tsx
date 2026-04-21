@@ -6,14 +6,11 @@ import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LayoutDashboard, ArrowLeftRight, Camera, TrendingUp, Settings } from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, TrendingUp, Settings } from 'lucide-react'
 
-// 5-tab nav: Dashboard | Transaksi | [SCAN] | Portofolio | Pengaturan
-const LEFT_TABS = [
+const NAV_TABS = [
   { href: '/',             icon: LayoutDashboard, label: 'Dashboard'  },
   { href: '/transactions', icon: ArrowLeftRight,  label: 'Transaksi'  },
-]
-const RIGHT_TABS = [
   { href: '/portfolio',    icon: TrendingUp,      label: 'Portofolio' },
   { href: '/settings',     icon: Settings,        label: 'Pengaturan' },
 ]
@@ -44,16 +41,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-dvh flex flex-col" style={{ background: 'transparent' }}>
 
-      {/* ─── Top header: avatar only (no brand) ─── */}
+      {/* Top header — avatar only */}
       <header
         className="fixed top-0 left-0 right-0 z-40 flex items-center justify-end px-4"
         style={{
-          height: 'calc(var(--nav-height) + env(safe-area-inset-top, 0px))',
-          paddingTop: 'env(safe-area-inset-top, 0px)',
-          background: 'rgba(6,21,16,0.88)',
-          backdropFilter: 'blur(20px)',
+          height:           'calc(var(--nav-height) + env(safe-area-inset-top, 0px))',
+          paddingTop:       'env(safe-area-inset-top, 0px)',
+          background:       'rgba(6,21,16,0.88)',
+          backdropFilter:   'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          borderBottom: '1px solid var(--border)',
+          borderBottom:     '1px solid var(--border)',
         }}
       >
         <Link href="/settings">
@@ -70,7 +67,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </Link>
       </header>
 
-      {/* ─── Main content ─── */}
+      {/* Main content */}
       <main
         className="flex-1 overflow-y-auto"
         style={{
@@ -91,77 +88,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </AnimatePresence>
       </main>
 
-      {/* ─── Bottom nav: 5 tabs with camera center ─── */}
+      {/* Bottom nav — standard 4 tabs */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 flex items-center"
+        className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around"
         style={{
-          height: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          background: 'rgba(6,21,16,0.95)',
-          backdropFilter: 'blur(24px)',
+          height:           'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))',
+          paddingBottom:    'env(safe-area-inset-bottom, 0px)',
+          background:       'rgba(6,21,16,0.95)',
+          backdropFilter:   'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
-          borderTop: '1px solid var(--border)',
+          borderTop:        '1px solid var(--border)',
         }}
       >
-        {/* Left tabs */}
-        <div className="flex flex-1 justify-around">
-          {LEFT_TABS.map(({ href, icon: Icon, label }) => {
-            const active = href === '/' ? pathname === '/' : pathname.startsWith(href)
-            return (
-              <Link key={href} href={href}
-                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl relative transition-all"
-                style={{ color: active ? 'var(--accent)' : 'var(--text-muted)' }}>
-                {active && (
-                  <motion.div layoutId="nav-pill" className="absolute inset-0 rounded-xl"
-                    style={{ background: 'var(--accent-dim)' }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
-                )}
-                <Icon size={20} strokeWidth={active ? 2.5 : 1.8} className="relative z-10" />
-                <span className="text-[10px] font-medium relative z-10">{label}</span>
-              </Link>
-            )
-          })}
-        </div>
-
-        {/* Center: Camera / Scan Button */}
-        <div className="flex-shrink-0 px-2">
-          <Link href="/scan">
-            <motion.div
-              whileTap={{ scale: 0.90 }}
-              className="w-14 h-14 rounded-2xl flex items-center justify-center relative"
-              style={{
-                background: 'linear-gradient(135deg, #34d36e, #1fa855)',
-                boxShadow: '0 4px 20px rgba(52,211,110,0.45)',
-                marginBottom: '6px',
-              }}
+        {NAV_TABS.map(({ href, icon: Icon, label }) => {
+          const active = href === '/' ? pathname === '/' : pathname.startsWith(href)
+          return (
+            <Link
+              key={href}
+              href={href}
+              className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl relative transition-all"
+              style={{ color: active ? 'var(--accent)' : 'var(--text-muted)' }}
             >
-              <Camera size={22} color="#fff" strokeWidth={2} />
-              {/* Live indicator dot */}
-              <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-                style={{ background: '#fff', opacity: 0.8 }} />
-            </motion.div>
-          </Link>
-        </div>
-
-        {/* Right tabs */}
-        <div className="flex flex-1 justify-around">
-          {RIGHT_TABS.map(({ href, icon: Icon, label }) => {
-            const active = pathname.startsWith(href)
-            return (
-              <Link key={href} href={href}
-                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl relative transition-all"
-                style={{ color: active ? 'var(--accent)' : 'var(--text-muted)' }}>
-                {active && (
-                  <motion.div layoutId="nav-pill" className="absolute inset-0 rounded-xl"
-                    style={{ background: 'var(--accent-dim)' }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
-                )}
-                <Icon size={20} strokeWidth={active ? 2.5 : 1.8} className="relative z-10" />
-                <span className="text-[10px] font-medium relative z-10">{label}</span>
-              </Link>
-            )
-          })}
-        </div>
+              {active && (
+                <motion.div
+                  layoutId="nav-pill"
+                  className="absolute inset-0 rounded-xl"
+                  style={{ background: 'var(--accent-dim)' }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+              <Icon size={20} strokeWidth={active ? 2.5 : 1.8} className="relative z-10" />
+              <span className="text-[10px] font-medium relative z-10">{label}</span>
+            </Link>
+          )
+        })}
       </nav>
     </div>
   )
