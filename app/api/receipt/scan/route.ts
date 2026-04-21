@@ -20,13 +20,14 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { image, mimeType = 'image/jpeg' } = body
+    const cleanBase64 = image.replace(/^data:image\/\w+;base64,/, '')
 
     if (!image || typeof image !== 'string') {
       return NextResponse.json({ success: false, error: 'Data gambar tidak valid' }, { status: 400 })
     }
 
     // Validate base64 (basic check)
-    if (image.length < 100) {
+    if (!cleanBase64 || cleanBase64.length < 10000) {
       return NextResponse.json({ success: false, error: 'Gambar terlalu kecil atau tidak valid' }, { status: 400 })
     }
 
@@ -37,13 +38,13 @@ export async function POST(request: Request) {
 
     // Use supported MIME type for Anthropic API
     const supportedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-    const safeMime = supportedMimes.includes(mimeType) ? mimeType : 'image/jpeg'
+    const safeMime = 'image/jpeg'
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type':      'application/json',
-        'x-api-key':         apiKey,
+        'x-api-key': process.env.ANTHROPIC_API_KEY!,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
           content: [
             {
               type:   'image',
-              source: { type: 'base64', media_type: safeMime, data: image },
+              source: { type: 'base64', media_type: safeMime, data: cleanBase64 },
             },
             {
               type: 'text',
