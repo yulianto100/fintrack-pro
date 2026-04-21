@@ -297,3 +297,23 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 10px !important;
   color: var(--text-primary) !important;
 }
+
+/* ─── iOS date input fix ─────────────────────────────────────────────────────
+   On iPhone, type=date shows a calendar icon that overlaps padding.
+   Force consistent padding and prevent overflow. */
+input[type="date"].input-glass,
+input[type="date"] {
+  min-height: 48px;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Prevent date text from being clipped on iOS */
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+  min-height: 1.5em;
+}

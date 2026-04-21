@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useSession } from 'next-auth/react'
 import { useApiList } from '@/hooks/useApiData'
-import { useGoldPrices } from '@/hooks/usePrices'
+import { useGoldPrices, useStockPrices } from '@/hooks/usePrices'
 import { formatCurrency, getCurrentMonth } from '@/lib/utils'
 import type { Transaction, GoldHolding, StockHolding, Deposit } from '@/types'
 import { TrendingUp, TrendingDown, ArrowRight, Zap } from 'lucide-react'
@@ -23,6 +23,8 @@ export default function DashboardPage() {
   const { data: allTx }        = useApiList<Transaction>('/api/transactions?limit=60')
   const { data: goldHoldings } = useApiList<GoldHolding>('/api/portfolio/gold',           { refreshMs: 30000 })
   const { data: stocks }       = useApiList<StockHolding>('/api/portfolio/stocks',         { refreshMs: 30000 })
+  const stockSymbols = useMemo(() => (stocks || []).map((s) => s.symbol), [stocks])
+  const { prices: stockPrices } = useStockPrices(stockSymbols)
   const { data: deposits }     = useApiList<Deposit>('/api/portfolio/deposits?status=all', { refreshMs: 30000 })
   const { prices: goldPrices } = useGoldPrices()
 
@@ -52,7 +54,12 @@ export default function DashboardPage() {
     [deposits]
   )
 
-  const totalWealth = walletBalances.cash + walletBalances.bank + walletBalances.ewallet + goldValue + depositValue
+  const stockValue = useMemo(() =>
+    (stocks || []).reduce((s, h) => s + h.lots * 100 * (stockPrices?.[h.symbol]?.currentPrice || 0), 0),
+    [stocks, stockPrices]
+  )
+
+  const totalWealth = walletBalances.cash + walletBalances.bank + walletBalances.ewallet + goldValue + depositValue + stockValue
   const firstName   = session?.user?.name?.split(' ')[0] || 'User'
   const hour        = new Date().getHours()
   const greeting    = hour < 12 ? 'Selamat pagi' : hour < 17 ? 'Selamat siang' : 'Selamat malam'
@@ -117,6 +124,7 @@ export default function DashboardPage() {
           goldValue={goldValue}
           goldGrams={goldHoldings.reduce((s, h) => s + h.grams, 0)}
           stockCount={stocks.length}
+          stockValue={stockValue}
           depositValue={depositValue}
           depositCount={deposits.filter((d) => d.status === 'active').length}
         />

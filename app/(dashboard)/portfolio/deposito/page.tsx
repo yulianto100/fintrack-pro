@@ -85,19 +85,20 @@ export default function DepositoPage() {
 
       {/* Summary */}
       <div className="glass-card p-5 mb-5" style={{ borderColor: 'rgba(168,85,247,0.2)' }}>
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div>
-            <p className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>Total Modal</p>
-            <p className="text-sm font-bold font-mono" style={{ color: '#a855f7' }}>{formatCurrency(totals.nominal)}</p>
-          </div>
-          <div>
-            <p className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>Total Bunga</p>
-            <p className="text-sm font-bold font-mono" style={{ color: 'var(--accent)' }}>{formatCurrency(totals.interest)}</p>
-          </div>
-          <div>
-            <p className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>Nilai Akhir</p>
-            <p className="text-sm font-bold font-mono" style={{ color: 'var(--text-primary)' }}>{formatCurrency(totals.finalValue)}</p>
-          </div>
+        <div className="flex flex-col gap-0 rounded-xl overflow-hidden"
+          style={{ background: 'var(--surface-3)' }}>
+          {[
+            { label: 'Total Modal',  val: totals.nominal,    color: '#d6aaff' },
+            { label: 'Total Bunga',  val: totals.interest,   color: 'var(--accent)' },
+            { label: 'Nilai Akhir',  val: totals.finalValue, color: 'var(--text-primary)' },
+          ].map((row, i) => (
+            <div key={row.label}
+              className="flex items-center justify-between px-4 py-3"
+              style={{ borderBottom: i < 2 ? '1px solid var(--border)' : 'none' }}>
+              <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{row.label}</p>
+              <p className="text-sm font-bold font-mono" style={{ color: row.color }}>{formatCurrency(row.val)}</p>
+            </div>
+          ))}
         </div>
       </div>
 

@@ -2,14 +2,14 @@
 
 import Link from 'next/link'
 import { formatCurrency, formatNumber } from '@/lib/utils'
-import { ArrowRight } from 'lucide-react'
 
 interface Props {
-  goldValue:     number
-  goldGrams:     number
-  stockCount:    number
-  depositValue:  number
-  depositCount:  number
+  goldValue:    number
+  goldGrams:    number
+  stockCount:   number
+  stockValue:   number   // ← added
+  depositValue: number
+  depositCount: number
 }
 
 const items = [
@@ -18,11 +18,11 @@ const items = [
   { label: 'Deposito', icon: '🏦', href: '/portfolio/deposito', color: '#d6aaff', bg: 'rgba(214,170,255,0.12)' },
 ]
 
-export function PortfolioSummaryCard({ goldValue, goldGrams, stockCount, depositValue, depositCount }: Props) {
-  const values = [
-    { sub: `${formatNumber(goldGrams, 2)} gram`, value: goldValue,   showValue: true  },
-    { sub: `${stockCount} emiten`,               value: null,         showValue: false },
-    { sub: `${depositCount} aktif`,              value: depositValue, showValue: true  },
+export function PortfolioSummaryCard({ goldValue, goldGrams, stockCount, stockValue, depositValue, depositCount }: Props) {
+  const rows = [
+    { sub: `${formatNumber(goldGrams, 2)} gram`, value: goldValue,   color: '#f6cc60' },
+    { sub: `${stockCount} emiten`,               value: stockValue,  color: '#63b3ed' },
+    { sub: `${depositCount} aktif`,              value: depositValue, color: '#d6aaff' },
   ]
 
   return (
@@ -44,18 +44,12 @@ export function PortfolioSummaryCard({ goldValue, goldGrams, stockCount, deposit
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.label}</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{values[i].sub}</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{rows[i].sub}</p>
             </div>
-            {values[i].showValue ? (
-              <p className="text-sm font-bold font-mono flex-shrink-0" style={{ color: item.color }}>
-                {formatCurrency(values[i].value || 0)}
-              </p>
-            ) : (
-              <div className="flex items-center gap-1 flex-shrink-0" style={{ color: item.color }}>
-                <span className="text-xs font-medium">Detail</span>
-                <ArrowRight size={13} />
-              </div>
-            )}
+            {/* Always show value — no more "Detail →" */}
+            <p className="text-sm font-bold font-mono flex-shrink-0" style={{ color: rows[i].color }}>
+              {formatCurrency(rows[i].value)}
+            </p>
           </div>
         </Link>
       ))}
