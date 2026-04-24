@@ -12,7 +12,7 @@ import toast from 'react-hot-toast'
 interface Props {
   transaction?: Transaction
   defaultType?: TransactionType
-  onClose: () => void
+  onClose: (updated?: Transaction) => void
 }
 
 const TABS = [
@@ -176,9 +176,16 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
         walletAccountId:  walletAccountId     || undefined,
         toWalletAccountId: type === 'transfer' ? (toWalletAccountId || undefined) : undefined,
       }
-      if (isEdit) await updateTransaction(transaction.id, data)
-      else        await addTransaction(data)
-      onClose()
+      let result
+
+if (isEdit) {
+  result = await updateTransaction(transaction.id, data)
+} else {
+  result = await addTransaction(data)
+}
+
+// ⬇️ KIRIM DATA BARU KE PARENT
+onClose(result)
     } finally {
       setSaving(false)
     }
@@ -191,7 +198,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           className="absolute inset-0"
           style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
-          onClick={onClose}
+          onClick={() => onClose()}
         />
         <motion.div
           initial={{ y: '100%', opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: '100%', opacity: 0 }}
@@ -207,7 +214,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
             <h2 className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
               {isEdit ? 'Edit Transaksi' : 'Tambah Transaksi'}
             </h2>
-            <button onClick={onClose}
+            <button onClick={() => onClose()}
               className="w-9 h-9 rounded-full flex items-center justify-center"
               style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)' }}>
               <X size={18} />
