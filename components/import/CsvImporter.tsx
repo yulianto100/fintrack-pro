@@ -26,7 +26,7 @@ const WALLET_OPTIONS = [
 ]
 
 export function CsvImporter({ onDone }: { onDone?: () => void }) {
-  const [step,      setStep     ] = useState<Step>('upload')
+  const [step,      setStep     ] = useState<ImportStep>('upload')
   const [headers,   setHeaders  ] = useState<string[]>([])
   const [rawRows,   setRawRows  ] = useState<Record<string,string>[]>([])
   const [fileName,  setFileName ] = useState('')
@@ -172,7 +172,7 @@ export function CsvImporter({ onDone }: { onDone?: () => void }) {
     <div className="max-w-xl mx-auto">
       {/* Step indicator */}
       <div className="flex items-center gap-1 mb-5">
-        {(['upload','mapping','preview','done'] as Step[]).map((s, i) => (
+        {(['upload','mapping','preview','done'] as ImportStep[]).map((s, i) => (
           <div key={s} className="flex items-center gap-1">
             <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
               style={{
@@ -401,15 +401,14 @@ export function CsvImporter({ onDone }: { onDone?: () => void }) {
   )
 }
 
-const STEP_LABELS: Record<Step, string> = {
+const STEP_LABELS: Record<ImportStep, string> = {
   upload:  'Upload File',
   mapping: 'Mapping Kolom',
   preview: 'Preview',
   done:    'Selesai',
 }
-type ImportStep = 'upload' | 'mapping' | 'preview' | 'done'
-const STEP_ORDER: Step[] = ['upload', 'mapping', 'preview', 'done']
-function steps_done(current: Step): Step[] {
+const STEP_ORDER: ImportStep[] = ['upload', 'mapping', 'preview', 'done']
+function steps_done(current: ImportStep): ImportStep[] {
   const idx = STEP_ORDER.indexOf(current)
   return STEP_ORDER.slice(0, idx)
 }
