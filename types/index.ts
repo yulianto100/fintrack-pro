@@ -1,11 +1,23 @@
 // ============================================
-// FINTRACK PRO - TypeScript Types (v2)
+// FINTRACK PRO - TypeScript Types (v3)
 // ============================================
 
 export type WalletType = 'cash' | 'bank' | 'ewallet'
+export type WalletAccountType = 'bank' | 'ewallet'
 
 export interface User {
   id: string; email: string; name: string; image?: string; createdAt: string
+}
+
+// ---- WALLET ACCOUNTS ----
+export interface WalletAccount {
+  id: string
+  userId: string
+  type: WalletAccountType  // 'bank' | 'ewallet'
+  name: string             // e.g. 'BCA', 'Mandiri', 'OVO', 'GoPay'
+  balance: number          // computed / stored
+  createdAt: string
+  updatedAt: string
 }
 
 // ---- TRANSACTIONS ----
@@ -21,6 +33,9 @@ export interface Transaction {
   id: string; userId: string; type: TransactionType
   amount: number; categoryId: string; categoryName?: string; categoryIcon?: string
   description: string; date: string; wallet: WalletType; toWallet?: WalletType
+  // Extended wallet account support (optional — backward compatible)
+  walletAccountId?: string   // specific account (e.g. BCA under bank)
+  toWalletAccountId?: string // for transfers
   tags?: string[]; createdAt: string; updatedAt: string
 }
 
@@ -124,4 +139,17 @@ export interface ExportData {
   transactions: Transaction[]; categories: Category[]
   portfolio: { gold: GoldHolding[]; stocks: StockHolding[]; deposits: Deposit[] }
   exportedAt: string; userId: string
+}
+
+// ---- FINANCIAL GOALS ----
+export interface Goal {
+  id:          string
+  userId:      string
+  title:       string
+  targetAmount: number
+  currentAmount: number
+  icon:        string
+  color:       string
+  createdAt:   string
+  updatedAt:   string
 }

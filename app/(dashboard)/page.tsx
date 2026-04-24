@@ -19,8 +19,9 @@ export default function DashboardPage() {
   const { data: session } = useSession()
   const currentMonth = getCurrentMonth()
 
-  const { data: transactions } = useApiList<Transaction>(`/api/transactions?month=${currentMonth}&limit=300`, { refreshMs: 8000 })
-  const { data: allTx }        = useApiList<Transaction>('/api/transactions?limit=60')
+  // Fix #2: Latest 7 transactions regardless of date, sorted by createdAt
+  const { data: transactions } = useApiList<Transaction>('/api/transactions?limit=7&sort=createdAt', { refreshMs: 8000 })
+  const { data: allTx }        = useApiList<Transaction>('/api/transactions?limit=200')
   const { data: goldHoldings } = useApiList<GoldHolding>('/api/portfolio/gold',           { refreshMs: 30000 })
   const { data: stocks }       = useApiList<StockHolding>('/api/portfolio/stocks',         { refreshMs: 30000 })
   const stockSymbols = useMemo(() => (stocks || []).map((s) => s.symbol), [stocks])
