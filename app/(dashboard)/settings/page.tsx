@@ -459,6 +459,13 @@ export default function SettingsPage() {
             <Upload size={15}/> Import dari JSON
             <input type="file" accept=".json" className="hidden" onChange={handleImport}/>
           </label>
+          {/* CSV import shortcut */}
+          <Link href="/import">
+            <div className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 cursor-pointer"
+              style={{ background: 'rgba(99,179,237,0.08)', color: '#63b3ed', border: '1px solid rgba(99,179,237,0.2)' }}>
+              <Upload size={15}/> Import Mutasi Bank (CSV)
+            </div>
+          </Link>
         </div>
       </motion.div>
 

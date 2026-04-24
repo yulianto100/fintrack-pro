@@ -5,13 +5,14 @@ import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LayoutDashboard, ArrowLeftRight, TrendingUp, Settings, Target } from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, TrendingUp, Settings, Target, PiggyBank } from 'lucide-react'
 
 const NAV_TABS = [
   { href: '/',             icon: LayoutDashboard, label: 'Dashboard'  },
   { href: '/transactions', icon: ArrowLeftRight,  label: 'Transaksi'  },
   { href: '/goals',        icon: Target,          label: 'Goals'      },
   { href: '/portfolio',    icon: TrendingUp,      label: 'Portofolio' },
+  { href: '/budget',       icon: PiggyBank,       label: 'Budget'     },
   { href: '/settings',     icon: Settings,        label: 'Pengaturan' },
 ]
 

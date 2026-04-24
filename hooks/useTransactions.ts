@@ -52,9 +52,11 @@ export function useTransactions() {
   const clearFilters = useCallback(() => setFilters({}), [])
 
   const syncWalletBalances = useCallback(async () => {
-    try {
-      await fetch('/api/wallet-accounts/sync', { method: 'POST' })
-    } catch { /* silent — non-critical */ }
+    try { await fetch('/api/wallet-accounts/sync', { method: 'POST' }) } catch { /* silent */ }
+  }, [])
+
+  const updateStreak = useCallback(async () => {
+    try { await fetch('/api/streak', { method: 'POST' }) } catch { /* silent */ }
   }, [])
 
   const addTransaction = useCallback(async (data: Partial<Transaction>) => {
@@ -67,13 +69,13 @@ export function useTransactions() {
       if (!json.success) throw new Error(json.error)
       toast.success('Transaksi berhasil ditambahkan! ✓')
       refetch()
-      // Sync wallet account balances in background
       syncWalletBalances()
+      updateStreak()   // ← streak update
       return json.data
     } catch (err) {
       toast.error('Gagal menambahkan transaksi'); throw err
     }
-  }, [refetch, syncWalletBalances])
+  }, [refetch, syncWalletBalances, updateStreak])
 
   const deleteTransaction = useCallback(async (id: string) => {
     try {

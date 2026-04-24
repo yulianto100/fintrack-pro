@@ -11,8 +11,8 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
     "target": "es2017",
+    "jsx": "preserve",
     "incremental": true,
     "plugins": [{ "name": "next" }],
     "paths": {

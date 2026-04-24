@@ -1,46 +1,54 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useSession } from 'next-auth/react'
 import { useApiList } from '@/hooks/useApiData'
 import { useGoldPrices, useStockPrices } from '@/hooks/usePrices'
 import { formatCurrency, getCurrentMonth } from '@/lib/utils'
-import type { Transaction, GoldHolding, StockHolding, Deposit } from '@/types'
-import { TrendingUp, TrendingDown, ArrowRight, Zap } from 'lucide-react'
+import type { Transaction, GoldHolding, StockHolding, Deposit, BudgetStatus } from '@/types'
+import { TrendingUp, TrendingDown, ArrowRight, Upload } from 'lucide-react'
 import Link from 'next/link'
 import { WalletCard } from '@/components/dashboard/WalletCard'
 import { QuickAddFAB } from '@/components/transactions/QuickAddFAB'
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions'
 import { PortfolioSummaryCard } from '@/components/dashboard/PortfolioSummaryCard'
 import { SmartInsights } from '@/components/dashboard/SmartInsights'
+import { StreakBanner } from '@/components/dashboard/StreakBanner'
+import { WeeklySummary } from '@/components/dashboard/WeeklySummary'
+import { BudgetProgress } from '@/components/dashboard/BudgetProgress'
+import { NetWorthChart } from '@/components/charts/NetWorthChart'
 
 export default function DashboardPage() {
   const { data: session } = useSession()
-  const currentMonth = getCurrentMonth()
 
-  // Fix #2: Latest 7 transactions regardless of date, sorted by createdAt
-  const { data: transactions } = useApiList<Transaction>('/api/transactions?limit=7&sort=createdAt', { refreshMs: 8000 })
-  const { data: allTx }        = useApiList<Transaction>('/api/transactions?limit=200')
-  const { data: goldHoldings } = useApiList<GoldHolding>('/api/portfolio/gold',           { refreshMs: 30000 })
-  const { data: stocks }       = useApiList<StockHolding>('/api/portfolio/stocks',         { refreshMs: 30000 })
+  const { data: transactions } = useApiList<Transaction>('/api/transactions?limit=7&sort=createdAt',  { refreshMs: 8000 })
+  const { data: allTx }        = useApiList<Transaction>('/api/transactions?limit=500',               { refreshMs: 15000 })
+  const { data: goldHoldings } = useApiList<GoldHolding>('/api/portfolio/gold',                       { refreshMs: 30000 })
+  const { data: stocks }       = useApiList<StockHolding>('/api/portfolio/stocks',                    { refreshMs: 30000 })
+  const { data: deposits }     = useApiList<Deposit>('/api/portfolio/deposits?status=all',            { refreshMs: 30000 })
+  const { data: budgets }      = useApiList<BudgetStatus>('/api/budget',                              { refreshMs: 30000 })
+
   const stockSymbols = useMemo(() => (stocks || []).map((s) => s.symbol), [stocks])
   const { prices: stockPrices } = useStockPrices(stockSymbols)
-  const { data: deposits }     = useApiList<Deposit>('/api/portfolio/deposits?status=all', { refreshMs: 30000 })
-  const { prices: goldPrices } = useGoldPrices()
+  const { prices: goldPrices }  = useGoldPrices()
 
   const monthStats = useMemo(() => {
-    const income  = transactions.filter((t) => t.type === 'income') .reduce((s, t) => s + t.amount, 0)
-    const expense = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+    const currentMonth = getCurrentMonth()
+    const income  = allTx.filter((t) => t.type === 'income'  && t.date.startsWith(currentMonth)).reduce((s, t) => s + t.amount, 0)
+    const expense = allTx.filter((t) => t.type === 'expense' && t.date.startsWith(currentMonth)).reduce((s, t) => s + t.amount, 0)
     return { income, expense, balance: income - expense }
-  }, [transactions])
+  }, [allTx])
 
   const walletBalances = useMemo(() => {
     const b = { cash: 0, bank: 0, ewallet: 0 }
     allTx.forEach((t) => {
       if      (t.type === 'income')   b[t.wallet as keyof typeof b] += t.amount
       else if (t.type === 'expense')  b[t.wallet as keyof typeof b] -= t.amount
-      else { b[t.wallet as keyof typeof b] -= t.amount; if (t.toWallet) b[t.toWallet as keyof typeof b] += t.amount }
+      else {
+        b[t.wallet as keyof typeof b] -= t.amount
+        if (t.toWallet) b[t.toWallet as keyof typeof b] += t.amount
+      }
     })
     return b
   }, [allTx])
@@ -49,30 +57,54 @@ export default function DashboardPage() {
     goldHoldings.reduce((s, h) => s + h.grams * (goldPrices?.[h.source]?.sellPrice || 0), 0),
     [goldHoldings, goldPrices]
   )
-
   const depositValue = useMemo(() =>
-    deposits.filter((d) => d.status === 'active').reduce((s, d) => s + d.nominal, 0),
-    [deposits]
-  )
-
+    deposits.filter((d) => d.status === 'active').reduce((s, d) => s + d.nominal, 0), [deposits])
   const stockValue = useMemo(() =>
     (stocks || []).reduce((s, h) => s + h.lots * 100 * (stockPrices?.[h.symbol]?.currentPrice || 0), 0),
     [stocks, stockPrices]
   )
 
-  const totalWealth = walletBalances.cash + walletBalances.bank + walletBalances.ewallet + goldValue + depositValue + stockValue
-  const firstName   = session?.user?.name?.split(' ')[0] || 'User'
-  const hour        = new Date().getHours()
-  const greeting    = hour < 12 ? 'Selamat pagi' : hour < 17 ? 'Selamat siang' : 'Selamat malam'
+  const walletTotal  = walletBalances.cash + walletBalances.bank + walletBalances.ewallet
+  const totalWealth  = walletTotal + goldValue + depositValue + stockValue
+
+  // Save net worth snapshot whenever total wealth is computed and non-zero
+  useEffect(() => {
+    if (totalWealth > 0 && allTx.length > 0) {
+      fetch('/api/net-worth-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: totalWealth }),
+      }).catch(() => {})
+    }
+  }, [totalWealth, allTx.length])
+
+  const firstName = session?.user?.name?.split(' ')[0] || 'User'
+  const hour      = new Date().getHours()
+  const greeting  = hour < 12 ? 'Selamat pagi' : hour < 17 ? 'Selamat siang' : 'Selamat malam'
 
   return (
     <div className="px-4 py-5 space-y-5 max-w-2xl mx-auto">
       {/* Greeting */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{greeting},</p>
-        <h1 className="text-2xl font-display font-bold" style={{ color: 'var(--text-primary)' }}>
-          {firstName} 👋
-        </h1>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{greeting},</p>
+            <h1 className="text-2xl font-display font-bold" style={{ color: 'var(--text-primary)' }}>
+              {firstName} 👋
+            </h1>
+          </div>
+          {/* Import shortcut */}
+          <Link href="/import"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium"
+            style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+            <Upload size={13}/> Import CSV
+          </Link>
+        </div>
+      </motion.div>
+
+      {/* Streak / reminder banner */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.04 }}>
+        <StreakBanner />
       </motion.div>
 
       {/* Hero card */}
@@ -113,8 +145,23 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
-      {/* Portfolio summary */}
+      {/* Net Worth Chart */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }}>
+        <NetWorthChart
+          transactions={allTx}
+          goldValue={goldValue}
+          stockValue={stockValue}
+          depositValue={depositValue}
+        />
+      </motion.div>
+
+      {/* Weekly Summary */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}>
+        <WeeklySummary transactions={allTx} />
+      </motion.div>
+
+      {/* Portfolio summary */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
         <div className="flex items-center justify-between mb-2 px-1">
           <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>PORTOFOLIO</p>
           <Link href="/portfolio" className="flex items-center gap-1 text-xs" style={{ color: 'var(--accent)' }}>
@@ -131,8 +178,15 @@ export default function DashboardPage() {
         />
       </motion.div>
 
+      {/* Budget progress */}
+      {budgets.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.20 }}>
+          <BudgetProgress budgets={budgets} />
+        </motion.div>
+      )}
+
       {/* Smart insights */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.20 }}>
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}>
         <SmartInsights
           transactions={allTx}
           goldHoldings={goldHoldings}
@@ -140,11 +194,14 @@ export default function DashboardPage() {
           deposits={deposits}
           totalWealth={totalWealth}
           goldValue={goldValue}
+          stockValue={stockValue}
+          walletTotal={walletTotal}
+          budgets={budgets}
         />
       </motion.div>
 
       {/* Recent transactions */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }}>
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.26 }}>
         <div className="flex items-center justify-between mb-2 px-1">
           <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>TRANSAKSI TERBARU</p>
           <Link href="/transactions" className="flex items-center gap-1 text-xs" style={{ color: 'var(--accent)' }}>

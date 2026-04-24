@@ -153,3 +153,51 @@ export interface Goal {
   createdAt:   string
   updatedAt:   string
 }
+
+// ---- STREAK ----
+export interface UserStreak {
+  userId:         string
+  currentStreak:  number
+  bestStreak:     number
+  lastInputDate:  string   // YYYY-MM-DD
+  updatedAt:      string
+}
+
+// ---- NET WORTH HISTORY ----
+export interface NetWorthSnapshot {
+  id:        string
+  userId:    string
+  value:     number
+  createdAt: string        // ISO date
+}
+
+// ---- BUDGET ----
+export interface BudgetCategory {
+  id:         string
+  userId:     string
+  categoryId: string
+  categoryName?: string
+  categoryIcon?: string
+  categoryColor?: string
+  limitAmount: number
+  month:      string       // YYYY-MM
+  createdAt:  string
+  updatedAt:  string
+}
+
+export interface BudgetStatus extends BudgetCategory {
+  spent:   number
+  percent: number
+  remaining: number
+}
+
+// ---- IMPORT LOG ----
+export interface ImportLog {
+  id:          string
+  userId:      string
+  fileName:    string
+  totalRows:   number
+  imported:    number
+  skipped:     number
+  createdAt:   string
+}
