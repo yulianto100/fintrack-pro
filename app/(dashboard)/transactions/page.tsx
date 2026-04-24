@@ -209,12 +209,13 @@ export default function TransactionsPage() {
 
       {/* Search */}
       <div className="relative mb-4">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2"
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
           style={{ color: 'var(--text-muted)' }} />
         <input
           type="text"
           placeholder="Cari transaksi..."
-          className="input-glass pl-9 text-sm"
+          className="input-glass text-sm"
+          style={{ paddingLeft: '2.25rem' }}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
