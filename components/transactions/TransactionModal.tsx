@@ -12,7 +12,7 @@ import toast from 'react-hot-toast'
 interface Props {
   transaction?: Transaction
   defaultType?: TransactionType
-  onClose: () => void
+  onClose: (updated?: Transaction) => void
 }
 
 const TABS = [
@@ -176,9 +176,16 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
         walletAccountId:  walletAccountId     || undefined,
         toWalletAccountId: type === 'transfer' ? (toWalletAccountId || undefined) : undefined,
       }
-      if (isEdit) await updateTransaction(transaction.id, data)
-      else        await addTransaction(data)
-      onClose()
+      let result
+
+if (isEdit) {
+  result = await updateTransaction(transaction.id, data)
+} else {
+  result = await addTransaction(data)
+}
+
+// ⬇️ KIRIM DATA BARU KE PARENT
+onClose(result)
     } finally {
       setSaving(false)
     }
