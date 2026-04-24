@@ -8,7 +8,7 @@ import type { ImportRow } from '@/app/api/import/route'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
-type Step = 'upload' | 'mapping' | 'preview' | 'done'
+type ImportStep = 'upload' | 'mapping' | 'preview' | 'done'
 
 interface ColumnMapping {
   date:        string
@@ -407,7 +407,7 @@ const STEP_LABELS: Record<Step, string> = {
   preview: 'Preview',
   done:    'Selesai',
 }
-type Step = 'upload' | 'mapping' | 'preview' | 'done'
+type ImportStep = 'upload' | 'mapping' | 'preview' | 'done'
 const STEP_ORDER: Step[] = ['upload', 'mapping', 'preview', 'done']
 function steps_done(current: Step): Step[] {
   const idx = STEP_ORDER.indexOf(current)
