@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation'
 import { useApiList } from '@/hooks/useApiData'
 import { useGoldPrices, useStockPrices } from '@/hooks/usePrices'
 import { formatCurrency, formatNumber, formatPercent, parseLotValue, calcProfitLoss } from '@/lib/utils'
-import type { GoldHolding, StockHolding, Deposit, WalletAccount } from '@/types'
+import type { GoldHolding, StockHolding, Deposit, WalletAccount, SBNHolding, ReksadanaHolding } from '@/types'
 import { ArrowRight, RefreshCw, Wifi, WifiOff, Landmark, Wallet } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -18,6 +18,8 @@ export default function PortfolioPage() {
   const { data: goldHoldings } = useApiList<GoldHolding>('/api/portfolio/gold',           { refreshMs: 30000 })
   const { data: stocks }       = useApiList<StockHolding>('/api/portfolio/stocks',         { refreshMs: 30000 })
   const { data: deposits }     = useApiList<Deposit>('/api/portfolio/deposits?status=all', { refreshMs: 30000 })
+  const { data: sbnList }      = useApiList<SBNHolding>('/api/portfolio/sbn',              { refreshMs: 60000 })
+  const { data: reksadanaList }= useApiList<ReksadanaHolding>('/api/portfolio/reksadana', { refreshMs: 60000 })
 
   const [walletAccounts, setWalletAccounts] = useState<WalletAccount[]>([])
 
@@ -58,7 +60,25 @@ export default function PortfolioPage() {
     }
   }, [deposits])
 
-  const totalPortfolio = goldSummary.totalValue + stockSummary.totalValue + depositSummary.totalNominal
+  const sbnSummary = useMemo(() => {
+    const active = sbnList.filter((h) => h.status === 'active')
+    return {
+      totalNominal:   active.reduce((s, h) => s + h.nominal, 0),
+      totalNetReturn: active.reduce((s, h) => s + h.netReturn, 0),
+      count: active.length,
+    }
+  }, [sbnList])
+
+  const reksadanaSummary = useMemo(() => {
+    let totalValue = 0, totalCost = 0
+    reksadanaList.forEach((h) => {
+      totalValue += h.unit * h.currentNAV
+      totalCost  += h.unit * h.buyNAV
+    })
+    return { totalValue, totalCost, pnl: totalValue - totalCost, count: reksadanaList.length }
+  }, [reksadanaList])
+
+  const totalPortfolio = goldSummary.totalValue + stockSummary.totalValue + depositSummary.totalNominal + sbnSummary.totalNominal + reksadanaSummary.totalValue
 
   const investmentSections = [
     { href: '/portfolio/emas',     icon: '🥇', title: 'Emas',     color: '#f6cc60',
@@ -74,6 +94,15 @@ export default function PortfolioPage() {
       subtitle: `${depositSummary.count} aktif`, value: depositSummary.totalNominal,
       meta: depositSummary.totalFinalValue > 0 ? `Nilai akhir: ${formatCurrency(depositSummary.totalFinalValue)}` : 'Belum ada deposito',
       pct: totalPortfolio > 0 ? (depositSummary.totalNominal / totalPortfolio) * 100 : 0 },
+    { href: '/portfolio/sbn',       icon: '🏛️', title: 'SBN',       color: '#c084fc',
+      subtitle: `${sbnSummary.count} aktif`, value: sbnSummary.totalNominal,
+      meta: sbnSummary.totalNetReturn > 0 ? `Bunga bersih: +${formatCurrency(sbnSummary.totalNetReturn)}` : 'Belum ada SBN',
+      pct: totalPortfolio > 0 ? (sbnSummary.totalNominal / totalPortfolio) * 100 : 0 },
+    { href: '/portfolio/reksadana', icon: '📦', title: 'Reksadana', color: '#38bdf8',
+      subtitle: `${reksadanaSummary.count} produk`, value: reksadanaSummary.totalValue,
+      meta: reksadanaSummary.totalCost > 0 ? `${reksadanaSummary.pnl >= 0 ? '+' : ''}${formatCurrency(reksadanaSummary.pnl)} P&L` : 'Belum ada reksadana',
+      metaColor: reksadanaSummary.pnl >= 0 ? 'var(--accent)' : 'var(--red)',
+      pct: totalPortfolio > 0 ? (reksadanaSummary.totalValue / totalPortfolio) * 100 : 0 },
   ]
 
   const pieData = investmentSections.filter((s) => s.pct > 0).map((s) => ({ name: s.title, value: s.pct, color: s.color }))

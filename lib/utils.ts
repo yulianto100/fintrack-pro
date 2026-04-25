@@ -59,10 +59,14 @@ export function calculateDepositMaturity(
   
   // Simple interest: P × r × t
   // where r = annual rate / 12 per month, t = tenorMonths
-  const monthlyRate = interestRate / 100 / 12
-  const totalInterest = nominal * monthlyRate * tenorMonths
-  const finalValue = nominal + totalInterest
-  
+  // Apply PPh final 20% (Ps. 4 ayat 2) — consistent with form preview
+  const TAX_RATE = 0.20
+  const monthlyRate   = interestRate / 100 / 12
+  const grossInterest = nominal * monthlyRate * tenorMonths
+  const tax           = grossInterest * TAX_RATE
+  const totalInterest = grossInterest - tax   // net interest after tax
+  const finalValue    = nominal + totalInterest
+
   return { maturityDate, finalValue, totalInterest }
 }
 
