@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getAdminDatabase } from '@/lib/firebase-admin'
+import { calcGoldSellProfit } from '@/lib/investment-calculator'
+import type { GoldHolding } from '@/types'
 
 async function getUserId(): Promise<string | null> {
   try {
@@ -39,32 +41,87 @@ export async function POST(request: Request) {
     const db     = getAdminDatabase()
     const newRef = db.ref(`users/${userId}/portfolio/gold`).push()
 
-    // ⚠️ Firebase Realtime DB rejects `undefined` values — build object without undefined fields
     const holding: Record<string, unknown> = {
-      id:        newRef.key!,
+      id:             newRef.key!,
       userId,
-      grams:     parseFloat(grams),
+      grams:          parseFloat(grams),
       source,
-      goldType:  goldType || 'fisik',
-      buyDate:   buyDate  || new Date().toISOString().split('T')[0],
-      notes:     notes    || '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      goldType:       goldType || 'fisik',
+      buyDate:        buyDate  || new Date().toISOString().split('T')[0],
+      notes:          notes    || '',
+      realizedProfit: 0,
+      createdAt:      new Date().toISOString(),
+      updatedAt:      new Date().toISOString(),
     }
 
-    // Only add buyPrice if it's a valid number (truly optional)
     const parsedBuyPrice = buyPrice !== undefined && buyPrice !== '' && buyPrice !== null
       ? parseFloat(String(buyPrice))
       : NaN
     if (!isNaN(parsedBuyPrice) && parsedBuyPrice > 0) {
       holding.buyPrice = parsedBuyPrice
     }
-    // buyPrice intentionally omitted if not provided — no undefined in Firebase
 
     await newRef.set(holding)
     return NextResponse.json({ success: true, data: holding }, { status: 201 })
   } catch (err) {
     console.error('[POST /api/portfolio/gold]', err)
+    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+  }
+}
+
+export async function PATCH(request: Request) {
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  try {
+    const body = await request.json()
+    const { id, action } = body
+    if (!id) return NextResponse.json({ success: false, error: 'id wajib diisi' }, { status: 400 })
+
+    const db      = getAdminDatabase()
+    const holdRef = db.ref(`users/${userId}/portfolio/gold/${id}`)
+
+    // ── PARTIAL SELL action ──
+    if (action === 'sell') {
+      const { sellGrams, sellPrice } = body
+      if (!sellGrams || !sellPrice)
+        return NextResponse.json({ success: false, error: 'sellGrams dan sellPrice wajib diisi' }, { status: 400 })
+
+      const snap = await holdRef.get()
+      if (!snap.exists()) return NextResponse.json({ success: false, error: 'Holding tidak ditemukan' }, { status: 404 })
+
+      const holding: GoldHolding = snap.val()
+      const gramsToSell = parseFloat(sellGrams)
+
+      if (gramsToSell > holding.grams)
+        return NextResponse.json({ success: false, error: 'Gram melebihi kepemilikan' }, { status: 400 })
+
+      const { realizedProfit } = calcGoldSellProfit(
+        gramsToSell,
+        parseFloat(sellPrice),
+        holding.buyPrice || 0
+      )
+
+      const remainingGrams = holding.grams - gramsToSell
+
+      if (remainingGrams <= 0.0001) {
+        await holdRef.remove()
+        return NextResponse.json({ success: true, deleted: true, realizedProfit })
+      }
+
+      const cumulativeProfit = (holding.realizedProfit || 0) + realizedProfit
+      await holdRef.update({
+        grams:          remainingGrams,
+        realizedProfit: cumulativeProfit,
+        updatedAt:      new Date().toISOString(),
+      })
+      return NextResponse.json({ success: true, deleted: false, realizedProfit, remainingGrams })
+    }
+
+    // ── Generic update ──
+    const { action: _a, id: _id, ...updates } = body
+    await holdRef.update({ ...updates, updatedAt: new Date().toISOString() })
+    return NextResponse.json({ success: true })
+  } catch (err) {
     return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
   }
 }

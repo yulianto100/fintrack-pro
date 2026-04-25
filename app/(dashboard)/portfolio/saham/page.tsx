@@ -6,7 +6,8 @@ import { useApiList } from '@/hooks/useApiData'
 import { useStockPrices } from '@/hooks/usePrices'
 import { formatCurrency, formatPercent, parseLotValue, calcProfitLoss } from '@/lib/utils'
 import type { StockHolding } from '@/types'
-import { Plus, Trash2, TrendingUp, TrendingDown, X } from 'lucide-react'
+import { Plus, Trash2, TrendingUp, TrendingDown, X, DollarSign } from 'lucide-react'
+import { SahamSellModal } from '@/components/sell-modal'
 import toast from 'react-hot-toast'
 
 export default function SahamPage() {
@@ -15,8 +16,11 @@ export default function SahamPage() {
   const { prices, loading: pricesLoading } = useStockPrices(symbols)
 
   const [showAdd, setShowAdd] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ symbol: '', lots: '', avgPrice: '', buyDate: '', notes: '' })
+  const [saving,  setSaving ] = useState(false)
+  const [form,    setForm   ] = useState({ symbol: '', lots: '', avgPrice: '', buyDate: '', notes: '' })
+
+  // Sell modal state
+  const [sellTarget, setSellTarget] = useState<StockHolding | null>(null)
 
   const handleAdd = async () => {
     if (!form.symbol || !form.lots || !form.avgPrice) { toast.error('Isi semua field yang wajib'); return }
@@ -28,7 +32,11 @@ export default function SahamPage() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
-      toast.success('Saham berhasil ditambahkan! ✓')
+      if (json.merged) {
+        toast.success(`${form.symbol.toUpperCase()} sudah ada — lot & avg price diupdate! ✓`)
+      } else {
+        toast.success('Saham berhasil ditambahkan! ✓')
+      }
       setShowAdd(false); refetch()
       setForm({ symbol: '', lots: '', avgPrice: '', buyDate: '', notes: '' })
     } catch { toast.error('Gagal menambahkan saham') }
@@ -57,14 +65,14 @@ export default function SahamPage() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-xl font-display font-bold" style={{ color: 'var(--text-primary)' }}>📈 Portofolio Saham</h1>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>IDX — harga realtime</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>IDX — harga realtime · auto-merge aktif</p>
         </div>
         <button onClick={() => setShowAdd(true)} className="btn-primary px-4 py-2 flex items-center gap-1.5 text-sm">
           <Plus size={16} /> Tambah
         </button>
       </div>
 
-      {/* Summary — vertical stacked layout, no overlap */}
+      {/* Summary */}
       <div className="glass-card p-5 mb-5" style={{ borderColor: 'rgba(99,179,237,0.2)' }}>
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
@@ -153,11 +161,11 @@ export default function SahamPage() {
                   </div>
                 </div>
 
-                {/* Row 2: Nilai | Modal | P&L — stacked vertical to prevent overlap */}
+                {/* Row 2: Nilai | Modal | P&L */}
                 <div className="flex flex-col gap-0 rounded-xl overflow-hidden"
                   style={{ background: 'var(--surface-3)' }}>
                   {[
-                    { label: 'Nilai Pasar', value: currentValue, color: 'var(--blue)', prefix: '' },
+                    { label: 'Nilai Pasar', value: currentValue, color: 'var(--blue)',           prefix: '' },
                     { label: 'Modal',       value: costBasis,    color: 'var(--text-secondary)', prefix: '' },
                   ].map((row) => (
                     <div key={row.label}
@@ -184,11 +192,19 @@ export default function SahamPage() {
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                     Avg beli: {formatCurrency(h.avgPrice)}/lembar
                   </p>
-                  <button onClick={() => handleDelete(h.id)}
-                    className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg"
-                    style={{ background: 'var(--red-dim)', color: 'var(--red)' }}>
-                    <Trash2 size={12} /> Hapus
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* Sell button */}
+                    <button onClick={() => setSellTarget(h)}
+                      className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg"
+                      style={{ background: 'rgba(52,211,110,0.1)', color: 'var(--accent)', border: '1px solid rgba(52,211,110,0.2)' }}>
+                      <DollarSign size={12} /> Jual
+                    </button>
+                    <button onClick={() => handleDelete(h.id)}
+                      className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg"
+                      style={{ background: 'var(--red-dim)', color: 'var(--red)' }}>
+                      <Trash2 size={12} /> Hapus
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             )
@@ -220,6 +236,14 @@ export default function SahamPage() {
                 </button>
               </div>
               <div className="px-5 pb-7 space-y-4">
+                {/* Auto-merge notice */}
+                <div className="flex items-start gap-2 p-3 rounded-xl" style={{ background: 'rgba(99,179,237,0.08)' }}>
+                  <span className="text-sm">🔀</span>
+                  <p className="text-xs" style={{ color: 'var(--blue)' }}>
+                    Jika saham sudah ada, lot & avg price akan otomatis digabung (weighted average).
+                  </p>
+                </div>
+
                 <div>
                   <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
                     Kode Saham (IDX) <span style={{ color: 'var(--accent)' }}>*</span>
@@ -272,6 +296,16 @@ export default function SahamPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Sell modal */}
+      {sellTarget && (
+        <SahamSellModal
+          holding={sellTarget}
+          currentPrice={prices[sellTarget.symbol]?.currentPrice || 0}
+          onClose={() => setSellTarget(null)}
+          onSuccess={() => { refetch(); setSellTarget(null) }}
+        />
+      )}
     </div>
   )
 }

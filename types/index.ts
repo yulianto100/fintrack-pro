@@ -13,9 +13,9 @@ export interface User {
 export interface WalletAccount {
   id: string
   userId: string
-  type: WalletAccountType  // 'bank' | 'ewallet'
-  name: string             // e.g. 'BCA', 'Mandiri', 'OVO', 'GoPay'
-  balance: number          // computed / stored
+  type: WalletAccountType
+  name: string
+  balance: number
   createdAt: string
   updatedAt: string
 }
@@ -33,9 +33,8 @@ export interface Transaction {
   id: string; userId: string; type: TransactionType
   amount: number; categoryId: string; categoryName?: string; categoryIcon?: string
   description: string; date: string; wallet: WalletType; toWallet?: WalletType
-  // Extended wallet account support (optional — backward compatible)
-  walletAccountId?: string   // specific account (e.g. BCA under bank)
-  toWalletAccountId?: string // for transfers
+  walletAccountId?: string
+  toWalletAccountId?: string
   tags?: string[]; createdAt: string; updatedAt: string
 }
 
@@ -48,23 +47,24 @@ export type GoldType    = 'digital' | 'fisik'
 
 export interface GoldHolding {
   id: string; userId: string
-  goldType:  GoldType    // digital | fisik
-  source:    GoldSource  // provider
+  goldType:  GoldType
+  source:    GoldSource
   grams:     number
-  buyPrice?: number      // avg buy price per gram
+  buyPrice?: number
   buyDate?:  string
   notes?:    string
+  realizedProfit?: number
   createdAt: string; updatedAt: string
 }
 
 export interface GoldPrice {
   source:    GoldSource
-  buyPrice:  number   // harga beli (jual ke kita)
-  sellPrice: number   // harga jual (buyback)
-  spread:    number   // buyPrice - sellPrice
+  buyPrice:  number
+  sellPrice: number
+  spread:    number
   updatedAt: string
   currency:  string
-  isLive:    boolean  // true = real data, false = estimated
+  isLive:    boolean
 }
 
 export interface GoldPriceMap { [key: string]: GoldPrice }
@@ -72,7 +72,9 @@ export interface GoldPriceMap { [key: string]: GoldPrice }
 // ---- PORTFOLIO: STOCKS ----
 export interface StockHolding {
   id: string; userId: string; symbol: string; lots: number; avgPrice: number
-  buyDate?: string; notes?: string; createdAt: string; updatedAt: string
+  buyDate?: string; notes?: string
+  realizedProfit?: number
+  createdAt: string; updatedAt: string
 }
 
 export interface StockPrice {
@@ -91,6 +93,9 @@ export interface Deposit {
   nominal: number; interestRate: number; tenorMonths: number
   startDate: string; maturityDate: string
   finalValue: number; totalInterest: number
+  taxRate?: number
+  netInterest?: number
+  netFinalValue?: number
   status: 'active' | 'matured' | 'withdrawn'
   notes?: string
   notificationSent?: { h3?: boolean; h2?: boolean; h1?: boolean; h0?: boolean }
@@ -101,11 +106,55 @@ export interface DepositWithCountdown extends Deposit {
   daysRemaining: number; percentComplete: number; currentValue: number
 }
 
+// ---- PORTFOLIO: SBN ----
+export type SBNType = 'ORI' | 'SR' | 'SBR' | 'ST' | 'SBSN'
+
+export interface SBNHolding {
+  id: string
+  userId: string
+  seri: string
+  type: SBNType
+  nominal: number
+  annualRate: number
+  taxRate: number
+  tenorMonths: number
+  startDate: string
+  maturityDate: string
+  grossReturn: number
+  taxAmount: number
+  netReturn: number
+  totalFinal: number
+  status: 'active' | 'matured'
+  notes?: string
+  createdAt: string
+  updatedAt: string
+}
+
+// ---- PORTFOLIO: REKSADANA ----
+export type ReksadanaType = 'pasar_uang' | 'pendapatan_tetap' | 'campuran' | 'saham' | 'indeks'
+
+export interface ReksadanaHolding {
+  id: string
+  userId: string
+  productName: string
+  manager: string
+  type: ReksadanaType
+  unit: number
+  buyNAV: number
+  currentNAV: number
+  buyDate: string
+  notes?: string
+  createdAt: string
+  updatedAt: string
+}
+
 // ---- PORTFOLIO SUMMARY ----
 export interface PortfolioSummary {
-  gold:     { totalGrams: number; totalValue: number; totalPnl: number; prices: GoldPriceMap }
-  stocks:   { totalValue: number; totalCost: number; totalProfitLoss: number; totalProfitLossPercent: number }
-  deposits: { totalNominal: number; totalFinalValue: number; count: number }
+  gold:      { totalGrams: number; totalValue: number; totalPnl: number; prices: GoldPriceMap }
+  stocks:    { totalValue: number; totalCost: number; totalProfitLoss: number; totalProfitLossPercent: number }
+  deposits:  { totalNominal: number; totalFinalValue: number; count: number }
+  sbn:       { totalNominal: number; totalNetReturn: number; count: number }
+  reksadana: { totalValue: number; totalCost: number; totalPnl: number; count: number }
   totalNetWorth: number
 }
 
@@ -137,7 +186,10 @@ export interface TransactionFilters {
 // ---- EXPORT ----
 export interface ExportData {
   transactions: Transaction[]; categories: Category[]
-  portfolio: { gold: GoldHolding[]; stocks: StockHolding[]; deposits: Deposit[] }
+  portfolio: {
+    gold: GoldHolding[]; stocks: StockHolding[]; deposits: Deposit[]
+    sbn?: SBNHolding[]; reksadana?: ReksadanaHolding[]
+  }
   exportedAt: string; userId: string
 }
 
@@ -159,7 +211,7 @@ export interface UserStreak {
   userId:         string
   currentStreak:  number
   bestStreak:     number
-  lastInputDate:  string   // YYYY-MM-DD
+  lastInputDate:  string
   updatedAt:      string
 }
 
@@ -168,7 +220,7 @@ export interface NetWorthSnapshot {
   id:        string
   userId:    string
   value:     number
-  createdAt: string        // ISO date
+  createdAt: string
 }
 
 // ---- BUDGET ----
@@ -180,7 +232,7 @@ export interface BudgetCategory {
   categoryIcon?: string
   categoryColor?: string
   limitAmount: number
-  month:      string       // YYYY-MM
+  month:      string
   createdAt:  string
   updatedAt:  string
 }

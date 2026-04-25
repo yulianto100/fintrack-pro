@@ -96,13 +96,18 @@ export default function DepositoPage() {
     return 'var(--accent)'
   }
 
+  const TAX_RATE = 20 // PPh final deposito Indonesia
+
   const preview = useMemo(() => {
     if (!form.nominal || !form.interestRate || !form.tenorMonths) return null
-    const nom      = parseFloat(form.nominal)
-    const rate     = parseFloat(form.interestRate)
-    const tenor    = parseInt(form.tenorMonths)
-    const interest = nom * (rate / 100 / 12) * tenor
-    return { interest, finalValue: nom + interest }
+    const nom         = parseFloat(form.nominal)
+    const rate        = parseFloat(form.interestRate)
+    const tenor       = parseInt(form.tenorMonths)
+    const grossInt    = nom * (rate / 100 / 12) * tenor
+    const tax         = grossInt * (TAX_RATE / 100)
+    const netInt      = grossInt - tax
+    const netFinal    = nom + netInt
+    return { interest: grossInt, tax, netInterest: netInt, finalValue: nom + grossInt, netFinalValue: netFinal }
   }, [form.nominal, form.interestRate, form.tenorMonths])
 
   return (
@@ -320,15 +325,24 @@ export default function DepositoPage() {
                 </div>
 
                 {preview && (
-                  <div className="p-3 rounded-xl space-y-1" style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)' }}>
-                    <p className="text-xs font-semibold mb-2" style={{ color: '#a855f7' }}>Preview Perhitungan</p>
+                  <div className="p-3 rounded-xl space-y-1.5" style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)' }}>
+                    <p className="text-xs font-semibold mb-2" style={{ color: '#a855f7' }}>Preview Perhitungan (Pajak {TAX_RATE}%)</p>
                     <div className="flex justify-between text-xs">
-                      <span style={{ color: 'var(--text-muted)' }}>Total Bunga</span>
-                      <span style={{ color: 'var(--accent)' }}>+{formatCurrency(preview.interest)}</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Bunga Kotor</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(preview.interest)}</span>
                     </div>
                     <div className="flex justify-between text-xs">
-                      <span style={{ color: 'var(--text-muted)' }}>Nilai Akhir</span>
-                      <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(preview.finalValue)}</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Pajak Deposito (PPh {TAX_RATE}%)</span>
+                      <span style={{ color: 'var(--red)' }}>-{formatCurrency(preview.tax)}</span>
+                    </div>
+                    <div className="h-px" style={{ background: 'rgba(168,85,247,0.25)' }} />
+                    <div className="flex justify-between text-xs">
+                      <span className="font-bold" style={{ color: 'var(--text-muted)' }}>Bunga Bersih</span>
+                      <span className="font-bold" style={{ color: 'var(--accent)' }}>+{formatCurrency(preview.netInterest)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="font-bold" style={{ color: 'var(--text-muted)' }}>Total Akhir (Bersih)</span>
+                      <span className="font-bold" style={{ color: '#a855f7' }}>{formatCurrency(preview.netFinalValue)}</span>
                     </div>
                   </div>
                 )}

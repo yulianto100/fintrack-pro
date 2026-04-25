@@ -6,7 +6,8 @@ import { useApiList } from '@/hooks/useApiData'
 import { useGoldPrices } from '@/hooks/usePrices'
 import { formatCurrency, formatNumber, formatDate } from '@/lib/utils'
 import type { GoldHolding, GoldSource, GoldType } from '@/types'
-import { Plus, Trash2, RefreshCw, X, Wifi, WifiOff, TrendingUp, TrendingDown } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, X, Wifi, WifiOff, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
+import { EmasSellModal } from '@/components/sell-modal'
 import toast from 'react-hot-toast'
 
 // ─── Provider config — Emasku dihapus ──────────────────────────────────────
@@ -110,6 +111,7 @@ export default function EmasPage() {
     grams: '', source: 'antam' as GoldSource, goldType: 'fisik' as GoldType,
     buyPrice: '', buyDate: new Date().toISOString().split('T')[0], notes: '',
   })
+  const [sellTarget, setSellTarget] = useState<GoldHolding | null>(null)
 
   const availableProviders = Object.entries(PROVIDERS)
     .filter(([, v]) => v.type === form.goldType) as [string, typeof PROVIDERS.antam][]
@@ -334,11 +336,18 @@ export default function EmasPage() {
                         </p>
                       )}
                     </div>
-                    <button onClick={() => handleDelete(h.id)}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ background:'var(--red-dim)', color:'var(--red)' }}>
-                      <Trash2 size={12}/>
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => setSellTarget(h)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ background:'rgba(52,211,110,0.1)', color:'var(--accent)', border:'1px solid rgba(52,211,110,0.2)' }}>
+                        <DollarSign size={12}/>
+                      </button>
+                      <button onClick={() => handleDelete(h.id)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ background:'var(--red-dim)', color:'var(--red)' }}>
+                        <Trash2 size={12}/>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </motion.div>
@@ -523,6 +532,17 @@ export default function EmasPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Sell modal */}
+      {sellTarget && (
+        <EmasSellModal
+          holding={sellTarget}
+          currentSellPrice={prices?.[sellTarget.source]?.sellPrice || 0}
+          sourceLabel={PROVIDERS[sellTarget.source]?.label || sellTarget.source}
+          onClose={() => setSellTarget(null)}
+          onSuccess={() => { refetch(); setSellTarget(null) }}
+        />
+      )}
     </div>
   )
 }
