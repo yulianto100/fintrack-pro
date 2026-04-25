@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { formatCurrency, formatNumber } from '@/lib/utils'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { ArrowRight } from 'lucide-react'
 
 interface Props {
   goldValue:       number
@@ -17,11 +19,11 @@ interface Props {
 }
 
 const ITEMS = [
-  { label: 'Emas',      icon: '🥇', href: '/portfolio/emas',      color: '#f6cc60', bg: 'rgba(246,204,96,0.12)'  },
-  { label: 'Saham',     icon: '📈', href: '/portfolio/saham',     color: '#63b3ed', bg: 'rgba(99,179,237,0.12)'  },
-  { label: 'Deposito',  icon: '🏦', href: '/portfolio/deposito',  color: '#d6aaff', bg: 'rgba(214,170,255,0.12)' },
-  { label: 'SBN',       icon: '🏛️', href: '/portfolio/sbn',       color: '#c084fc', bg: 'rgba(192,132,252,0.12)' },
-  { label: 'Reksadana', icon: '📦', href: '/portfolio/reksadana', color: '#38bdf8', bg: 'rgba(56,189,248,0.12)'  },
+  { label: 'Emas',      color: '#f6cc60', key: 'gold'      },
+  { label: 'Saham',     color: '#63b3ed', key: 'stock'     },
+  { label: 'Deposito',  color: '#d6aaff', key: 'deposit'   },
+  { label: 'SBN',       color: '#c084fc', key: 'sbn'       },
+  { label: 'Reksadana', color: '#38bdf8', key: 'reksadana' },
 ]
 
 export function PortfolioSummaryCard({
@@ -29,41 +31,156 @@ export function PortfolioSummaryCard({
   depositValue, depositCount, sbnValue, sbnCount,
   reksadanaValue, reksadanaCount,
 }: Props) {
-  const rows = [
-    { sub: `${formatNumber(goldGrams, 2)} gram`, value: goldValue       },
-    { sub: `${stockCount} emiten`,               value: stockValue      },
-    { sub: `${depositCount} aktif`,              value: depositValue    },
-    { sub: `${sbnCount} seri`,                   value: sbnValue        },
-    { sub: `${reksadanaCount} produk`,            value: reksadanaValue  },
-  ]
+  const values: Record<string, number> = {
+    gold:      goldValue,
+    stock:     stockValue,
+    deposit:   depositValue,
+    sbn:       sbnValue,
+    reksadana: reksadanaValue,
+  }
+
+  const subs: Record<string, string> = {
+    gold:      `${formatNumber(goldGrams, 2)} gram`,
+    stock:     `${stockCount} emiten`,
+    deposit:   `${depositCount} aktif`,
+    sbn:       `${sbnCount} seri`,
+    reksadana: `${reksadanaCount} produk`,
+  }
+
+  const total = Object.values(values).reduce((s, v) => s + v, 0)
+  const activeItems = ITEMS.filter((item) => values[item.key] > 0)
+
+  const pieData = activeItems.map((item) => ({
+    name:  item.label,
+    value: (values[item.key] / total) * 100,
+    color: item.color,
+  }))
 
   return (
-    <div className="glass-card overflow-hidden">
-      {ITEMS.map((item, i) => (
-        <Link key={item.label} href={item.href}>
-          <div
-            className="flex items-center gap-3 px-4 py-3 transition-all active:scale-[0.99]"
-            style={{
-              borderBottom: i < ITEMS.length - 1 ? '1px solid var(--border)' : 'none',
-              cursor: 'pointer',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(52,211,110,0.04)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-              style={{ background: item.bg }}>
-              {item.icon}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.label}</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{rows[i].sub}</p>
-            </div>
-            <p className="text-sm font-bold font-mono flex-shrink-0" style={{ color: item.color }}>
-              {formatCurrency(rows[i].value)}
-            </p>
+    <Link href="/portfolio">
+      <div
+        className="glass-card p-4 cursor-pointer active:scale-[0.99] transition-transform"
+        style={{ borderColor: 'rgba(52,211,110,0.15)' }}
+      >
+        {/* Chart + total row */}
+        <div className="flex items-center gap-4">
+          <div className="flex-shrink-0" style={{ width: 100, height: 100 }}>
+            {total > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={28}
+                    outerRadius={46}
+                    dataKey="value"
+                    strokeWidth={0}
+                  >
+                    {pieData.map((entry) => (
+                      <Cell key={entry.name} fill={entry.color} opacity={0.9} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(v: number) => [`${v.toFixed(1)}%`, '']}
+                    contentStyle={{
+                      background: 'rgba(10,30,20,0.95)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 12,
+                      fontSize: 11,
+                    }}
+                    itemStyle={{ color: '#fff' }}
+                    labelStyle={{ color: '#aaa' }}
+                    cursor={false}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div
+                className="w-full h-full flex items-center justify-center rounded-full"
+                style={{ border: '2px dashed var(--border)' }}
+              >
+                <span className="text-2xl">📊</span>
+              </div>
+            )}
           </div>
-        </Link>
-      ))}
-    </div>
+
+          <div className="flex-1 min-w-0">
+            <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>
+              Total Portofolio Investasi
+            </p>
+            <p className="text-xl font-display font-bold mb-2.5" style={{ color: 'var(--text-primary)' }}>
+              {formatCurrency(total)}
+            </p>
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
+              {activeItems.map((item) => {
+                const pct = total > 0 ? ((values[item.key] / total) * 100).toFixed(0) : '0'
+                return (
+                  <div key={item.label} className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: item.color }} />
+                    <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                      {item.label} {pct}%
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <ArrowRight size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+        </div>
+
+        {/* Divider */}
+        <div className="h-px mt-4 mb-3" style={{ background: 'var(--border)' }} />
+
+        {/* Per-asset breakdown grid */}
+        {activeItems.length > 0 ? (
+          <>
+            <div className="grid grid-cols-3 gap-2">
+              {activeItems.slice(0, 3).map((item) => (
+                <div key={item.label} className="flex flex-col gap-0.5">
+                  <div className="flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
+                    <p className="text-[10px] font-medium truncate" style={{ color: 'var(--text-muted)' }}>
+                      {item.label}
+                    </p>
+                  </div>
+                  <p className="text-xs font-bold font-mono" style={{ color: item.color }}>
+                    {formatCurrency(values[item.key])}
+                  </p>
+                  <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                    {subs[item.key]}
+                  </p>
+                </div>
+              ))}
+            </div>
+            {activeItems.length > 3 && (
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {activeItems.slice(3).map((item) => (
+                  <div key={item.label} className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-1">
+                      <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
+                      <p className="text-[10px] font-medium truncate" style={{ color: 'var(--text-muted)' }}>
+                        {item.label}
+                      </p>
+                    </div>
+                    <p className="text-xs font-bold font-mono" style={{ color: item.color }}>
+                      {formatCurrency(values[item.key])}
+                    </p>
+                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                      {subs[item.key]}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="text-xs text-center py-2" style={{ color: 'var(--text-muted)' }}>
+            Belum ada investasi. Tap untuk mulai! 🚀
+          </p>
+        )}
+      </div>
+    </Link>
   )
 }
