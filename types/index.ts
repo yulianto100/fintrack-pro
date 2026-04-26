@@ -36,6 +36,12 @@ export interface Transaction {
   walletAccountId?: string
   toWalletAccountId?: string
   tags?: string[]; createdAt: string; updatedAt: string
+  // External (cross-user) transfer fields
+  isExternalTransfer?: boolean
+  toUserId?: string
+  toUserName?: string
+  fromUserId?: string
+  fromUserName?: string
 }
 
 export interface WalletBalance { cash: number; bank: number; ewallet: number; total: number }

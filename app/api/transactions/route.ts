@@ -13,6 +13,41 @@ async function getUserId(): Promise<string | null> {
   } catch { return null }
 }
 
+/** Compute current balance for a specific walletAccountId from transaction history */
+async function getAccountBalance(db: ReturnType<typeof import('@/lib/firebase-admin').getAdminDatabase>, userId: string, walletAccountId: string): Promise<number> {
+  const snap = await db.ref(`users/${userId}/transactions`).get()
+  if (!snap.exists()) return 0
+  const txs: Transaction[] = Object.values(snap.val())
+  let balance = 0
+  txs.forEach((tx) => {
+    if (tx.type === 'income'   && tx.walletAccountId   === walletAccountId) balance += tx.amount
+    if (tx.type === 'expense'  && tx.walletAccountId   === walletAccountId) balance -= tx.amount
+    if (tx.type === 'transfer') {
+      if (tx.walletAccountId   === walletAccountId) balance -= tx.amount
+      if (tx.toWalletAccountId === walletAccountId) balance += tx.amount
+    }
+  })
+  return balance
+}
+
+/** Compute current balance for a generic wallet type (cash/bank/ewallet) from transaction history */
+async function getWalletTypeBalance(db: ReturnType<typeof import('@/lib/firebase-admin').getAdminDatabase>, userId: string, walletType: string): Promise<number> {
+  const snap = await db.ref(`users/${userId}/transactions`).get()
+  if (!snap.exists()) return 0
+  const txs: Transaction[] = Object.values(snap.val())
+  let balance = 0
+  txs.forEach((tx) => {
+    // Only count transactions that DON'T have a walletAccountId (generic wallet-level)
+    if (tx.type === 'income'  && tx.wallet   === walletType && !tx.walletAccountId)   balance += tx.amount
+    if (tx.type === 'expense' && tx.wallet   === walletType && !tx.walletAccountId)   balance -= tx.amount
+    if (tx.type === 'transfer') {
+      if (tx.wallet   === walletType && !tx.walletAccountId)   balance -= tx.amount
+      if (tx.toWallet === walletType && !tx.toWalletAccountId) balance += tx.amount
+    }
+  })
+  return balance
+}
+
 export async function GET(request: Request) {
   const userId = await getUserId()
   if (!userId)
@@ -68,11 +103,36 @@ export async function POST(request: Request) {
     if (!categoryId && type !== 'transfer')
       return NextResponse.json({ success: false, error: 'Kategori wajib dipilih' }, { status: 400 })
 
-    // Transfer validation: block same account, allow same wallet type
     if (type === 'transfer' && walletAccountId && toWalletAccountId && walletAccountId === toWalletAccountId)
       return NextResponse.json({ success: false, error: 'Akun asal dan tujuan tidak boleh sama' }, { status: 400 })
 
-    const db     = getAdminDatabase()
+    const db  = getAdminDatabase()
+    const amt = Number(amount)
+
+    // ── BALANCE VALIDATION ────────────────────────────────────────────────────
+    // Block expense or transfer (debit side) if balance would go negative
+    const needsBalanceCheck = type === 'expense' || type === 'transfer'
+    if (needsBalanceCheck) {
+      let currentBalance: number
+
+      if (walletAccountId) {
+        // Specific account — check account-level balance
+        currentBalance = await getAccountBalance(db, userId, walletAccountId)
+      } else {
+        // Generic wallet type — check wallet-type balance
+        currentBalance = await getWalletTypeBalance(db, userId, wallet)
+      }
+
+      if (currentBalance < amt) {
+        return NextResponse.json({
+          success: false,
+          error: `Saldo tidak cukup. Saldo tersedia: Rp ${currentBalance.toLocaleString('id-ID')}`,
+          currentBalance,
+        }, { status: 400 })
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const txRef  = db.ref(`users/${userId}/transactions`)
     const newRef = txRef.push()
 
@@ -88,15 +148,15 @@ export async function POST(request: Request) {
       id:          newRef.key!,
       userId,
       type,
-      amount:      Number(amount),
+      amount:      amt,
       categoryId:  categoryId || 'transfer',
       categoryName,
       categoryIcon,
       description: description || '',
       date,
       wallet,
-      ...(toWallet         && { toWallet }),
-      ...(walletAccountId  && { walletAccountId }),
+      ...(toWallet          && { toWallet }),
+      ...(walletAccountId   && { walletAccountId }),
       ...(toWalletAccountId && type === 'transfer' && { toWalletAccountId }),
       tags:        Array.isArray(tags) ? tags : [],
       createdAt:   new Date().toISOString(),

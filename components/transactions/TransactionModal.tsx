@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ArrowDownCircle, ArrowUpCircle, ArrowLeftRight, ChevronRight } from 'lucide-react'
+import { X, ArrowDownCircle, ArrowUpCircle, ArrowLeftRight, ChevronRight, Search, User, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useApiList } from '@/hooks/useApiData'
 import type { Category, Transaction, TransactionType, WalletType, WalletAccount } from '@/types'
-import { capitalizeWords } from '@/lib/utils'
+import { capitalizeWords, formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 interface Props {
@@ -21,12 +21,19 @@ const TABS = [
   { type: 'transfer' as TransactionType, icon: <ArrowLeftRight  size={16}/>, label: 'Transfer', color: 'var(--blue)'   },
 ]
 
-// High-level wallet types shown in the first step
 const WALLET_TYPES: { value: WalletType; icon: string; label: string }[] = [
   { value: 'cash',    icon: '💵', label: 'Cash'    },
   { value: 'bank',    icon: '🏦', label: 'Bank'    },
   { value: 'ewallet', icon: '📱', label: 'E-Wallet'},
 ]
+
+// ─── Target user lookup result ────────────────────────────────────────────────
+interface LookupResult {
+  userId: string
+  username: string
+  displayName: string
+  walletAccounts: { id: string; name: string; type: string }[]
+}
 
 export function TransactionModal({ transaction, defaultType = 'expense', onClose }: Props) {
   const { addTransaction, updateTransaction } = useTransactions()
@@ -40,10 +47,23 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
   const [saving,      setSaving     ] = useState(false)
 
   // Wallet selection
-  const [wallet,          setWallet         ] = useState<WalletType>(transaction?.wallet   || 'cash')
-  const [toWallet,        setToWallet       ] = useState<WalletType>(transaction?.toWallet || 'bank')
+  const [wallet,            setWallet           ] = useState<WalletType>(transaction?.wallet   || 'cash')
+  const [toWallet,          setToWallet         ] = useState<WalletType>(transaction?.toWallet || 'bank')
   const [walletAccountId,   setWalletAccountId  ] = useState<string>(transaction?.walletAccountId   || '')
   const [toWalletAccountId, setToWalletAccountId] = useState<string>(transaction?.toWalletAccountId || '')
+
+  // Transfer mode: 'internal' = between own wallets, 'external' = to another user
+  const [transferMode, setTransferMode] = useState<'internal' | 'external'>('internal')
+
+  // External transfer state
+  const [lookupUsername,  setLookupUsername ] = useState('')
+  const [lookupResult,    setLookupResult   ] = useState<LookupResult | null>(null)
+  const [lookupError,     setLookupError    ] = useState('')
+  const [lookupLoading,   setLookupLoading  ] = useState(false)
+  const [toExtAccountId,  setToExtAccountId ] = useState('')
+  const [toExtWalletType, setToExtWalletType] = useState('')
+
+  const lookupDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // All wallet accounts from the API
   const [walletAccounts, setWalletAccounts] = useState<WalletAccount[]>([])
@@ -56,15 +76,8 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
   const bankAccounts    = walletAccounts.filter((a) => a.type === 'bank')
   const ewalletAccounts = walletAccounts.filter((a) => a.type === 'ewallet')
 
-  // When wallet type changes, reset account selection
-  const handleSetWallet = (w: WalletType) => {
-    setWallet(w)
-    setWalletAccountId('')
-  }
-  const handleSetToWallet = (w: WalletType) => {
-    setToWallet(w)
-    setToWalletAccountId('')
-  }
+  const handleSetWallet   = (w: WalletType) => { setWallet(w);   setWalletAccountId('') }
+  const handleSetToWallet = (w: WalletType) => { setToWallet(w); setToWalletAccountId('') }
 
   const filteredCategories = categories.filter(
     (c) => c.type === type || (type === 'transfer' && c.type === 'expense')
@@ -79,33 +92,50 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
   }
   const getRawAmount = () => parseFloat(amount.replace(/\./g, '').replace(',', '.')) || 0
 
-  // Get sub-accounts for a given wallet type
   const getAccountsFor = (w: WalletType) => {
     if (w === 'bank')    return bankAccounts
     if (w === 'ewallet') return ewalletAccounts
     return []
   }
 
+  // ── Username lookup with debounce ──────────────────────────────────────────
+  const doLookup = useCallback(async (username: string) => {
+    if (!username || username.length < 2) {
+      setLookupResult(null); setLookupError(''); return
+    }
+    setLookupLoading(true); setLookupError(''); setLookupResult(null)
+    setToExtAccountId(''); setToExtWalletType('')
+    try {
+      const res  = await fetch(`/api/users/lookup?username=${encodeURIComponent(username)}`)
+      const json = await res.json()
+      if (!json.success) { setLookupError(json.error || 'User tidak ditemukan'); return }
+      setLookupResult(json.data)
+      if (json.data.walletAccounts.length === 0) setLookupError('User ini belum punya akun bank/ewallet terdaftar')
+    } catch {
+      setLookupError('Gagal mencari user')
+    } finally {
+      setLookupLoading(false)
+    }
+  }, [])
+
+  const handleLookupChange = (val: string) => {
+    const clean = val.replace(/\s/g, '').replace('@', '')
+    setLookupUsername(clean)
+    if (lookupDebounceRef.current) clearTimeout(lookupDebounceRef.current)
+    lookupDebounceRef.current = setTimeout(() => doLookup(clean), 600)
+  }
+
+  // ── WalletPicker (reusable inner component) ────────────────────────────────
   const WalletPicker = ({
-    label,
-    selected,
-    onSelect,
-    selectedAccount,
-    onSelectAccount,
-    accentColor = activeColor,
+    label, selected, onSelect, selectedAccount, onSelectAccount, accentColor = activeColor,
   }: {
-    label: string
-    selected: WalletType
-    onSelect: (w: WalletType) => void
-    selectedAccount: string
-    onSelectAccount: (id: string) => void
-    accentColor?: string
+    label: string; selected: WalletType; onSelect: (w: WalletType) => void
+    selectedAccount: string; onSelectAccount: (id: string) => void; accentColor?: string
   }) => {
     const subAccounts = getAccountsFor(selected)
     return (
       <div>
         <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>{label}</label>
-        {/* Step 1: Select wallet type */}
         <div className="flex gap-2 mb-2">
           {WALLET_TYPES.map((w) => (
             <button key={w.value} onClick={() => onSelect(w.value)}
@@ -120,7 +150,6 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
             </button>
           ))}
         </div>
-        {/* Step 2: Select child account (if bank or ewallet) */}
         {subAccounts.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {subAccounts.map((acc) => (
@@ -138,7 +167,6 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
             ))}
           </div>
         )}
-        {/* Hint when bank/ewallet selected but no accounts added yet */}
         {(selected === 'bank' || selected === 'ewallet') && subAccounts.length === 0 && (
           <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
             Tambah akun di Pengaturan untuk tracking lebih detail
@@ -148,16 +176,56 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
     )
   }
 
+  // ── Save handlers ──────────────────────────────────────────────────────────
+  const handleSaveExternal = async () => {
+    const raw = getRawAmount()
+    if (!raw || raw <= 0)    { toast.error('Masukkan jumlah yang valid'); return }
+    if (!lookupResult)       { toast.error('Cari username tujuan dulu');  return }
+    if (!toExtAccountId)     { toast.error('Pilih akun tujuan penerima'); return }
+
+    setSaving(true)
+    try {
+      const res  = await fetch('/api/transfers/external', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: raw,
+          fromWallet: wallet,
+          fromWalletAccountId: walletAccountId || undefined,
+          toUserId: lookupResult.userId,
+          toUserName: lookupResult.username,
+          toWalletAccountId: toExtAccountId,
+          toWalletType: toExtWalletType,
+          date,
+          description: description || `Transfer ke @${lookupResult.username}`,
+        }),
+      })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error)
+
+      toast.success(`✓ Transfer ke @${lookupResult.username} berhasil!`)
+      onClose()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Gagal transfer'
+      // Show saldo info in error
+      if (msg.includes('Saldo tidak cukup')) toast.error(msg, { duration: 5000 })
+      else toast.error(msg)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleSave = async () => {
+    if (type === 'transfer' && transferMode === 'external') {
+      await handleSaveExternal(); return
+    }
+
     const raw = getRawAmount()
     if (!raw || raw <= 0)         { toast.error('Masukkan jumlah yang valid'); return }
     if (!categoryId && type !== 'transfer') { toast.error('Pilih kategori'); return }
 
-    // For transfer: allow same type (bank→bank, ewallet→ewallet), but not same account
     if (type === 'transfer') {
-      const sameWalletType    = wallet === toWallet
-      const sameAccountId     = walletAccountId && toWalletAccountId && walletAccountId === toWalletAccountId
-      if (sameWalletType && !walletAccountId && !toWalletAccountId) {
+      const sameAccountId = walletAccountId && toWalletAccountId && walletAccountId === toWalletAccountId
+      if (wallet === toWallet && !walletAccountId && !toWalletAccountId) {
         toast.error('Pilih akun yang berbeda untuk transfer'); return
       }
       if (sameAccountId) {
@@ -169,26 +237,51 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
     try {
       const data = {
         type, amount: raw,
-        categoryId:       categoryId || 'transfer',
-        description:      description ? capitalizeWords(description) : '',
+        categoryId:        categoryId || 'transfer',
+        description:       description ? capitalizeWords(description) : '',
         date, wallet,
-        toWallet:         type === 'transfer' ? toWallet          : undefined,
-        walletAccountId:  walletAccountId     || undefined,
+        toWallet:          type === 'transfer' ? toWallet           : undefined,
+        walletAccountId:   walletAccountId     || undefined,
         toWalletAccountId: type === 'transfer' ? (toWalletAccountId || undefined) : undefined,
       }
       let result
-
-if (isEdit) {
-  result = await updateTransaction(transaction.id, data)
-} else {
-  result = await addTransaction(data)
-}
-
-// ⬇️ KIRIM DATA BARU KE PARENT
-onClose(result)
+      if (isEdit) result = await updateTransaction(transaction.id, data)
+      else        result = await addTransaction(data)
+      onClose(result)
     } finally {
       setSaving(false)
     }
+  }
+
+  // ── External transfer receiver account picker ──────────────────────────────
+  const ExtAccountPicker = () => {
+    if (!lookupResult) return null
+    const { walletAccounts: extAccounts } = lookupResult
+    if (extAccounts.length === 0) return null
+
+    return (
+      <div>
+        <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
+          Akun Tujuan @{lookupResult.username}
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          {extAccounts.map((acc) => (
+            <button key={acc.id}
+              onClick={() => { setToExtAccountId(acc.id); setToExtWalletType(acc.type) }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all"
+              style={{
+                background: toExtAccountId === acc.id ? 'rgba(52,211,110,0.18)' : 'var(--surface-3)',
+                border: `1px solid ${toExtAccountId === acc.id ? 'rgba(52,211,110,0.5)' : 'rgba(34,197,94,0.15)'}`,
+                color: toExtAccountId === acc.id ? 'var(--accent)' : 'var(--text-secondary)',
+              }}>
+              <span>{acc.type === 'bank' ? '🏦' : '📱'}</span>
+              {acc.name}
+              {toExtAccountId === acc.id && <CheckCircle2 size={11} color="var(--accent)" />}
+            </button>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -225,7 +318,7 @@ onClose(result)
           <div className="flex gap-2 px-5 mb-5">
             {TABS.map((tab) => (
               <button key={tab.type}
-                onClick={() => { setType(tab.type); setCategoryId('') }}
+                onClick={() => { setType(tab.type); setCategoryId(''); setTransferMode('internal') }}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium"
                 style={{
                   background: type === tab.type ? `${tab.color}20` : 'var(--surface-2)',
@@ -253,7 +346,7 @@ onClose(result)
               </div>
             </div>
 
-            {/* Category */}
+            {/* Category — skip for transfer */}
             {type !== 'transfer' && (
               <div>
                 <label className="text-xs mb-2 block font-semibold" style={{ color: 'var(--text-muted)' }}>
@@ -297,9 +390,39 @@ onClose(result)
               </div>
             )}
 
-            {/* Wallet Selection */}
+            {/* ── TRANSFER MODE TOGGLE ─────────────────────────────────────── */}
+            {type === 'transfer' && !isEdit && (
+              <div>
+                <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
+                  Jenis Transfer
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: 'internal' as const, icon: '🔄', label: 'Wallet Sendiri', desc: 'Antar dompetmu' },
+                    { value: 'external' as const, icon: '👤', label: 'Ke User Lain',   desc: 'Kirim ke pengguna' },
+                  ].map((m) => (
+                    <button key={m.value}
+                      onClick={() => setTransferMode(m.value)}
+                      className="py-3 px-3 rounded-xl text-left transition-all"
+                      style={{
+                        background: transferMode === m.value ? 'rgba(99,179,237,0.15)' : 'var(--surface-3)',
+                        border: `1px solid ${transferMode === m.value ? 'rgba(99,179,237,0.5)' : 'var(--border)'}`,
+                      }}>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-base">{m.icon}</span>
+                        <p className="text-xs font-bold" style={{ color: transferMode === m.value ? 'var(--blue)' : 'var(--text-primary)' }}>
+                          {m.label}
+                        </p>
+                      </div>
+                      <p className="text-[10px] ml-6" style={{ color: 'var(--text-muted)' }}>{m.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── INTERNAL TRANSFER WALLETS ─────────────────────────────────── */}
             {type !== 'transfer' ? (
-              // Income / Expense: single wallet picker
               <WalletPicker
                 label="Wallet"
                 selected={wallet}
@@ -308,34 +431,133 @@ onClose(result)
                 onSelectAccount={setWalletAccountId}
                 accentColor={activeColor}
               />
-            ) : (
-              // Transfer: two wallet pickers
-              <div className="grid grid-cols-2 gap-3">
+            ) : transferMode === 'internal' ? (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <WalletPicker
+                    label="Dari Wallet"
+                    selected={wallet}
+                    onSelect={handleSetWallet}
+                    selectedAccount={walletAccountId}
+                    onSelectAccount={setWalletAccountId}
+                    accentColor="var(--red)"
+                  />
+                  <div className="flex items-center justify-center pt-5">
+                    <ChevronRight size={18} style={{ color: 'var(--text-muted)' }} />
+                  </div>
+                </div>
                 <WalletPicker
-                  label="Dari Wallet"
+                  label="Ke Wallet"
+                  selected={toWallet}
+                  onSelect={handleSetToWallet}
+                  selectedAccount={toWalletAccountId}
+                  onSelectAccount={setToWalletAccountId}
+                  accentColor="var(--accent)"
+                />
+              </>
+            ) : (
+              /* ── EXTERNAL TRANSFER SECTION ─────────────────────────────── */
+              <div className="space-y-4">
+                {/* Source wallet (sender) */}
+                <WalletPicker
+                  label="Dari Wallet Kamu"
                   selected={wallet}
                   onSelect={handleSetWallet}
                   selectedAccount={walletAccountId}
                   onSelectAccount={setWalletAccountId}
                   accentColor="var(--red)"
                 />
-                <div className="flex items-center justify-center pt-5">
-                  <ChevronRight size={18} style={{ color: 'var(--text-muted)' }} />
-                </div>
-                {/* "Ke Wallet" next to the arrow on the right — but we need a full column layout */}
-              </div>
-            )}
 
-            {/* Transfer second wallet in full width below */}
-            {type === 'transfer' && (
-              <WalletPicker
-                label="Ke Wallet"
-                selected={toWallet}
-                onSelect={handleSetToWallet}
-                selectedAccount={toWalletAccountId}
-                onSelectAccount={setToWalletAccountId}
-                accentColor="var(--accent)"
-              />
+                {/* Divider */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                    style={{ background: 'rgba(99,179,237,0.12)', color: 'var(--blue)' }}>
+                    ↓ kirim ke
+                  </span>
+                  <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+                </div>
+
+                {/* Username search */}
+                <div>
+                  <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
+                    Username Tujuan
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm select-none pointer-events-none"
+                      style={{ color: 'var(--text-muted)' }}>@</span>
+                    <input
+                      type="text" className="input-glass"
+                      style={{ paddingLeft: '1.75rem', paddingRight: '2.5rem' }}
+                      placeholder="username"
+                      value={lookupUsername}
+                      onChange={(e) => handleLookupChange(e.target.value)}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {lookupLoading
+                        ? <div className="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
+                        : <Search size={14} style={{ color: 'var(--text-muted)' }} />
+                      }
+                    </span>
+                  </div>
+
+                  {/* Error state */}
+                  {lookupError && (
+                    <div className="flex items-center gap-1.5 mt-2 p-2.5 rounded-xl"
+                      style={{ background: 'rgba(252,129,129,0.1)', border: '1px solid rgba(252,129,129,0.2)' }}>
+                      <AlertCircle size={13} color="var(--red)" />
+                      <p className="text-xs" style={{ color: 'var(--red)' }}>{lookupError}</p>
+                    </div>
+                  )}
+
+                  {/* Found user card */}
+                  {lookupResult && !lookupError && (
+                    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+                      className="mt-2 p-3 rounded-xl flex items-center gap-3"
+                      style={{ background: 'rgba(52,211,110,0.08)', border: '1px solid rgba(52,211,110,0.2)' }}>
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                        style={{ background: 'rgba(52,211,110,0.15)', color: 'var(--accent)' }}>
+                        <User size={16} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                          {lookupResult.displayName}
+                        </p>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                          @{lookupResult.username} · {lookupResult.walletAccounts.length} akun terdaftar
+                        </p>
+                      </div>
+                      <CheckCircle2 size={18} color="var(--accent)" className="ml-auto flex-shrink-0" />
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Receiver account picker */}
+                {lookupResult && lookupResult.walletAccounts.length > 0 && (
+                  <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
+                    <ExtAccountPicker />
+                  </motion.div>
+                )}
+
+                {/* Transfer preview */}
+                {lookupResult && toExtAccountId && getRawAmount() > 0 && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    className="p-3.5 rounded-xl space-y-1.5"
+                    style={{ background: 'rgba(99,179,237,0.08)', border: '1px solid rgba(99,179,237,0.2)' }}>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--blue)' }}>Preview Transfer</p>
+                    {[
+                      { label: 'Jumlah',  value: formatCurrency(getRawAmount()) },
+                      { label: 'Ke',      value: `@${lookupResult.username} (${lookupResult.walletAccounts.find(a => a.id === toExtAccountId)?.name || ''})` },
+                      { label: 'Dari',    value: `${wallet}${walletAccountId ? ` · ${walletAccounts.find(a => a.id === walletAccountId)?.name || ''}` : ''}` },
+                    ].map((r) => (
+                      <div key={r.label} className="flex justify-between text-xs">
+                        <span style={{ color: 'var(--text-muted)' }}>{r.label}</span>
+                        <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{r.value}</span>
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </div>
             )}
 
             {/* Date + Description */}
@@ -356,13 +578,18 @@ onClose(result)
               </div>
             </div>
 
-            {/* Save */}
+            {/* Save button */}
             <button onClick={handleSave} disabled={saving}
               className="btn-primary w-full py-4 flex items-center justify-center gap-2 text-base"
               style={{ background: `linear-gradient(135deg, ${activeColor}, ${activeColor}cc)` }}>
               {saving
                 ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
-                : <span>{isEdit ? 'Simpan Perubahan' : 'Tambah Transaksi'}</span>
+                : <span>
+                    {type === 'transfer' && transferMode === 'external'
+                      ? `💸 Kirim${lookupResult ? ` ke @${lookupResult.username}` : ''}`
+                      : isEdit ? 'Simpan Perubahan' : 'Tambah Transaksi'
+                    }
+                  </span>
               }
             </button>
           </div>
