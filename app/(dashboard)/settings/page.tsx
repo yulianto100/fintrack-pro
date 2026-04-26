@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { signOut, useSession } from 'next-auth/react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -9,7 +9,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useApiList } from '@/hooks/useApiData'
 import {
   Bell, BellOff, Download, Upload, LogOut, Tag, Plus, Trash2, X,
-  Landmark, Wallet, Pencil, Check, Lock,
+  Landmark, Wallet, Pencil, Check, Lock, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import type { Category, WalletAccount, WalletAccountType } from '@/types'
 import toast from 'react-hot-toast'
@@ -39,6 +39,9 @@ export default function SettingsPage() {
 
   const [catForm, setCatForm] = useState({ name: '', icon: '📋', type: 'expense', color: '#22c55e' })
   const [saving,  setSaving ] = useState(false)
+  // ── Expand/collapse for wallet sections ──
+  const [bankExpanded,    setBankExpanded   ] = useState(false)
+  const [ewalletExpanded, setEwalletExpanded] = useState(false)
 
   const incomeCategories  = categories.filter((c) => c.type === 'income')
   const expenseCategories = categories.filter((c) => c.type === 'expense')
@@ -322,12 +325,15 @@ export default function SettingsPage() {
 
       {/* ── Bank Accounts ── */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-        className="glass-card p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.12)' }}>
+        className="glass-card overflow-hidden">
+        {/* Header — always visible, tap to expand/collapse */}
+        <button
+          className="w-full flex items-center gap-3 p-5 text-left transition-colors active:bg-black/[0.02]"
+          onClick={() => setBankExpanded((v) => !v)}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(59,130,246,0.12)' }}>
             <Landmark size={18} color="#3b82f6"/>
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>
               Rekening Bank
               <span className="text-xs font-normal ml-1.5" style={{ color: 'var(--text-muted)' }}>
@@ -336,29 +342,53 @@ export default function SettingsPage() {
             </p>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Kelola rekening bank kamu</p>
           </div>
-        </div>
-        <WalletSection
-          label="Bank" accounts={bankAccounts} type="bank"
-          color="#3b82f6" bg="rgba(59,130,246,0.12)" icon={Landmark}
-        />
-        {bankAccounts.some((a) => a.balance !== 0) && (
-          <div className="flex items-center gap-1.5 mt-2 px-1">
-            <Lock size={10} color="var(--text-muted)" />
-            <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-              Akun dengan saldo tidak bisa dihapus. Hapus transaksinya dulu.
-            </p>
+          <div className="flex-shrink-0 transition-transform duration-200"
+            style={{ transform: bankExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+            <ChevronDown size={18} color="var(--text-muted)" />
           </div>
-        )}
+        </button>
+
+        {/* Collapsible body */}
+        <AnimatePresence initial={false}>
+          {bankExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.22, ease: 'easeInOut' }}
+              style={{ overflow: 'hidden' }}>
+              <div className="px-5 pb-5" style={{ borderTop: '1px solid var(--border)' }}>
+                <div className="pt-4">
+                  <WalletSection
+                    label="Bank" accounts={bankAccounts} type="bank"
+                    color="#3b82f6" bg="rgba(59,130,246,0.12)" icon={Landmark}
+                  />
+                  {bankAccounts.some((a) => a.balance !== 0) && (
+                    <div className="flex items-center gap-1.5 mt-2 px-1">
+                      <Lock size={10} color="var(--text-muted)" />
+                      <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                        Akun dengan saldo tidak bisa dihapus. Hapus transaksinya dulu.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* ── E-Wallet Accounts ── */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
-        className="glass-card p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(168,85,247,0.12)' }}>
+        className="glass-card overflow-hidden">
+        {/* Header — always visible */}
+        <button
+          className="w-full flex items-center gap-3 p-5 text-left transition-colors active:bg-black/[0.02]"
+          onClick={() => setEwalletExpanded((v) => !v)}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(168,85,247,0.12)' }}>
             <Wallet size={18} color="#a855f7"/>
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>
               E-Wallet
               <span className="text-xs font-normal ml-1.5" style={{ color: 'var(--text-muted)' }}>
@@ -367,19 +397,40 @@ export default function SettingsPage() {
             </p>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Kelola dompet digital kamu</p>
           </div>
-        </div>
-        <WalletSection
-          label="E-Wallet" accounts={ewalletAccounts} type="ewallet"
-          color="#a855f7" bg="rgba(168,85,247,0.12)" icon={Wallet}
-        />
-        {ewalletAccounts.some((a) => a.balance !== 0) && (
-          <div className="flex items-center gap-1.5 mt-2 px-1">
-            <Lock size={10} color="var(--text-muted)" />
-            <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-              Akun dengan saldo tidak bisa dihapus. Hapus transaksinya dulu.
-            </p>
+          <div className="flex-shrink-0 transition-transform duration-200"
+            style={{ transform: ewalletExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+            <ChevronDown size={18} color="var(--text-muted)" />
           </div>
-        )}
+        </button>
+
+        {/* Collapsible body */}
+        <AnimatePresence initial={false}>
+          {ewalletExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.22, ease: 'easeInOut' }}
+              style={{ overflow: 'hidden' }}>
+              <div className="px-5 pb-5" style={{ borderTop: '1px solid var(--border)' }}>
+                <div className="pt-4">
+                  <WalletSection
+                    label="E-Wallet" accounts={ewalletAccounts} type="ewallet"
+                    color="#a855f7" bg="rgba(168,85,247,0.12)" icon={Wallet}
+                  />
+                  {ewalletAccounts.some((a) => a.balance !== 0) && (
+                    <div className="flex items-center gap-1.5 mt-2 px-1">
+                      <Lock size={10} color="var(--text-muted)" />
+                      <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                        Akun dengan saldo tidak bisa dihapus. Hapus transaksinya dulu.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* Push notifications */}

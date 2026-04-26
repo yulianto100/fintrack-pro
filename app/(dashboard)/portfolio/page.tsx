@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation'
 import { useApiList } from '@/hooks/useApiData'
 import { useGoldPrices, useStockPrices } from '@/hooks/usePrices'
 import { formatCurrency, formatNumber, formatPercent, parseLotValue, calcProfitLoss } from '@/lib/utils'
+import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import type { GoldHolding, StockHolding, Deposit, WalletAccount, SBNHolding, ReksadanaHolding } from '@/types'
 import { ArrowRight, RefreshCw, Wifi, WifiOff, Landmark, Wallet } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
@@ -14,6 +15,8 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 export default function PortfolioPage() {
   const searchParams = useSearchParams()
   const filterType   = searchParams.get('type') // 'bank' | 'ewallet' | null
+  const { hidden }   = useBalanceVisibility()
+  const HIDDEN_TEXT  = '••••••'
 
   const { data: goldHoldings } = useApiList<GoldHolding>('/api/portfolio/gold',           { refreshMs: 30000 })
   const { data: stocks }       = useApiList<StockHolding>('/api/portfolio/stocks',         { refreshMs: 30000 })
@@ -154,7 +157,7 @@ export default function PortfolioPage() {
                   </div>
                   <div className="text-right">
                     <p className="font-bold font-mono text-sm" style={{ color }}>
-                      {formatCurrency(account.balance)}
+                      {hidden ? HIDDEN_TEXT : formatCurrency(account.balance)}
                     </p>
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Saldo</p>
                   </div>
@@ -225,7 +228,7 @@ export default function PortfolioPage() {
           <div className="flex-1 min-w-0">
             <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Total Portofolio Investasi</p>
             <p className="text-2xl font-display font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
-              {formatCurrency(totalPortfolio)}
+              {hidden ? HIDDEN_TEXT : formatCurrency(totalPortfolio)}
             </p>
             <div className="flex flex-wrap gap-2">
               {investmentSections.filter((s) => s.pct > 0).map((s) => (
@@ -292,11 +295,13 @@ export default function PortfolioPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
                     <p className="font-display font-semibold" style={{ color: 'var(--text-primary)' }}>{s.title}</p>
-                    <p className="font-bold font-mono" style={{ color: s.color }}>{formatCurrency(s.value)}</p>
+                    <p className="font-bold font-mono" style={{ color: s.color }}>{hidden ? HIDDEN_TEXT : formatCurrency(s.value)}</p>
                   </div>
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{s.subtitle}</p>
-                    <p className="text-xs font-medium" style={{ color: (s as {metaColor?:string}).metaColor || 'var(--text-muted)' }}>{s.meta}</p>
+                    <p className="text-xs font-medium" style={{ color: (s as {metaColor?:string}).metaColor || 'var(--text-muted)' }}>
+                      {hidden ? '••••' : s.meta}
+                    </p>
                   </div>
                   <div className="progress-bar">
                     <div className="progress-bar-fill" style={{ width: `${s.pct}%`, background: s.color }} />

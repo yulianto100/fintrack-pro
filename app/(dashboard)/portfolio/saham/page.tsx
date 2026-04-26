@@ -4,9 +4,9 @@ import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApiList } from '@/hooks/useApiData'
 import { useStockPrices } from '@/hooks/usePrices'
-import { formatCurrency, formatPercent, parseLotValue, calcProfitLoss } from '@/lib/utils'
+import { formatCurrency, formatPercent, parseLotValue, calcProfitLoss, formatDate } from '@/lib/utils'
 import type { StockHolding } from '@/types'
-import { Plus, Trash2, TrendingUp, TrendingDown, X, DollarSign, Pencil, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, TrendingUp, TrendingDown, X, DollarSign, Pencil, AlertCircle, RefreshCw } from 'lucide-react'
 import { SahamSellModal } from '@/components/sell-modal'
 import toast from 'react-hot-toast'
 
@@ -42,12 +42,7 @@ function ModalShell({ title, onClose, children }: {
       <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 350 }}
         className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
-        style={{
-          background: 'rgba(255,255,255,0.92)',
-          border: '1px solid var(--border)',
-          maxHeight: '92dvh',
-          overflowY: 'auto',
-        }}
+        style={{ background: 'rgba(255,255,255,0.92)', border: '1px solid var(--border)', maxHeight: '92dvh', overflowY: 'auto' }}
         onClick={(e) => e.stopPropagation()}>
         <div className="drag-indicator mt-3 sm:hidden" />
         <div className="flex items-center justify-between px-5 py-4">
@@ -67,8 +62,8 @@ function ModalShell({ title, onClose, children }: {
 // ─── Main page ───────────────────────────────────────────────────────────────
 export default function SahamPage() {
   const { data: holdings, loading, refetch } = useApiList<StockHolding>('/api/portfolio/stocks', { refreshMs: 15000 })
-  const symbols = useMemo(() => (holdings || []).map((s) => s.symbol), [holdings])
-  const { prices, loading: pricesLoading } = useStockPrices(symbols)
+  const symbols = useMemo(() => [...new Set((holdings || []).map((s) => s.symbol))], [holdings])
+  const { prices, loading: pricesLoading, refetch: refetchPrices } = useStockPrices(symbols)
 
   // ── Add modal ──
   const [showAdd, setShowAdd] = useState(false)
@@ -87,7 +82,7 @@ export default function SahamPage() {
   // ── Sell modal ──
   const [sellTarget, setSellTarget] = useState<StockHolding | null>(null)
 
-  // ── Validation ──
+  // ── Validate ──
   const validate = (f: typeof form) => {
     const e: Record<string, string> = {}
     if (!f.sekuritas) e.sekuritas = 'Sekuritas wajib diisi'
@@ -96,7 +91,6 @@ export default function SahamPage() {
     if (!f.avgPrice)  e.avgPrice  = 'Harga beli wajib diisi'
     return e
   }
-
   const validateEdit = (f: typeof editForm) => {
     const e: Record<string, string> = {}
     if (!f.sekuritas) e.sekuritas = 'Sekuritas wajib diisi'
@@ -105,7 +99,7 @@ export default function SahamPage() {
     return e
   }
 
-  // ── Add handler ──
+  // ── Add ──
   const handleAdd = async () => {
     const e = validate(form)
     if (Object.keys(e).length) { setErrors(e); return }
@@ -124,10 +118,10 @@ export default function SahamPage() {
       setShowAdd(false); refetch()
       setForm({ symbol: '', lots: '', avgPrice: '', buyDate: '', sekuritas: '' })
     } catch { toast.error('Gagal menambahkan saham') }
-    finally  { setSaving(false) }
+    finally { setSaving(false) }
   }
 
-  // ── Edit handler ──
+  // ── Edit ──
   const openEdit = (h: StockHolding) => {
     setEditTarget(h)
     setEditForm({
@@ -138,7 +132,6 @@ export default function SahamPage() {
     })
     setEditErrors({})
   }
-
   const handleEdit = async () => {
     if (!editTarget) return
     const e = validateEdit(editForm)
@@ -149,11 +142,9 @@ export default function SahamPage() {
       const res  = await fetch('/api/portfolio/stocks', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id:       editTarget.id,
-          lots:     parseInt(editForm.lots),
-          avgPrice: parseFloat(editForm.avgPrice),
-          buyDate:  editForm.buyDate,
-          notes:    editForm.sekuritas,
+          id: editTarget.id, lots: parseInt(editForm.lots),
+          avgPrice: parseFloat(editForm.avgPrice), buyDate: editForm.buyDate,
+          notes: editForm.sekuritas,
         }),
       })
       const json = await res.json()
@@ -161,11 +152,12 @@ export default function SahamPage() {
       toast.success('Saham berhasil diupdate! ✓')
       setEditTarget(null); refetch()
     } catch { toast.error('Gagal mengupdate saham') }
-    finally  { setEditSaving(false) }
+    finally { setEditSaving(false) }
   }
 
+  // ── Delete ──
   const handleDelete = async (id: string) => {
-    if (!confirm('Hapus saham ini?')) return
+    if (!confirm('Hapus entri saham ini?')) return
     await fetch(`/api/portfolio/stocks?id=${id}`, { method: 'DELETE' })
     toast.success('Saham dihapus'); refetch()
   }
@@ -173,34 +165,44 @@ export default function SahamPage() {
   // ── Auto-transaction on sell ──
   const handleSellComplete = async () => {
     if (!sellTarget) return
-    const sellPrice = prices[sellTarget.symbol]?.currentPrice || 0
+    const sellPrice  = prices[sellTarget.symbol]?.currentPrice || 0
     const sellAmount = sellPrice * sellTarget.lots * 100
     if (sellAmount > 0) {
       try {
         await fetch('/api/transactions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            type:        'income',
-            amount:      sellAmount,
-            wallet:      'bank',
+            type: 'income', amount: sellAmount, wallet: 'bank',
             description: `Hasil jual saham ${sellTarget.symbol}`,
-            date:        new Date().toISOString().split('T')[0],
-            categoryId:  '',
+            date: new Date().toISOString().split('T')[0], categoryId: '',
           }),
         })
         toast.success(`💰 ${formatCurrency(sellAmount)} ditambahkan ke Bank`, { duration: 4000 })
       } catch { /* silent */ }
     }
-    refetch()
-    setSellTarget(null)
+    refetch(); setSellTarget(null)
   }
 
-  // ── Totals ──
+  // ── Group holdings by symbol ──
+  const groupedBySymbol = useMemo(() => {
+    const groups: Record<string, {
+      totalLots:  number
+      totalCost:  number
+      entries:    StockHolding[]
+    }> = {}
+    ;(holdings || []).forEach((h) => {
+      if (!groups[h.symbol]) groups[h.symbol] = { totalLots: 0, totalCost: 0, entries: [] }
+      groups[h.symbol].totalLots += h.lots
+      groups[h.symbol].totalCost += h.lots * 100 * h.avgPrice   // cost in rupiah
+      groups[h.symbol].entries.push(h)
+    })
+    return groups
+  }, [holdings])
+
+  // ── Overall portfolio totals ──
   const totals = useMemo(() => {
-    if (!holdings) return { value: 0, cost: 0, pl: 0, plPct: 0 }
     let value = 0, cost = 0
-    holdings.forEach((h) => {
+    ;(holdings || []).forEach((h) => {
       value += parseLotValue(h.lots, prices[h.symbol]?.currentPrice || 0)
       cost  += parseLotValue(h.lots, h.avgPrice)
     })
@@ -216,149 +218,209 @@ export default function SahamPage() {
           <h1 className="text-xl font-display font-bold" style={{ color: 'var(--text-primary)' }}>📈 Portofolio Saham</h1>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>IDX — harga realtime · auto-merge aktif</p>
         </div>
-        <button onClick={() => setShowAdd(true)} className="btn-primary px-4 py-2 flex items-center gap-1.5 text-sm">
-          <Plus size={16} /> Tambah
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => { refetch(); refetchPrices() }}
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ background: 'rgba(255,255,255,0.90)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+            <RefreshCw size={15} />
+          </button>
+          <button onClick={() => setShowAdd(true)} className="btn-primary px-4 py-2 flex items-center gap-1.5 text-sm">
+            <Plus size={16} /> Tambah
+          </button>
+        </div>
       </div>
 
-      {/* Portfolio Summary */}
-      <div className="glass-card p-5 mb-5" style={{ borderColor: 'rgba(99,179,237,0.2)' }}>
-        <div className="flex flex-col gap-3">
+      {/* Portfolio Summary Hero */}
+      <div className="glass-hero p-5 mb-5" style={{ borderColor: 'rgba(99,179,237,0.22)' }}>
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>Nilai Pasar</p>
+            <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>Total Nilai Pasar</p>
             <p className="text-2xl font-display font-bold" style={{ color: 'var(--blue)' }}>
               {formatCurrency(totals.value)}
             </p>
           </div>
-          <div className="h-px" style={{ background: 'var(--border)' }} />
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>Total Modal</p>
-              <p className="text-sm font-bold font-mono" style={{ color: 'var(--text-secondary)' }}>
-                {formatCurrency(totals.cost)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>Total P&L</p>
-              <div className="flex items-center gap-1">
-                {totals.pl >= 0
-                  ? <TrendingUp size={14} color="var(--accent)" />
-                  : <TrendingDown size={14} color="var(--red)" />}
-                <p className="text-sm font-bold" style={{ color: totals.pl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
-                  {totals.pl >= 0 ? '+' : ''}{formatCurrency(totals.pl)}
-                </p>
-              </div>
-              <p className="text-xs" style={{ color: totals.pl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
-                {formatPercent(totals.plPct)}
-              </p>
-            </div>
+          <div className="text-right">
+            <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>Total Modal</p>
+            <p className="text-sm font-bold font-mono" style={{ color: 'var(--text-secondary)' }}>
+              {formatCurrency(totals.cost)}
+            </p>
           </div>
         </div>
+        {totals.cost > 0 && (
+          <div className="flex items-center gap-2 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+              style={{
+                background: totals.pl >= 0 ? 'rgba(34,197,94,0.10)' : 'rgba(252,129,129,0.12)',
+                border: `1px solid ${totals.pl >= 0 ? 'rgba(34,197,94,0.18)' : 'rgba(252,129,129,0.25)'}`,
+              }}>
+              {totals.pl >= 0
+                ? <TrendingUp size={13} color="var(--accent)" />
+                : <TrendingDown size={13} color="var(--red)" />}
+              <p className="text-xs font-bold" style={{ color: totals.pl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
+                {totals.pl >= 0 ? '+' : ''}{formatCurrency(totals.pl)} P&L
+              </p>
+            </div>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {formatPercent(totals.plPct)} dari modal
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Holdings list */}
+      {/* Holdings — grouped by symbol */}
       {loading ? (
-        <div className="space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="skeleton h-28 rounded-2xl" />)}</div>
-      ) : !holdings?.length ? (
-        <div className="text-center py-16">
+        <div className="space-y-3">{[...Array(2)].map((_, i) => <div key={i} className="skeleton h-24 rounded-2xl" />)}</div>
+      ) : Object.keys(groupedBySymbol).length === 0 ? (
+        <div className="text-center py-14 glass-card">
           <p className="text-4xl mb-3">📈</p>
           <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Belum ada saham</p>
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Tambahkan saham IDX Anda</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {(holdings || []).map((h) => {
-            const stockData    = prices[h.symbol]
-            const currentPrice = stockData?.currentPrice || 0
-            const currentValue = parseLotValue(h.lots, currentPrice)
-            const costBasis    = parseLotValue(h.lots, h.avgPrice)
-            const { profitLoss: pl, profitLossPercent: plPct } = calcProfitLoss(currentValue, costBasis)
-            const isUp         = (stockData?.change || 0) >= 0
-            const sekuritas    = h.notes || '—'
+          <p className="text-[11px] font-semibold px-1" style={{ color: 'var(--text-muted)' }}>
+            KEPEMILIKAN ({(holdings || []).length} entri)
+          </p>
+
+          {Object.entries(groupedBySymbol).map(([symbol, group]) => {
+            const stockData      = prices[symbol]
+            const currentPrice   = stockData?.currentPrice || 0
+            const totalValue     = group.totalLots * 100 * currentPrice
+            const { profitLoss: groupPl, profitLossPercent: groupPlPct } = calcProfitLoss(totalValue, group.totalCost)
+            const isUp           = (stockData?.change || 0) >= 0
+
+            // weighted avg price for the symbol
+            const weightedAvg    = group.totalCost / (group.totalLots * 100)
 
             return (
-              <motion.div key={h.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                className="glass-card p-4">
+              <motion.div key={symbol} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className="glass-card overflow-hidden">
 
-                {/* Row 1: Identity + live price */}
-                <div className="flex items-center justify-between mb-3">
+                {/* ── Symbol group header ── */}
+                <div className="flex items-center justify-between px-4 py-3"
+                  style={{ borderBottom: '1px solid var(--border)' }}>
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm flex-shrink-0"
-                      style={{ background: 'rgba(99,179,237,0.12)', color: 'var(--blue)' }}>
-                      {h.symbol.slice(0, 2)}
+                    {/* Symbol avatar */}
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0"
+                      style={{ background: 'rgba(99,179,237,0.14)', color: 'var(--blue)' }}>
+                      {symbol.slice(0, 2)}
                     </div>
                     <div>
-                      <p className="font-bold" style={{ color: 'var(--text-primary)' }}>{h.symbol}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
-                          style={{ background: 'rgba(99,179,237,0.14)', color: 'var(--blue)' }}>
-                          {sekuritas}
-                        </span>
-                        <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                          {h.lots} lot · {h.lots * 100} lbr
-                        </p>
-                      </div>
+                      <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{symbol}</p>
+                      {/* Total lot badge */}
+                      <p className="text-xs font-bold" style={{ color: 'var(--blue)' }}>
+                        {group.totalLots} lot
+                      </p>
                     </div>
                   </div>
+
+                  {/* Right: total nilai + PnL */}
                   <div className="text-right">
-                    <p className="font-bold font-mono" style={{ color: 'var(--text-primary)' }}>
-                      {pricesLoading ? '—' : formatCurrency(currentPrice)}
+                    <p className="text-xs font-semibold mb-0.5" style={{ color: 'var(--text-muted)' }}>
+                      TOTAL NILAI SEKARANG
                     </p>
-                    {stockData && (
-                      <div className="flex items-center gap-1 justify-end">
-                        {isUp ? <TrendingUp size={11} color="var(--accent)" /> : <TrendingDown size={11} color="var(--red)" />}
-                        <p className="text-xs" style={{ color: isUp ? 'var(--accent)' : 'var(--red)' }}>
-                          {formatPercent(stockData.changePercent)}
-                        </p>
-                      </div>
+                    <p className="text-sm font-bold font-mono" style={{ color: 'var(--text-primary)' }}>
+                      {pricesLoading ? '—' : formatCurrency(totalValue)}
+                    </p>
+                    {group.totalCost > 0 && (
+                      <p className="text-xs font-medium"
+                        style={{ color: groupPl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
+                        {groupPl >= 0 ? '+' : ''}{formatCurrency(groupPl)}
+                      </p>
                     )}
                   </div>
                 </div>
 
-                {/* Row 2: Stats */}
-                <div className="flex flex-col gap-0 rounded-xl overflow-hidden"
-                  style={{ background: 'rgba(255,255,255,0.90)' }}>
-                  {[
-                    { label: 'Nilai Pasar', value: formatCurrency(currentValue),         color: 'var(--blue)'           },
-                    { label: 'Modal',        value: formatCurrency(costBasis),             color: 'var(--text-secondary)' },
-                    { label: 'Avg Beli',     value: `${formatCurrency(h.avgPrice)}/lbr`, color: 'var(--text-secondary)' },
-                  ].map((row, i, arr) => (
-                    <div key={row.label}
-                      className="flex items-center justify-between px-3 py-2"
-                      style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{row.label}</p>
-                      <p className="text-xs font-bold font-mono" style={{ color: row.color }}>{row.value}</p>
-                    </div>
-                  ))}
-                  <div className="flex items-center justify-between px-3 py-2">
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>P&L</p>
-                    <div className="flex items-center gap-1.5">
-                      {pl >= 0 ? <TrendingUp size={11} color="var(--accent)" /> : <TrendingDown size={11} color="var(--red)" />}
-                      <p className="text-xs font-bold" style={{ color: pl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
-                        {pl >= 0 ? '+' : ''}{formatCurrency(pl)} ({formatPercent(plPct)})
-                      </p>
-                    </div>
+                {/* Live price + PnL pct strip */}
+                <div className="flex items-center justify-between px-4 py-2"
+                  style={{ background: 'rgba(99,179,237,0.04)', borderBottom: '1px solid var(--border)' }}>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Harga kini</p>
+                    <p className="text-xs font-bold font-mono" style={{ color: 'var(--blue)' }}>
+                      {pricesLoading ? '—' : formatCurrency(currentPrice)}
+                    </p>
+                    {stockData && (
+                      <div className="flex items-center gap-0.5">
+                        {isUp ? <TrendingUp size={10} color="var(--accent)" /> : <TrendingDown size={10} color="var(--red)" />}
+                        <span className="text-[10px] font-medium"
+                          style={{ color: isUp ? 'var(--accent)' : 'var(--red)' }}>
+                          {formatPercent(stockData.changePercent)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Avg beli</p>
+                    <p className="text-[10px] font-mono font-bold" style={{ color: 'var(--text-secondary)' }}>
+                      {formatCurrency(weightedAvg)}/lbr
+                    </p>
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center justify-end gap-2 mt-3">
-                  <button onClick={() => setSellTarget(h)}
-                    className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg"
-                    style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)', border: '1px solid rgba(34,197,94,0.16)' }}>
-                    <DollarSign size={12} /> Jual
-                  </button>
-                  <button onClick={() => openEdit(h)}
-                    className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg"
-                    style={{ background: 'rgba(99,179,237,0.10)', color: 'var(--blue)', border: '1px solid rgba(99,179,237,0.16)' }}>
-                    <Pencil size={12} /> Edit
-                  </button>
-                  <button onClick={() => handleDelete(h.id)}
-                    className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg"
-                    style={{ background: 'var(--red-dim)', color: 'var(--red)' }}>
-                    <Trash2 size={12} /> Hapus
-                  </button>
-                </div>
+                {/* ── Individual purchase entries ── */}
+                {group.entries.map((h, i) => {
+                  const entryValue = h.lots * 100 * currentPrice
+                  const entryCost  = h.lots * 100 * h.avgPrice
+                  const { profitLoss: entryPl } = calcProfitLoss(entryValue, entryCost)
+                  const sekuritas  = h.notes || '—'
+
+                  return (
+                    <div key={h.id}
+                      className="flex items-center justify-between px-4 py-3"
+                      style={{
+                        borderBottom: i < group.entries.length - 1 ? '1px solid var(--border)' : 'none',
+                        background: 'rgba(255,255,255,0.015)',
+                      }}>
+                      <div className="flex-1 min-w-0">
+                        {/* Row 1: lot count + buy price */}
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-xs font-bold font-mono" style={{ color: 'var(--text-secondary)' }}>
+                            {h.lots} lot · {formatCurrency(h.avgPrice)}/lbr
+                          </span>
+                        </div>
+                        {/* Row 2: sekuritas badge + date */}
+                        <div className="flex items-center gap-1.5">
+                          {/* Sekuritas badge */}
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                            style={{ background: 'rgba(99,179,237,0.12)', color: 'var(--blue)' }}>
+                            {sekuritas}
+                          </span>
+                          {h.buyDate && (
+                            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                              {formatDate(h.buyDate)}
+                            </span>
+                          )}
+                          {/* Entry P&L if price available */}
+                          {entryValue > 0 && entryCost > 0 && (
+                            <span className="text-[10px] font-medium ml-auto"
+                              style={{ color: entryPl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
+                              {entryPl >= 0 ? '+' : ''}{formatCurrency(entryPl)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-1.5 ml-3 flex-shrink-0">
+                        <button onClick={() => setSellTarget(h)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center"
+                          style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)', border: '1px solid rgba(34,197,94,0.16)' }}>
+                          <DollarSign size={12} />
+                        </button>
+                        <button onClick={() => openEdit(h)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center"
+                          style={{ background: 'rgba(99,179,237,0.10)', color: 'var(--blue)', border: '1px solid rgba(99,179,237,0.16)' }}>
+                          <Pencil size={12} />
+                        </button>
+                        <button onClick={() => handleDelete(h.id)}
+                          className="w-7 h-7 rounded-lg flex items-center justify-center"
+                          style={{ background: 'var(--red-dim)', color: 'var(--red)' }}>
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
               </motion.div>
             )
           })}
@@ -373,7 +435,7 @@ export default function SahamPage() {
               <div className="flex items-start gap-2 p-3 rounded-xl" style={{ background: 'rgba(99,179,237,0.08)' }}>
                 <span className="text-sm">🔀</span>
                 <p className="text-xs" style={{ color: 'var(--blue)' }}>
-                  Jika saham sudah ada, lot & avg price akan otomatis digabung (weighted average).
+                  Jika saham sudah ada, entri baru akan ditambahkan terpisah di bawah simbol yang sama.
                 </p>
               </div>
 
@@ -404,7 +466,8 @@ export default function SahamPage() {
               </Field>
 
               {form.lots && form.avgPrice && (
-                <div className="p-3 rounded-xl text-xs" style={{ background: 'var(--blue-dim)', border: '1px solid rgba(99,179,237,0.2)' }}>
+                <div className="p-3 rounded-xl text-xs"
+                  style={{ background: 'var(--blue-dim)', border: '1px solid rgba(99,179,237,0.2)' }}>
                   <p style={{ color: 'var(--blue)' }}>
                     Modal: {formatCurrency(parseInt(form.lots || '0') * 100 * parseFloat(form.avgPrice || '0'))}
                     <span className="ml-2" style={{ color: 'var(--text-muted)' }}>
@@ -460,7 +523,8 @@ export default function SahamPage() {
               </Field>
 
               {editForm.lots && editForm.avgPrice && (
-                <div className="p-3 rounded-xl text-xs" style={{ background: 'var(--blue-dim)', border: '1px solid rgba(99,179,237,0.2)' }}>
+                <div className="p-3 rounded-xl text-xs"
+                  style={{ background: 'var(--blue-dim)', border: '1px solid rgba(99,179,237,0.2)' }}>
                   <p style={{ color: 'var(--blue)' }}>
                     Modal: {formatCurrency(parseInt(editForm.lots || '0') * 100 * parseFloat(editForm.avgPrice || '0'))}
                   </p>
