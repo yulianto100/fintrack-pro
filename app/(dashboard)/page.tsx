@@ -128,16 +128,21 @@ export default function DashboardPage() {
               onClick={toggle}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all active:scale-90"
               style={{
-                background: hidden ? 'rgba(34,197,94,0.10)' : 'rgba(255,255,255,0.07)',
-                border: `1px solid ${hidden ? 'rgba(34,197,94,0.18)' : 'rgba(255,255,255,0.1)'}`,
+                background: hidden
+                  ? 'rgba(34,197,94,0.15)'
+                  : 'rgba(34,197,94,0.12)',
+                border: `1px solid ${hidden ? 'rgba(34,197,94,0.30)' : 'rgba(34,197,94,0.25)'}`,
+                boxShadow: hidden
+                  ? 'none'
+                  : '0 0 0 1px rgba(34,197,94,0.10) inset',
               }}
             >
               {hidden
-                ? <EyeOff size={13} color="rgba(34,197,94,0.80)" />
-                : <Eye    size={13} color="rgba(255,255,255,0.5)" />
+                ? <EyeOff size={13} color="rgba(34,197,94,1)" />
+                : <Eye    size={13} color="rgba(34,197,94,0.95)" />
               }
-              <span className="text-[10px] font-medium select-none"
-                style={{ color: hidden ? 'rgba(34,197,94,0.80)' : 'rgba(255,255,255,0.4)' }}>
+              <span className="text-[10px] font-semibold select-none"
+                style={{ color: 'rgba(34,197,94,0.95)' }}>
                 {hidden ? 'Tampilkan' : 'Sembunyikan'}
               </span>
             </button>

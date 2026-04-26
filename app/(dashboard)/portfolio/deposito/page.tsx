@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useApiList } from '@/hooks/useApiData'
 import { formatCurrency, formatDate, formatNumber, enrichDeposit, capitalizeFirst } from '@/lib/utils'
 import type { Deposit, DepositWithCountdown } from '@/types'
-import { Plus, Trash2, Bell, Clock, CheckCircle, X, Sparkles } from 'lucide-react'
+import { Plus, Trash2, Bell, Clock, CheckCircle, X, Sparkles, Pencil, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 // Common bank names for quick-select autocomplete
@@ -21,6 +21,12 @@ export default function DepositoPage() {
     startDate: new Date().toISOString().split('T')[0], notes: '',
   })
 
+  // ── Edit modal state ──
+  const [editTarget, setEditTarget] = useState<Deposit | null>(null)
+  const [editForm,   setEditForm  ] = useState({ bankName: '', nominal: '', interestRate: '', tenorMonths: '', startDate: '', notes: '' })
+  const [editSaving, setEditSaving] = useState(false)
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({})
+
   const enriched = useMemo(() => (deposits || []).map(enrichDeposit), [deposits])
   const active   = useMemo(() => enriched.filter((d) => d.status === 'active').sort((a, b) => a.daysRemaining - b.daysRemaining), [enriched])
   const history  = useMemo(() => enriched.filter((d) => d.status !== 'active'), [enriched])
@@ -31,7 +37,7 @@ export default function DepositoPage() {
     interest:   active.reduce((s, d) => s + d.totalInterest, 0),
   }), [active])
 
-  // ── Feature #8: Auto-complete deposits when progress >= 100% ──
+  // ── Auto-complete deposits when progress >= 100% + auto-transaction ──
   const autoCompleteMatured = useCallback(async (list: DepositWithCountdown[]) => {
     const matured = list.filter((d) => d.percentComplete >= 100 && d.status === 'active')
     if (matured.length === 0) return
@@ -43,8 +49,19 @@ export default function DepositoPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: d.id, status: 'matured', updatedAt: new Date().toISOString() }),
         })
-        toast.success(`Deposito ${d.bankName} otomatis ditandai selesai ✓`, { duration: 4000 })
-      } catch { /* silent fail — will retry on next refresh */ }
+        // Auto-create income transaction to Bank wallet
+        const finalAmount = d.netFinalValue ?? d.finalValue
+        await fetch('/api/transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'income', amount: finalAmount, wallet: 'bank',
+            description: `Deposito jatuh tempo: ${d.bankName}`,
+            date: new Date().toISOString().split('T')[0], categoryId: '',
+          }),
+        })
+        toast.success(`🏦 Deposito ${d.bankName} cair — ${formatCurrency(finalAmount)} masuk ke Bank`, { duration: 5000 })
+      } catch { /* silent fail */ }
     }
     if (matured.length > 0) refetch()
   }, [refetch])
@@ -87,6 +104,43 @@ export default function DepositoPage() {
   const handleBankNameChange = (value: string) => {
     const capitalized = capitalizeFirst(value)
     setForm((prev) => ({ ...prev, bankName: capitalized }))
+  }
+
+  // ── Edit handlers ──
+  const openEdit = (d: Deposit) => {
+    setEditTarget(d)
+    setEditForm({
+      bankName:     d.bankName,
+      nominal:      String(d.nominal),
+      interestRate: String(d.interestRate),
+      tenorMonths:  String(d.tenorMonths),
+      startDate:    d.startDate,
+      notes:        d.notes || '',
+    })
+    setEditErrors({})
+  }
+
+  const handleEdit = async () => {
+    if (!editTarget) return
+    const e: Record<string, string> = {}
+    if (!editForm.bankName)     e.bankName     = 'Nama bank wajib diisi'
+    if (!editForm.nominal)      e.nominal      = 'Nominal wajib diisi'
+    if (!editForm.interestRate) e.interestRate = 'Bunga wajib diisi'
+    if (!editForm.tenorMonths)  e.tenorMonths  = 'Tenor wajib diisi'
+    if (Object.keys(e).length) { setEditErrors(e); return }
+    setEditErrors({})
+    setEditSaving(true)
+    try {
+      const res = await fetch('/api/portfolio/deposits', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editTarget.id, ...editForm }),
+      })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error)
+      toast.success('Deposito berhasil diupdate! ✓')
+      setEditTarget(null); refetch()
+    } catch { toast.error('Gagal mengupdate deposito') }
+    finally { setEditSaving(false) }
   }
 
   const getDaysColor = (days: number) => {
@@ -180,10 +234,17 @@ export default function DepositoPage() {
                       {d.interestRate}% / thn · {d.tenorMonths} bulan
                     </p>
                   </div>
-                  <button onClick={() => handleDelete(d.id)} className="w-7 h-7 rounded-lg flex items-center justify-center"
-                    style={{ background: 'var(--red-dim)', color: 'var(--red)' }}>
-                    <Trash2 size={13} />
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={() => openEdit(d)}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center"
+                      style={{ background: 'rgba(168,85,247,0.10)', color: '#c084fc', border: '1px solid rgba(168,85,247,0.18)' }}>
+                      <Pencil size={12} />
+                    </button>
+                    <button onClick={() => handleDelete(d.id)} className="w-7 h-7 rounded-lg flex items-center justify-center"
+                      style={{ background: 'var(--red-dim)', color: 'var(--red)' }}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-0 mb-3 rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.90)' }}>
@@ -360,9 +421,111 @@ export default function DepositoPage() {
                   </p>
                 </div>
 
-                <button onClick={handleAdd} disabled={saving} className="btn-primary w-full py-3.5"
-                  style={{ background: 'linear-gradient(135deg, #a855f7, #7c3aed)' }}>
+                <button onClick={handleAdd} disabled={saving}
+                  className="w-full py-3.5 rounded-2xl font-semibold text-white transition-all active:scale-[0.98]"
+                  style={{
+                    background: saving ? 'rgba(168,85,247,0.4)' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                    boxShadow: saving ? 'none' : '0 4px 16px rgba(168,85,247,0.28)',
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    fontFamily: 'var(--font-space)',
+                  }}>
                   {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" /> : 'Simpan Deposito'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Edit Modal ───────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {editTarget && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0"
+              style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
+              onClick={() => setEditTarget(null)} />
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+              className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
+              style={{ background: 'rgba(255,255,255,0.92)', border: '1px solid var(--border)', maxHeight: '92dvh', overflowY: 'auto' }}
+              onClick={(e) => e.stopPropagation()}>
+              <div className="drag-indicator mt-3 sm:hidden" />
+              <div className="flex items-center justify-between px-5 py-4">
+                <h2 className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Edit Deposito</h2>
+                <button onClick={() => setEditTarget(null)}
+                  className="w-9 h-9 rounded-full flex items-center justify-center"
+                  style={{ background: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}>
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="px-5 pb-7 space-y-4">
+                <div className="p-3 rounded-xl" style={{ background: 'rgba(168,85,247,0.07)', border: '1px solid rgba(168,85,247,0.14)' }}>
+                  <p className="text-xs font-bold" style={{ color: '#c084fc' }}>{editTarget.bankName}</p>
+                </div>
+
+                {/* Bank name */}
+                <div>
+                  <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
+                    Nama Bank <span style={{ color: 'var(--accent)' }}>*</span>
+                  </label>
+                  <input type="text" className="input-glass" placeholder="Contoh: BCA"
+                    value={editForm.bankName}
+                    onChange={(e) => setEditForm({ ...editForm, bankName: capitalizeFirst(e.target.value) })} />
+                  {editErrors.bankName && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <AlertCircle size={11} color="var(--red)" />
+                      <p className="text-[11px]" style={{ color: 'var(--red)' }}>{editErrors.bankName}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
+                    Nominal (Rp) <span style={{ color: 'var(--accent)' }}>*</span>
+                  </label>
+                  <input type="number" className="input-glass" placeholder="Contoh: 10000000"
+                    value={editForm.nominal} onChange={(e) => setEditForm({ ...editForm, nominal: e.target.value })} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
+                      Bunga (%/thn) <span style={{ color: 'var(--accent)' }}>*</span>
+                    </label>
+                    <input type="number" step="0.01" className="input-glass" placeholder="Contoh: 4.5"
+                      value={editForm.interestRate} onChange={(e) => setEditForm({ ...editForm, interestRate: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
+                      Tenor (bulan) <span style={{ color: 'var(--accent)' }}>*</span>
+                    </label>
+                    <input type="number" className="input-glass" placeholder="Contoh: 12"
+                      value={editForm.tenorMonths} onChange={(e) => setEditForm({ ...editForm, tenorMonths: e.target.value })} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>Tanggal Mulai</label>
+                  <input type="date" className="input-glass"
+                    value={editForm.startDate} onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })} />
+                </div>
+
+                <div>
+                  <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>Catatan (opsional)</label>
+                  <input type="text" className="input-glass" placeholder="Catatan"
+                    value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
+                </div>
+
+                <button onClick={handleEdit} disabled={editSaving}
+                  className="w-full py-3.5 rounded-2xl font-semibold text-white transition-all active:scale-[0.98]"
+                  style={{
+                    background: editSaving ? 'rgba(168,85,247,0.4)' : 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                    boxShadow: editSaving ? 'none' : '0 4px 16px rgba(168,85,247,0.28)',
+                    cursor: editSaving ? 'not-allowed' : 'pointer',
+                    fontFamily: 'var(--font-space)',
+                  }}>
+                  {editSaving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" /> : '✓ Simpan Perubahan'}
                 </button>
               </div>
             </motion.div>

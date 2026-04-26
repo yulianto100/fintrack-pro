@@ -579,15 +579,31 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
             </div>
 
             {/* Save button */}
-            <button onClick={handleSave} disabled={saving}
-              className="btn-primary w-full py-4 flex items-center justify-center gap-2 text-base"
-              style={{ background: `linear-gradient(135deg, ${activeColor}, ${activeColor}cc)` }}>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="w-full py-4 flex items-center justify-center gap-2 rounded-2xl font-semibold text-base transition-all active:scale-[0.98]"
+              style={{
+                background: saving
+                  ? 'rgba(34,197,94,0.55)'
+                  : type === 'expense'
+                    ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                    : type === 'income'
+                      ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+                      : 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                color: '#fff',
+                border: 'none',
+                boxShadow: saving ? 'none' : '0 4px 16px rgba(0,0,0,0.18)',
+                opacity: saving ? 0.7 : 1,
+                cursor: saving ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-space)',
+              }}>
               {saving
                 ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
-                : <span>
+                : <span className="tracking-wide">
                     {type === 'transfer' && transferMode === 'external'
                       ? `💸 Kirim${lookupResult ? ` ke @${lookupResult.username}` : ''}`
-                      : isEdit ? 'Simpan Perubahan' : 'Tambah Transaksi'
+                      : isEdit ? '✓ Simpan Perubahan' : '+ Tambah Transaksi'
                     }
                   </span>
               }

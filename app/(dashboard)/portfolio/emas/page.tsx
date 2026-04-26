@@ -6,7 +6,7 @@ import { useApiList } from '@/hooks/useApiData'
 import { useGoldPrices } from '@/hooks/usePrices'
 import { formatCurrency, formatNumber, formatDate } from '@/lib/utils'
 import type { GoldHolding, GoldSource, GoldType } from '@/types'
-import { Plus, Trash2, RefreshCw, X, Wifi, WifiOff, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, X, Wifi, WifiOff, TrendingUp, TrendingDown, DollarSign, Pencil } from 'lucide-react'
 import { EmasSellModal } from '@/components/sell-modal'
 import toast from 'react-hot-toast'
 
@@ -112,6 +112,44 @@ export default function EmasPage() {
     buyPrice: '', buyDate: new Date().toISOString().split('T')[0], notes: '',
   })
   const [sellTarget, setSellTarget] = useState<GoldHolding | null>(null)
+
+  // ── Edit modal ──
+  const [editEmasTarget, setEditEmasTarget] = useState<GoldHolding | null>(null)
+  const [editEmasForm,   setEditEmasForm  ] = useState({ grams: '', buyPrice: '', buyDate: '', notes: '' })
+  const [editEmasSaving, setEditEmasSaving] = useState(false)
+
+  const openEditEmas = (h: GoldHolding) => {
+    setEditEmasTarget(h)
+    setEditEmasForm({
+      grams:    String(h.grams),
+      buyPrice: String(h.buyPrice || ''),
+      buyDate:  h.buyDate || '',
+      notes:    h.notes || '',
+    })
+  }
+
+  const handleEditEmas = async () => {
+    if (!editEmasTarget) return
+    if (!editEmasForm.grams || parseFloat(editEmasForm.grams) <= 0) { return }
+    setEditEmasSaving(true)
+    try {
+      const res = await fetch('/api/portfolio/gold', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id:       editEmasTarget.id,
+          grams:    parseFloat(editEmasForm.grams),
+          buyPrice: editEmasForm.buyPrice ? parseFloat(editEmasForm.buyPrice) : undefined,
+          buyDate:  editEmasForm.buyDate,
+          notes:    editEmasForm.notes,
+        }),
+      })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error)
+      toast.success('Emas berhasil diupdate! ✓')
+      setEditEmasTarget(null); refetch()
+    } catch { toast.error('Gagal mengupdate emas') }
+    finally { setEditEmasSaving(false) }
+  }
 
   const availableProviders = Object.entries(PROVIDERS)
     .filter(([, v]) => v.type === form.goldType) as [string, typeof PROVIDERS.antam][]
@@ -342,6 +380,11 @@ export default function EmasPage() {
                         style={{ background:'rgba(34,197,94,0.10)', color:'var(--accent)', border:'1px solid rgba(34,197,94,0.16)' }}>
                         <DollarSign size={12}/>
                       </button>
+                      <button onClick={() => openEditEmas(h)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ background:'rgba(246,204,96,0.10)', color:'#d97706', border:'1px solid rgba(246,204,96,0.25)' }}>
+                        <Pencil size={12}/>
+                      </button>
                       <button onClick={() => handleDelete(h.id)}
                         className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                         style={{ background:'var(--red-dim)', color:'var(--red)' }}>
@@ -543,6 +586,83 @@ export default function EmasPage() {
           onSuccess={() => { refetch(); setSellTarget(null) }}
         />
       )}
+
+      {/* ── Edit Emas Modal ────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {editEmasTarget && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0"
+              style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
+              onClick={() => setEditEmasTarget(null)} />
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+              className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
+              style={{ background: 'rgba(255,255,255,0.92)', border: '1px solid var(--border)', maxHeight: '92dvh', overflowY: 'auto' }}
+              onClick={(e) => e.stopPropagation()}>
+              <div className="drag-indicator mt-3 sm:hidden" />
+              <div className="flex items-center justify-between px-5 py-4">
+                <h2 className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Edit Emas</h2>
+                <button onClick={() => setEditEmasTarget(null)}
+                  className="w-9 h-9 rounded-full flex items-center justify-center"
+                  style={{ background: 'rgba(0,0,0,0.06)', color: 'var(--text-secondary)' }}>
+                  <X size={18}/>
+                </button>
+              </div>
+              <div className="px-5 pb-7 space-y-4">
+                <div className="p-3 rounded-xl"
+                  style={{ background: 'rgba(246,204,96,0.10)', border: '1px solid rgba(246,204,96,0.22)' }}>
+                  <p className="text-xs font-bold" style={{ color: '#d97706' }}>
+                    {PROVIDERS[editEmasTarget.source]?.label || editEmasTarget.source} · {editEmasTarget.goldType}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
+                    Jumlah Gram <span style={{ color: 'var(--accent)' }}>*</span>
+                  </label>
+                  <input type="number" step="0.001" className="input-glass" placeholder="Contoh: 1.5"
+                    value={editEmasForm.grams}
+                    onChange={(e) => setEditEmasForm({ ...editEmasForm, grams: e.target.value })} />
+                </div>
+
+                <div>
+                  <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>Harga Beli (Rp/gram)</label>
+                  <input type="number" className="input-glass" placeholder="Opsional"
+                    value={editEmasForm.buyPrice}
+                    onChange={(e) => setEditEmasForm({ ...editEmasForm, buyPrice: e.target.value })} />
+                </div>
+
+                <div>
+                  <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>Tanggal Beli</label>
+                  <input type="date" className="input-glass"
+                    value={editEmasForm.buyDate}
+                    onChange={(e) => setEditEmasForm({ ...editEmasForm, buyDate: e.target.value })} />
+                </div>
+
+                <div>
+                  <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>Catatan</label>
+                  <input type="text" className="input-glass" placeholder="Opsional"
+                    value={editEmasForm.notes}
+                    onChange={(e) => setEditEmasForm({ ...editEmasForm, notes: e.target.value })} />
+                </div>
+
+                <button onClick={handleEditEmas} disabled={editEmasSaving}
+                  className="w-full py-3.5 rounded-2xl font-semibold text-white transition-all active:scale-[0.98]"
+                  style={{
+                    background: editEmasSaving ? 'rgba(246,204,96,0.4)' : 'linear-gradient(135deg, #f6cc60, #d97706)',
+                    boxShadow: editEmasSaving ? 'none' : '0 4px 16px rgba(246,204,96,0.28)',
+                    cursor: editEmasSaving ? 'not-allowed' : 'pointer',
+                    fontFamily: 'var(--font-space)',
+                    color: '#7c4700',
+                  }}>
+                  {editEmasSaving ? <div className="w-5 h-5 border-2 border-amber-800/30 border-t-amber-900 rounded-full animate-spin mx-auto" /> : '✓ Simpan Perubahan'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
