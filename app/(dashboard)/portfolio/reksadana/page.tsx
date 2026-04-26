@@ -220,6 +220,7 @@ export default function ReksadanaPage() {
             type: 'income', amount: currentValue, wallet: 'bank',
             description: `Pencairan reksadana: ${h.productName}`,
             date: new Date().toISOString().split('T')[0], categoryId: '',
+            isSystemTransaction: true,
           }),
         })
         toast.success(`💰 ${formatCurrency(currentValue)} masuk ke Bank`, { duration: 4000 })

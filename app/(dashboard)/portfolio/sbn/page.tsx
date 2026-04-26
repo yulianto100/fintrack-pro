@@ -163,6 +163,7 @@ export default function SBNPage() {
             type: 'income', amount: h.totalFinal, wallet: 'bank',
             description: `SBN jatuh tempo: ${h.seri}`,
             date: new Date().toISOString().split('T')[0], categoryId: '',
+            isSystemTransaction: true,
           }),
         })
         toast.success(`🏛️ SBN ${h.seri} jatuh tempo — ${formatCurrency(h.totalFinal)} masuk ke Bank`, { duration: 5000 })

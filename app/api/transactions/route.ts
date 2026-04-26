@@ -96,11 +96,14 @@ export async function POST(request: Request) {
       walletAccountId, toWalletAccountId, tags,
     } = body
 
+    // System-generated transactions (sell proceeds, maturity payouts) bypass categoryId
+    const isSystemTransaction = body.isSystemTransaction === true
+
     if (!type)                           return NextResponse.json({ success: false, error: 'Tipe wajib diisi' },         { status: 400 })
     if (!amount || Number(amount) <= 0)  return NextResponse.json({ success: false, error: 'Jumlah tidak valid' },       { status: 400 })
     if (!date)                           return NextResponse.json({ success: false, error: 'Tanggal wajib diisi' },      { status: 400 })
     if (!wallet)                         return NextResponse.json({ success: false, error: 'Wallet wajib dipilih' },     { status: 400 })
-    if (!categoryId && type !== 'transfer')
+    if (!categoryId && type !== 'transfer' && !isSystemTransaction)
       return NextResponse.json({ success: false, error: 'Kategori wajib dipilih' }, { status: 400 })
 
     if (type === 'transfer' && walletAccountId && toWalletAccountId && walletAccountId === toWalletAccountId)

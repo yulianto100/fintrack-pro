@@ -58,6 +58,7 @@ export default function DepositoPage() {
             type: 'income', amount: finalAmount, wallet: 'bank',
             description: `Deposito jatuh tempo: ${d.bankName}`,
             date: new Date().toISOString().split('T')[0], categoryId: '',
+            isSystemTransaction: true,
           }),
         })
         toast.success(`🏦 Deposito ${d.bankName} cair — ${formatCurrency(finalAmount)} masuk ke Bank`, { duration: 5000 })

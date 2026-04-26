@@ -162,25 +162,10 @@ export default function SahamPage() {
     toast.success('Saham dihapus'); refetch()
   }
 
-  // ── Auto-transaction on sell ──
-  const handleSellComplete = async () => {
-    if (!sellTarget) return
-    const sellPrice  = prices[sellTarget.symbol]?.currentPrice || 0
-    const sellAmount = sellPrice * sellTarget.lots * 100
-    if (sellAmount > 0) {
-      try {
-        await fetch('/api/transactions', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'income', amount: sellAmount, wallet: 'bank',
-            description: `Hasil jual saham ${sellTarget.symbol}`,
-            date: new Date().toISOString().split('T')[0], categoryId: '',
-          }),
-        })
-        toast.success(`💰 ${formatCurrency(sellAmount)} ditambahkan ke Bank`, { duration: 4000 })
-      } catch { /* silent */ }
-    }
-    refetch(); setSellTarget(null)
+  // ── Sell complete — transaction is already created inside SahamSellModal ──
+  const handleSellComplete = () => {
+    refetch()
+    setSellTarget(null)
   }
 
   // ── Group holdings by symbol ──

@@ -38,6 +38,7 @@ export function SahamSellModal({ holding, currentPrice, onClose, onSuccess }: Sa
 
     setSaving(true)
     try {
+      // 1. Update holding (reduce/delete)
       const res  = await fetch('/api/portfolio/stocks', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -45,7 +46,31 @@ export function SahamSellModal({ holding, currentPrice, onClose, onSuccess }: Sa
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
-      const profit = json.realizedProfit
+
+      const profit        = json.realizedProfit as number
+      const totalProceeds = lots * 100 * price   // exact amount from user input
+
+      // 2. Auto-create income transaction → Bank wallet
+      try {
+        await fetch('/api/transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type:                'income',
+            amount:              totalProceeds,
+            wallet:              'bank',
+            description:         `Hasil jual saham ${holding.symbol} (${lots} lot @ Rp ${price.toLocaleString('id-ID')})`,
+            date:                new Date().toISOString().split('T')[0],
+            categoryId:          '',
+            isSystemTransaction: true,
+          }),
+        })
+        toast.success(
+          `💰 ${formatCurrency(totalProceeds)} masuk ke Bank`,
+          { id: 'sell-income', duration: 4000 }
+        )
+      } catch { /* silent — sell itself succeeded */ }
+
       if (json.deleted) {
         toast.success(`✓ ${holding.symbol} terjual semua. P&L: ${profit >= 0 ? '+' : ''}${formatCurrency(profit)}`)
       } else {
@@ -165,6 +190,7 @@ export function EmasSellModal({ holding, currentSellPrice, sourceLabel, onClose,
 
     setSaving(true)
     try {
+      // 1. Update holding (reduce/delete)
       const res  = await fetch('/api/portfolio/gold', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -172,7 +198,31 @@ export function EmasSellModal({ holding, currentSellPrice, sourceLabel, onClose,
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
-      const profit = json.realizedProfit
+
+      const profit        = json.realizedProfit as number
+      const totalProceeds = grams * price   // exact amount from user input
+
+      // 2. Auto-create income transaction → Bank wallet
+      try {
+        await fetch('/api/transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type:                'income',
+            amount:              totalProceeds,
+            wallet:              'bank',
+            description:         `Hasil jual emas ${sourceLabel} (${grams}gr @ Rp ${price.toLocaleString('id-ID')}/gr)`,
+            date:                new Date().toISOString().split('T')[0],
+            categoryId:          '',
+            isSystemTransaction: true,
+          }),
+        })
+        toast.success(
+          `💰 ${formatCurrency(totalProceeds)} masuk ke Bank`,
+          { id: 'sell-income', duration: 4000 }
+        )
+      } catch { /* silent — sell itself succeeded */ }
+
       if (json.deleted) {
         toast.success(`✓ Emas ${sourceLabel} terjual semua. P&L: ${profit >= 0 ? '+' : ''}${formatCurrency(profit)}`)
       } else {

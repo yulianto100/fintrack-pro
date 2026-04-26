@@ -39,31 +39,9 @@ export async function POST(request: Request) {
     const ref         = db.ref(`users/${userId}/portfolio/stocks`)
     const cleanSymbol = symbol.toUpperCase().replace('.JK', '')
 
-    // ── AUTO-MERGE: check if symbol already exists ──
-    const snap = await ref.get()
-    if (snap.exists()) {
-      const all: StockHolding[] = Object.values(snap.val())
-      const existing = all.find((h) => h.symbol === cleanSymbol)
-
-      if (existing) {
-        // Merge with weighted avg price
-        const merged = mergeStock(
-          existing.lots,
-          existing.avgPrice,
-          parseInt(lots),
-          parseFloat(avgPrice)
-        )
-        await ref.child(existing.id).update({
-          lots:      merged.totalLots,
-          avgPrice:  merged.newAvgPrice,
-          updatedAt: new Date().toISOString(),
-        })
-        const updated = { ...existing, lots: merged.totalLots, avgPrice: merged.newAvgPrice }
-        return NextResponse.json({ success: true, data: updated, merged: true }, { status: 200 })
-      }
-    }
-
-    // ── NEW HOLDING ──
+    // ── ALWAYS CREATE NEW ENTRY (no auto-merge) ──
+    // Multiple purchases of same symbol are tracked as separate entries,
+    // grouped in the UI by symbol (like gold holdings)
     const newRef = ref.push()
     const holding: StockHolding = {
       id: newRef.key!, userId,
