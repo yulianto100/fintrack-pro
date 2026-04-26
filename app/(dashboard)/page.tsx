@@ -5,9 +5,10 @@ import { motion } from 'framer-motion'
 import { useSession } from 'next-auth/react'
 import { useApiList } from '@/hooks/useApiData'
 import { useGoldPrices, useStockPrices } from '@/hooks/usePrices'
+import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import { formatCurrency, getCurrentMonth } from '@/lib/utils'
 import type { Transaction, GoldHolding, StockHolding, Deposit, BudgetStatus, SBNHolding, ReksadanaHolding } from '@/types'
-import { TrendingUp, TrendingDown, ArrowRight, Upload } from 'lucide-react'
+import { TrendingUp, TrendingDown, ArrowRight, Upload, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { WalletCard } from '@/components/dashboard/WalletCard'
 import { QuickAddFAB } from '@/components/transactions/QuickAddFAB'
@@ -21,6 +22,7 @@ import { NetWorthChart } from '@/components/charts/NetWorthChart'
 
 export default function DashboardPage() {
   const { data: session } = useSession()
+  const { hidden, toggle, mounted } = useBalanceVisibility()
 
   const { data: transactions } = useApiList<Transaction>('/api/transactions?limit=7&sort=createdAt',  { refreshMs: 8000 })
   const { data: allTx }        = useApiList<Transaction>('/api/transactions?limit=500',               { refreshMs: 15000 })
@@ -31,7 +33,7 @@ export default function DashboardPage() {
   const { data: reksadanaList }= useApiList<ReksadanaHolding>('/api/portfolio/reksadana',             { refreshMs: 60000 })
   const { data: budgets }      = useApiList<BudgetStatus>('/api/budget',                              { refreshMs: 30000 })
 
-  const stockSymbols = useMemo(() => (stocks || []).map((s) => s.symbol), [stocks])
+  const stockSymbols            = useMemo(() => (stocks || []).map((s) => s.symbol), [stocks])
   const { prices: stockPrices } = useStockPrices(stockSymbols)
   const { prices: goldPrices }  = useGoldPrices()
 
@@ -45,8 +47,8 @@ export default function DashboardPage() {
   const walletBalances = useMemo(() => {
     const b = { cash: 0, bank: 0, ewallet: 0 }
     allTx.forEach((t) => {
-      if      (t.type === 'income')   b[t.wallet as keyof typeof b] += t.amount
-      else if (t.type === 'expense')  b[t.wallet as keyof typeof b] -= t.amount
+      if      (t.type === 'income')  b[t.wallet as keyof typeof b] += t.amount
+      else if (t.type === 'expense') b[t.wallet as keyof typeof b] -= t.amount
       else {
         b[t.wallet as keyof typeof b] -= t.amount
         if (t.toWallet) b[t.toWallet as keyof typeof b] += t.amount
@@ -66,10 +68,9 @@ export default function DashboardPage() {
     [stocks, stockPrices]
   )
 
-  const walletTotal  = walletBalances.cash + walletBalances.bank + walletBalances.ewallet
-  const totalWealth  = walletTotal + goldValue + depositValue + stockValue
+  const walletTotal = walletBalances.cash + walletBalances.bank + walletBalances.ewallet
+  const totalWealth = walletTotal + goldValue + depositValue + stockValue
 
-  // Save net worth snapshot whenever total wealth is computed and non-zero
   useEffect(() => {
     if (totalWealth > 0 && allTx.length > 0) {
       fetch('/api/net-worth-history', {
@@ -84,8 +85,13 @@ export default function DashboardPage() {
   const hour      = new Date().getHours()
   const greeting  = hour < 12 ? 'Selamat pagi' : hour < 17 ? 'Selamat siang' : 'Selamat malam'
 
+  // Masked value displayed when hidden
+  const maskedMain   = '••••••••'
+  const maskedAmount = '••••••'
+
   return (
     <div className="px-4 py-5 space-y-5 max-w-2xl mx-auto">
+
       {/* Greeting */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center justify-between">
@@ -95,7 +101,6 @@ export default function DashboardPage() {
               {firstName} 👋
             </h1>
           </div>
-          {/* Import shortcut */}
           <Link href="/import"
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium"
             style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
@@ -104,23 +109,55 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
-      {/* Streak / reminder banner */}
+      {/* Streak banner */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.04 }}>
         <StreakBanner />
       </motion.div>
 
-      {/* Hero card */}
+      {/* ── HERO CARD ────────────────────────────────────────────── */}
       <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.08 }} className="glass-hero p-6 relative overflow-hidden">
         <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl pointer-events-none"
           style={{ background: 'rgba(52,211,110,0.07)' }} />
-        <p className="text-xs font-medium mb-1" style={{ color: 'rgba(52,211,110,0.75)' }}>Total Kekayaan Bersih</p>
-        <p className="text-3xl font-display font-bold mb-5" style={{ color: 'var(--text-primary)' }}>
-          {formatCurrency(totalWealth)}
+
+        {/* Label + eye toggle */}
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-xs font-medium" style={{ color: 'rgba(52,211,110,0.75)' }}>Total Kekayaan Bersih</p>
+          {mounted && (
+            <button
+              onClick={toggle}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all active:scale-90"
+              style={{
+                background: hidden ? 'rgba(52,211,110,0.12)' : 'rgba(255,255,255,0.07)',
+                border: `1px solid ${hidden ? 'rgba(52,211,110,0.25)' : 'rgba(255,255,255,0.1)'}`,
+              }}
+            >
+              {hidden
+                ? <EyeOff size={13} color="rgba(52,211,110,0.8)" />
+                : <Eye    size={13} color="rgba(255,255,255,0.5)" />
+              }
+              <span className="text-[10px] font-medium select-none"
+                style={{ color: hidden ? 'rgba(52,211,110,0.8)' : 'rgba(255,255,255,0.4)' }}>
+                {hidden ? 'Tampilkan' : 'Sembunyikan'}
+              </span>
+            </button>
+          )}
+        </div>
+
+        {/* Main balance */}
+        <p className="text-3xl font-display font-bold mb-5"
+          style={{
+            color:          hidden ? 'var(--text-muted)' : 'var(--text-primary)',
+            letterSpacing:  hidden ? 3 : 'normal',
+            transition:     'color 0.2s',
+          }}>
+          {hidden ? maskedMain : formatCurrency(totalWealth)}
         </p>
+
+        {/* Income / expense */}
         <div className="flex items-center gap-6">
           {[
-            { label: 'Pemasukan',   value: monthStats.income,  color: 'var(--accent)', Icon: TrendingUp },
+            { label: 'Pemasukan',   value: monthStats.income,  color: 'var(--accent)', Icon: TrendingUp  },
             { label: 'Pengeluaran', value: monthStats.expense, color: 'var(--red)',    Icon: TrendingDown },
           ].map(({ label, value, color, Icon }) => (
             <div key={label} className="flex items-center gap-2">
@@ -130,20 +167,22 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-[10px] leading-none mb-0.5" style={{ color: 'var(--text-muted)' }}>{label}</p>
-                <p className="text-sm font-bold font-mono" style={{ color }}>{formatCurrency(value)}</p>
+                <p className="text-sm font-bold font-mono" style={{ color: hidden ? 'var(--text-muted)' : color }}>
+                  {hidden ? maskedAmount : formatCurrency(value)}
+                </p>
               </div>
             </div>
           ))}
         </div>
       </motion.div>
 
-      {/* Wallets */}
+      {/* ── DOMPET ───────────────────────────────────────────────── */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
         <p className="text-xs font-semibold mb-2 px-1" style={{ color: 'var(--text-muted)' }}>DOMPET</p>
         <div className="grid grid-cols-3 gap-3">
-          <WalletCard type="cash"    balance={walletBalances.cash}    />
-          <WalletCard type="bank"    balance={walletBalances.bank}    />
-          <WalletCard type="ewallet" balance={walletBalances.ewallet} />
+          <WalletCard type="cash"    balance={walletBalances.cash}    hidden={hidden} />
+          <WalletCard type="bank"    balance={walletBalances.bank}    hidden={hidden} />
+          <WalletCard type="ewallet" balance={walletBalances.ewallet} hidden={hidden} />
         </div>
       </motion.div>
 
@@ -181,6 +220,7 @@ export default function DashboardPage() {
           sbnCount={sbnList.filter((h) => h.status === 'active').length}
           reksadanaValue={reksadanaList.reduce((s, h) => s + h.unit * h.currentNAV, 0)}
           reksadanaCount={reksadanaList.length}
+          hidden={hidden}
         />
       </motion.div>
 
@@ -214,7 +254,7 @@ export default function DashboardPage() {
             Lihat semua <ArrowRight size={12} />
           </Link>
         </div>
-        <RecentTransactions transactions={transactions.slice(0, 5)} />
+        <RecentTransactions transactions={transactions.slice(0, 5)} hidden={hidden} />
       </motion.div>
 
       <QuickAddFAB />

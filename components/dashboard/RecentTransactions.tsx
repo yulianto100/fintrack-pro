@@ -5,9 +5,10 @@ import type { Transaction } from '@/types'
 
 interface Props {
   transactions: Transaction[]
+  hidden?: boolean
 }
 
-export function RecentTransactions({ transactions }: Props) {
+export function RecentTransactions({ transactions, hidden = false }: Props) {
   if (transactions.length === 0) {
     return (
       <div className="glass-card p-6 text-center">
@@ -29,11 +30,8 @@ export function RecentTransactions({ transactions }: Props) {
             className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
             style={{
               background:
-                t.type === 'income'
-                  ? 'var(--accent-dim)'
-                  : t.type === 'expense'
-                  ? 'var(--red-dim)'
-                  : 'var(--blue-dim)',
+                t.type === 'income'  ? 'var(--accent-dim)' :
+                t.type === 'expense' ? 'var(--red-dim)'    : 'var(--blue-dim)',
             }}
           >
             {t.categoryIcon || (t.type === 'income' ? '💰' : t.type === 'expense' ? '💸' : '🔄')}
@@ -49,16 +47,16 @@ export function RecentTransactions({ transactions }: Props) {
           <p
             className="text-sm font-bold font-mono flex-shrink-0"
             style={{
-              color:
-                t.type === 'income'
-                  ? 'var(--accent)'
-                  : t.type === 'expense'
-                  ? 'var(--red)'
-                  : 'var(--blue)',
+              color: hidden
+                ? 'var(--text-muted)'
+                : t.type === 'income'  ? 'var(--accent)'
+                : t.type === 'expense' ? 'var(--red)' : 'var(--blue)',
             }}
           >
-            {t.type === 'income' ? '+' : t.type === 'expense' ? '-' : '⇄ '}
-            {formatCurrency(t.amount)}
+            {hidden
+              ? '••••••'
+              : `${t.type === 'income' ? '+' : t.type === 'expense' ? '-' : '⇄ '}${formatCurrency(t.amount)}`
+            }
           </p>
         </div>
       ))}

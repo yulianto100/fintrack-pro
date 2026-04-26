@@ -16,6 +16,7 @@ interface Props {
   sbnCount:        number
   reksadanaValue:  number
   reksadanaCount:  number
+  hidden?:         boolean
 }
 
 const ITEMS = [
@@ -29,16 +30,12 @@ const ITEMS = [
 export function PortfolioSummaryCard({
   goldValue, goldGrams, stockCount, stockValue,
   depositValue, depositCount, sbnValue, sbnCount,
-  reksadanaValue, reksadanaCount,
+  reksadanaValue, reksadanaCount, hidden = false,
 }: Props) {
   const values: Record<string, number> = {
-    gold:      goldValue,
-    stock:     stockValue,
-    deposit:   depositValue,
-    sbn:       sbnValue,
-    reksadana: reksadanaValue,
+    gold: goldValue, stock: stockValue, deposit: depositValue,
+    sbn: sbnValue, reksadana: reksadanaValue,
   }
-
   const subs: Record<string, string> = {
     gold:      `${formatNumber(goldGrams, 2)} gram`,
     stock:     `${stockCount} emiten`,
@@ -47,70 +44,54 @@ export function PortfolioSummaryCard({
     reksadana: `${reksadanaCount} produk`,
   }
 
-  const total = Object.values(values).reduce((s, v) => s + v, 0)
+  const total       = Object.values(values).reduce((s, v) => s + v, 0)
   const activeItems = ITEMS.filter((item) => values[item.key] > 0)
-
-  const pieData = activeItems.map((item) => ({
-    name:  item.label,
-    value: (values[item.key] / total) * 100,
-    color: item.color,
+  const pieData     = activeItems.map((item) => ({
+    name: item.label, value: (values[item.key] / total) * 100, color: item.color,
   }))
+
+  const HiddenVal = ({ color }: { color: string }) => (
+    <span className="text-xs font-bold font-mono" style={{ color: 'var(--text-muted)' }}>••••••</span>
+  )
 
   return (
     <Link href="/portfolio">
-      <div
-        className="glass-card p-4 cursor-pointer active:scale-[0.99] transition-transform"
-        style={{ borderColor: 'rgba(52,211,110,0.15)' }}
-      >
+      <div className="glass-card p-4 cursor-pointer active:scale-[0.99] transition-transform"
+        style={{ borderColor: 'rgba(52,211,110,0.15)' }}>
+
         {/* Chart + total row */}
         <div className="flex items-center gap-4">
           <div className="flex-shrink-0" style={{ width: 100, height: 100 }}>
             {total > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={28}
-                    outerRadius={46}
-                    dataKey="value"
-                    strokeWidth={0}
-                  >
+                  <Pie data={pieData} cx="50%" cy="50%"
+                    innerRadius={28} outerRadius={46} dataKey="value" strokeWidth={0}>
                     {pieData.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} opacity={0.9} />
+                      <Cell key={entry.name} fill={entry.color} opacity={hidden ? 0.35 : 0.9} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    formatter={(v: number) => [`${v.toFixed(1)}%`, '']}
-                    contentStyle={{
-                      background: 'rgba(10,30,20,0.95)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 12,
-                      fontSize: 11,
-                    }}
-                    itemStyle={{ color: '#fff' }}
-                    labelStyle={{ color: '#aaa' }}
-                    cursor={false}
-                  />
+                  {!hidden && (
+                    <Tooltip
+                      formatter={(v: number) => [`${v.toFixed(1)}%`, '']}
+                      contentStyle={{ background: 'rgba(10,30,20,0.95)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 11 }}
+                      itemStyle={{ color: '#fff' }} labelStyle={{ color: '#aaa' }} cursor={false}
+                    />
+                  )}
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div
-                className="w-full h-full flex items-center justify-center rounded-full"
-                style={{ border: '2px dashed var(--border)' }}
-              >
+              <div className="w-full h-full flex items-center justify-center rounded-full"
+                style={{ border: '2px dashed var(--border)' }}>
                 <span className="text-2xl">📊</span>
               </div>
             )}
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>
-              Total Portofolio Investasi
-            </p>
+            <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>Total Portofolio Investasi</p>
             <p className="text-xl font-display font-bold mb-2.5" style={{ color: 'var(--text-primary)' }}>
-              {formatCurrency(total)}
+              {hidden ? <span style={{ color: 'var(--text-muted)', letterSpacing: 2 }}>••••••••</span> : formatCurrency(total)}
             </p>
             <div className="flex flex-wrap gap-x-3 gap-y-1">
               {activeItems.map((item) => {
@@ -119,7 +100,7 @@ export function PortfolioSummaryCard({
                   <div key={item.label} className="flex items-center gap-1">
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: item.color }} />
                     <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                      {item.label} {pct}%
+                      {item.label} {hidden ? '–' : `${pct}%`}
                     </span>
                   </div>
                 )
@@ -133,7 +114,7 @@ export function PortfolioSummaryCard({
         {/* Divider */}
         <div className="h-px mt-4 mb-3" style={{ background: 'var(--border)' }} />
 
-        {/* Per-asset breakdown grid */}
+        {/* Per-asset breakdown */}
         {activeItems.length > 0 ? (
           <>
             <div className="grid grid-cols-3 gap-2">
@@ -141,16 +122,13 @@ export function PortfolioSummaryCard({
                 <div key={item.label} className="flex flex-col gap-0.5">
                   <div className="flex items-center gap-1">
                     <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
-                    <p className="text-[10px] font-medium truncate" style={{ color: 'var(--text-muted)' }}>
-                      {item.label}
-                    </p>
+                    <p className="text-[10px] font-medium truncate" style={{ color: 'var(--text-muted)' }}>{item.label}</p>
                   </div>
-                  <p className="text-xs font-bold font-mono" style={{ color: item.color }}>
-                    {formatCurrency(values[item.key])}
-                  </p>
-                  <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                    {subs[item.key]}
-                  </p>
+                  {hidden
+                    ? <HiddenVal color={item.color} />
+                    : <p className="text-xs font-bold font-mono" style={{ color: item.color }}>{formatCurrency(values[item.key])}</p>
+                  }
+                  <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{subs[item.key]}</p>
                 </div>
               ))}
             </div>
@@ -160,16 +138,13 @@ export function PortfolioSummaryCard({
                   <div key={item.label} className="flex flex-col gap-0.5">
                     <div className="flex items-center gap-1">
                       <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
-                      <p className="text-[10px] font-medium truncate" style={{ color: 'var(--text-muted)' }}>
-                        {item.label}
-                      </p>
+                      <p className="text-[10px] font-medium truncate" style={{ color: 'var(--text-muted)' }}>{item.label}</p>
                     </div>
-                    <p className="text-xs font-bold font-mono" style={{ color: item.color }}>
-                      {formatCurrency(values[item.key])}
-                    </p>
-                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                      {subs[item.key]}
-                    </p>
+                    {hidden
+                      ? <HiddenVal color={item.color} />
+                      : <p className="text-xs font-bold font-mono" style={{ color: item.color }}>{formatCurrency(values[item.key])}</p>
+                    }
+                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{subs[item.key]}</p>
                   </div>
                 ))}
               </div>
