@@ -97,7 +97,7 @@ export default function LoginPage() {
     return (
       <div className="min-h-dvh flex items-center justify-center">
         <div className="w-10 h-10 border-2 rounded-full animate-spin"
-          style={{ borderColor: 'rgba(52,211,110,.2)', borderTopColor: 'var(--accent)' }} />
+          style={{ borderColor: 'rgba(34,197,94,0.18)', borderTopColor: 'var(--accent)' }} />
       </div>
     )
   }
@@ -105,7 +105,7 @@ export default function LoginPage() {
   // Shared input style
   const IS: React.CSSProperties = {
     background: 'rgba(22,60,35,0.80)',
-    border: '1px solid rgba(52,211,110,0.25)',
+    border: '1px solid rgba(34,197,94,0.18)',
     borderRadius: 10,
     color: 'var(--text-primary)',
     fontFamily: 'var(--font-space)',
@@ -121,9 +121,9 @@ export default function LoginPage() {
       {/* BG orbs */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute w-[500px] h-[500px] rounded-full blur-[80px] opacity-20"
-          style={{ background: 'radial-gradient(circle,#34d36e,transparent)', top: '-10%', left: '-5%' }} />
+          style={{ background: 'radial-gradient(circle,#22C55E,transparent)', top: '-10%', left: '-5%' }} />
         <div className="absolute w-80 h-80 rounded-full blur-3xl opacity-10"
-          style={{ background: 'radial-gradient(circle,#22a855,transparent)', bottom: '-5%', right: '0%' }} />
+          style={{ background: 'radial-gradient(circle,#16A34A,transparent)', bottom: '-5%', right: '0%' }} />
       </div>
 
       <motion.div
@@ -136,9 +136,9 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 text-3xl"
             style={{
-              background: 'linear-gradient(135deg,rgba(52,211,110,.2),rgba(31,168,85,.1))',
-              border: '1px solid rgba(52,211,110,.3)',
-              boxShadow: '0 0 32px rgba(52,211,110,.15)',
+              background: 'linear-gradient(135deg,rgba(34,197,94,0.18),rgba(31,168,85,.1))',
+              border: '1px solid rgba(34,197,94,0.22)',
+              boxShadow: '0 0 32px rgba(34,197,94,0.12)',
             }}>💰</div>
           <h1 className="text-2xl font-display font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
             FinTrack Pro
@@ -157,7 +157,7 @@ export default function LoginPage() {
                 style={{
                   background: tab === t ? 'var(--accent-dim)' : 'transparent',
                   color:      tab === t ? 'var(--accent)'     : 'var(--text-muted)',
-                  border:    `1px solid ${tab === t ? 'rgba(52,211,110,.3)' : 'transparent'}`,
+                  border:    `1px solid ${tab === t ? 'rgba(34,197,94,0.22)' : 'transparent'}`,
                 }}>
                 {t === 'login' ? 'Masuk' : 'Daftar'}
               </button>
@@ -171,8 +171,8 @@ export default function LoginPage() {
                 initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 className="mb-4 px-3 py-2.5 rounded-xl text-sm"
                 style={{
-                  background: error ? 'rgba(252,129,129,.1)' : 'rgba(52,211,110,.1)',
-                  border:    `1px solid ${error ? 'rgba(252,129,129,.25)' : 'rgba(52,211,110,.25)'}`,
+                  background: error ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
+                  border:    `1px solid ${error ? 'rgba(239,68,68,0.20)' : 'rgba(34,197,94,0.18)'}`,
                   color:      error ? 'var(--red)'           : 'var(--accent)',
                 }}>
                 {error || success}

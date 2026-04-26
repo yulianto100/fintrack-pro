@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       id: ref.key!, userId, title,
       targetAmount: Number(targetAmount),
       currentAmount: 0,
-      icon: icon || '🎯', color: color || '#34d36e',
+      icon: icon || '🎯', color: color || '#22C55E',
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     }
     await ref.set(goal)

@@ -23,9 +23,9 @@ function toKey(title: string): string {
 }
 
 const STYLE: Record<string, { bg: string; border: string; text: string }> = {
-  warning: { bg: 'rgba(252,129,129,0.06)', border: 'rgba(252,129,129,0.20)', text: '#fc8181' },
+  warning: { bg: 'rgba(252,129,129,0.06)', border: 'rgba(252,129,129,0.20)', text: '#F87171' },
   info:    { bg: 'rgba(99,179,237,0.06)',  border: 'rgba(99,179,237,0.20)',  text: '#63b3ed' },
-  success: { bg: 'rgba(52,211,110,0.06)',  border: 'rgba(52,211,110,0.20)', text: '#34d36e' },
+  success: { bg: 'rgba(34,197,94,0.06)',  border: 'rgba(34,197,94,0.16)', text: '#22C55E' },
 }
 
 const STORAGE_KEY = 'fintrack_dismissed_insights'
@@ -70,7 +70,7 @@ export function SmartInsights(props: Props) {
         {hiddenCount > 0 && hiddenCount === allInsights.length && (
           <button onClick={restoreAll}
             className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-            style={{ color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid rgba(52,211,110,0.2)' }}>
+            style={{ color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid rgba(34,197,94,0.16)' }}>
             Tampilkan ({hiddenCount})
           </button>
         )}

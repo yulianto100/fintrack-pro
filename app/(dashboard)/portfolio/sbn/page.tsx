@@ -159,7 +159,7 @@ export default function SBNPage() {
                 </button>
               </div>
 
-              <div className="flex flex-col gap-0 rounded-xl overflow-hidden" style={{ background: 'var(--surface-3)' }}>
+              <div className="flex flex-col gap-0 rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.90)' }}>
                 {[
                   { label: 'Nominal',     value: formatCurrency(h.nominal),    color: '#d6aaff' },
                   { label: 'Bunga Kotor', value: formatCurrency(h.grossReturn), color: 'var(--text-secondary)' },
@@ -223,14 +223,14 @@ export default function SBNPage() {
             <motion.div initial={{ y:'100%' }} animate={{ y:0 }} exit={{ y:'100%' }}
               transition={{ type:'spring', damping:30, stiffness:350 }}
               className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
-              style={{ background:'var(--surface-1)', border:'1px solid var(--border)', maxHeight:'92dvh', overflowY:'auto' }}
+              style={{ background:'rgba(255,255,255,0.80)', border:'1px solid var(--border)', maxHeight:'92dvh', overflowY:'auto' }}
               onClick={(e) => e.stopPropagation()}>
               <div className="drag-indicator mt-3 sm:hidden"/>
               <div className="flex items-center justify-between px-5 py-4">
                 <h2 className="font-display font-bold text-lg" style={{ color:'var(--text-primary)' }}>Tambah SBN</h2>
                 <button onClick={() => setShowAdd(false)}
                   className="w-9 h-9 rounded-full flex items-center justify-center"
-                  style={{ background:'var(--surface-3)', color:'var(--text-secondary)' }}>
+                  style={{ background:'rgba(255,255,255,0.90)', color:'var(--text-secondary)' }}>
                   <X size={18}/>
                 </button>
               </div>
@@ -244,7 +244,7 @@ export default function SBNPage() {
                         onClick={() => setForm({ ...form, type: t.value, taxRate: String(t.taxRate) })}
                         className="py-2.5 rounded-xl text-center transition-all"
                         style={{
-                          background: form.type === t.value ? 'rgba(168,85,247,0.14)' : 'var(--surface-3)',
+                          background: form.type === t.value ? 'rgba(168,85,247,0.14)' : 'rgba(255,255,255,0.88)',
                           border: `1px solid ${form.type === t.value ? 'rgba(168,85,247,0.4)' : 'var(--border)'}`,
                         }}>
                         <p className="text-xs font-bold" style={{ color: form.type === t.value ? '#d6aaff' : 'var(--text-muted)' }}>

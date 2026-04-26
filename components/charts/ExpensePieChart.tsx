@@ -4,7 +4,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import type { Transaction } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 
-const COLORS = ['#34d36e','#63b3ed','#f6cc60','#fc8181','#d6aaff','#4fd1c5','#f6ad55']
+const COLORS = ['#22C55E','#3B82F6','#F59E0B','#EF4444','#A855F7','#14B8A6','#F97316']
 
 interface Props { transactions: Transaction[]; month: string }
 
@@ -32,7 +32,7 @@ export function ExpensePieChart({ transactions, month }: Props) {
                   {data.map((_,i) => <Cell key={i} fill={COLORS[i%COLORS.length]} opacity={0.9}/>)}
                 </Pie>
                 <Tooltip formatter={(v:number)=>[formatCurrency(v),'']}
-                  contentStyle={{ background:'rgba(18,48,30,0.97)',border:'1px solid rgba(52,211,110,0.25)',borderRadius:8,fontSize:11 }} />
+                  contentStyle={{ background:'rgba(255,255,255,0.97)',border:'1px solid rgba(34,197,94,0.18)',borderRadius:8,fontSize:11 }} />
               </PieChart>
             </ResponsiveContainer>
           </div>

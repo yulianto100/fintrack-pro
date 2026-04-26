@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const ref    = db.ref(`users/${userId}/categories`)
     const newRef = ref.push()
     const cat: Category = {
-      id: newRef.key!, name, icon: icon || '📋', type, color: color || '#34d36e',
+      id: newRef.key!, name, icon: icon || '📋', type, color: color || '#22C55E',
       userId, createdAt: new Date().toISOString(),
     }
     await newRef.set(cat)

@@ -51,7 +51,7 @@ export function QuickAddFAB() {
                     <button
                       onClick={() => handleTx(opt.type)}
                       className="flex items-center gap-3 pr-4 pl-3 py-2.5 rounded-2xl shadow-lg whitespace-nowrap"
-                      style={{ background: 'var(--surface-3)', border: `1px solid ${opt.color}35`, color: 'var(--text-primary)' }}
+                      style={{ background: 'rgba(255,255,255,0.90)', border: `1px solid ${opt.color}35`, color: 'var(--text-primary)' }}
                     >
                       <span className="text-lg">{opt.icon}</span>
                       <span className="text-sm font-medium">{opt.label}</span>
@@ -60,7 +60,7 @@ export function QuickAddFAB() {
                     <Link href={opt.href} onClick={() => setMenuOpen(false)}>
                       <div
                         className="flex items-center gap-3 pr-4 pl-3 py-2.5 rounded-2xl shadow-lg whitespace-nowrap cursor-pointer"
-                        style={{ background: 'var(--surface-3)', border: `1px solid ${opt.color}35`, color: 'var(--text-primary)' }}
+                        style={{ background: 'rgba(255,255,255,0.90)', border: `1px solid ${opt.color}35`, color: 'var(--text-primary)' }}
                       >
                         <span className="text-lg">{opt.icon}</span>
                         <span className="text-sm font-medium">{opt.label}</span>
@@ -80,11 +80,11 @@ export function QuickAddFAB() {
           className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl"
           style={{
             background: menuOpen
-              ? 'linear-gradient(135deg,#fc8181,#e53e3e)'
-              : 'linear-gradient(135deg,#34d36e,#1fa855)',
+              ? 'linear-gradient(135deg,#F87171,#e53e3e)'
+              : 'linear-gradient(135deg,#22C55E,#16A34A)',
             boxShadow: menuOpen
               ? '0 8px 24px rgba(252,129,129,0.40)'
-              : '0 8px 24px rgba(52,211,110,0.40)',
+              : '0 8px 24px rgba(34,197,94,0.25)',
           }}
         >
           <motion.div animate={{ rotate: menuOpen ? 45 : 0 }} transition={{ duration: 0.2 }}>

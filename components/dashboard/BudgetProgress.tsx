@@ -23,7 +23,7 @@ export function BudgetProgress({ budgets }: { budgets: BudgetStatus[] }) {
           const over    = b.percent >= 100
           const warning = b.percent >= 80
           const color   = over ? 'var(--red)' : warning ? '#f97316' : 'var(--accent)'
-          const bg      = over ? 'rgba(239,68,68,0.12)' : warning ? 'rgba(249,115,22,0.12)' : 'rgba(52,211,110,0.12)'
+          const bg      = over ? 'rgba(239,68,68,0.12)' : warning ? 'rgba(249,115,22,0.12)' : 'rgba(34,197,94,0.10)'
 
           return (
             <div key={b.id}>
@@ -46,7 +46,7 @@ export function BudgetProgress({ budgets }: { budgets: BudgetStatus[] }) {
                   </span>
                 </div>
               </div>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--surface-3)' }}>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.90)' }}>
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${Math.min(b.percent, 100)}%` }}

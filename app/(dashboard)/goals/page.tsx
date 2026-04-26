@@ -9,7 +9,7 @@ import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 const GOAL_ICONS = ['🎯','🏠','🚗','✈️','📱','💍','🎓','💪','🌴','👶','💼','🏋️']
-const GOAL_COLORS = ['#34d36e','#63b3ed','#f6cc60','#fc8181','#d6aaff','#4fd1c5','#f6ad55']
+const GOAL_COLORS = ['#22C55E','#63b3ed','#f6cc60','#F87171','#d6aaff','#4fd1c5','#f6ad55']
 
 export default function GoalsPage() {
   const { data: goals, refetch } = useApiList<Goal>('/api/goals', { refreshMs: 30000 })
@@ -19,7 +19,7 @@ export default function GoalsPage() {
   const [topUpAmount, setTopUpAmount] = useState('')
   const [form, setForm] = useState({
     title:'', targetAmount:'',
-    icon:'🎯', color:'#34d36e',
+    icon:'🎯', color:'#22C55E',
   })
 
   const handleAdd = async () => {
@@ -33,7 +33,7 @@ export default function GoalsPage() {
       if (!json.success) throw new Error(json.error)
       toast.success('Goal ditambahkan! 🎯')
       setShowAdd(false); refetch()
-      setForm({ title:'', targetAmount:'', icon:'🎯', color:'#34d36e' })
+      setForm({ title:'', targetAmount:'', icon:'🎯', color:'#22C55E' })
     } catch { toast.error('Gagal menambahkan goal') }
     finally { setSaving(false) }
   }
@@ -90,7 +90,7 @@ export default function GoalsPage() {
           </div>
           <div className="progress-bar mb-2">
             <div className="progress-bar-fill transition-all duration-700"
-              style={{ width:`${totalTarget>0?(totalCurrent/totalTarget*100):0}%`, background:'linear-gradient(90deg,#34d36e,#22a855)' }}/>
+              style={{ width:`${totalTarget>0?(totalCurrent/totalTarget*100):0}%`, background:'linear-gradient(90deg,#22C55E,#16A34A)' }}/>
           </div>
           <div className="flex items-center justify-between">
             <p className="text-xs" style={{ color:'var(--text-muted)' }}>Terkumpul: {formatCurrency(totalCurrent)}</p>
@@ -132,13 +132,13 @@ export default function GoalsPage() {
             <motion.div initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}}
               transition={{type:'spring',damping:30,stiffness:350}}
               className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
-              style={{background:'var(--surface-1)',border:'1px solid var(--border)',maxHeight:'90dvh',overflowY:'auto'}}
+              style={{background:'rgba(255,255,255,0.80)',border:'1px solid var(--border)',maxHeight:'90dvh',overflowY:'auto'}}
               onClick={e=>e.stopPropagation()}>
               <div className="drag-indicator mt-3 sm:hidden"/>
               <div className="flex items-center justify-between px-5 py-4">
                 <h2 className="font-display font-bold text-lg" style={{color:'var(--text-primary)'}}>Buat Financial Goal</h2>
                 <button onClick={()=>setShowAdd(false)} className="w-9 h-9 rounded-full flex items-center justify-center"
-                  style={{background:'var(--surface-3)',color:'var(--text-secondary)'}}>
+                  style={{background:'rgba(255,255,255,0.90)',color:'var(--text-secondary)'}}>
                   <X size={18}/>
                 </button>
               </div>
@@ -151,7 +151,7 @@ export default function GoalsPage() {
                       <button key={ic} onClick={()=>setForm({...form,icon:ic})}
                         className="w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all"
                         style={{
-                          background: form.icon===ic ? `${form.color}25` : 'var(--surface-3)',
+                          background: form.icon===ic ? `${form.color}25` : 'rgba(255,255,255,0.88)',
                           border:`1px solid ${form.icon===ic ? form.color+'55' : 'var(--border)'}`,
                         }}>{ic}</button>
                     ))}
@@ -216,7 +216,7 @@ export default function GoalsPage() {
             <motion.div initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}}
               transition={{type:'spring',damping:30,stiffness:350}}
               className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl p-6"
-              style={{background:'var(--surface-1)',border:'1px solid var(--border)'}}
+              style={{background:'rgba(255,255,255,0.80)',border:'1px solid var(--border)'}}
               onClick={e=>e.stopPropagation()}>
               <h2 className="font-display font-bold text-lg mb-1" style={{color:'var(--text-primary)'}}>
                 {showTopUp.icon} Top Up Progress

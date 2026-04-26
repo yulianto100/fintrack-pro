@@ -103,7 +103,7 @@ export default function DashboardPage() {
           </div>
           <Link href="/import"
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium"
-            style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+            style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
             <Upload size={13}/> Import CSV
           </Link>
         </div>
@@ -118,26 +118,26 @@ export default function DashboardPage() {
       <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.08 }} className="glass-hero p-6 relative overflow-hidden">
         <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl pointer-events-none"
-          style={{ background: 'rgba(52,211,110,0.07)' }} />
+          style={{ background: 'rgba(34,197,94,0.07)' }} />
 
         {/* Label + eye toggle */}
         <div className="flex items-center justify-between mb-1">
-          <p className="text-xs font-medium" style={{ color: 'rgba(52,211,110,0.75)' }}>Total Kekayaan Bersih</p>
+          <p className="text-xs font-medium" style={{ color: 'rgba(34,197,94,0.80)' }}>Total Kekayaan Bersih</p>
           {mounted && (
             <button
               onClick={toggle}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all active:scale-90"
               style={{
-                background: hidden ? 'rgba(52,211,110,0.12)' : 'rgba(255,255,255,0.07)',
-                border: `1px solid ${hidden ? 'rgba(52,211,110,0.25)' : 'rgba(255,255,255,0.1)'}`,
+                background: hidden ? 'rgba(34,197,94,0.10)' : 'rgba(255,255,255,0.07)',
+                border: `1px solid ${hidden ? 'rgba(34,197,94,0.18)' : 'rgba(255,255,255,0.1)'}`,
               }}
             >
               {hidden
-                ? <EyeOff size={13} color="rgba(52,211,110,0.8)" />
+                ? <EyeOff size={13} color="rgba(34,197,94,0.80)" />
                 : <Eye    size={13} color="rgba(255,255,255,0.5)" />
               }
               <span className="text-[10px] font-medium select-none"
-                style={{ color: hidden ? 'rgba(52,211,110,0.8)' : 'rgba(255,255,255,0.4)' }}>
+                style={{ color: hidden ? 'rgba(34,197,94,0.80)' : 'rgba(255,255,255,0.4)' }}>
                 {hidden ? 'Tampilkan' : 'Sembunyikan'}
               </span>
             </button>

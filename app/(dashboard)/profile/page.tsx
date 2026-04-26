@@ -114,7 +114,7 @@ export default function EditProfilePage() {
 
   const inputStyle: React.CSSProperties = {
     background: 'rgba(22,60,35,0.80)',
-    border: '1px solid rgba(52,211,110,0.22)',
+    border: '1px solid rgba(34,197,94,0.18)',
     borderRadius: 10,
     color: 'var(--text-primary)',
     fontFamily: 'var(--font-space)',
@@ -135,7 +135,7 @@ export default function EditProfilePage() {
       <div className="flex items-center gap-3">
         <button onClick={() => router.back()}
           className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)' }}>
+          style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)' }}>
           <ArrowLeft size={18} />
         </button>
         <h1 className="text-xl font-display font-bold" style={{ color: 'var(--text-primary)' }}>
@@ -171,7 +171,7 @@ export default function EditProfilePage() {
             )}
             {hasPassword && (
               <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
-                style={{ background: 'rgba(52,211,110,0.12)', color: 'var(--accent)', border: '1px solid rgba(52,211,110,0.2)' }}>
+                style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)', border: '1px solid rgba(34,197,94,0.16)' }}>
                 <KeyRound size={10} /> Password Set
               </span>
             )}

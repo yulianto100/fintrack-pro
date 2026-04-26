@@ -57,16 +57,16 @@ export default function CompleteProfilePage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-dvh flex items-center justify-center" style={{ background: '#061510' }}>
+      <div className="min-h-dvh flex items-center justify-center" style={{ background: 'linear-gradient(170deg, #E8F5E9 0%, #F1F8F4 100%)' }}>
         <div className="w-10 h-10 border-2 rounded-full animate-spin"
-          style={{ borderColor: 'rgba(52,211,110,0.2)', borderTopColor: 'var(--accent)' }} />
+          style={{ borderColor: 'rgba(34,197,94,0.16)', borderTopColor: 'var(--accent)' }} />
       </div>
     )
   }
 
   const IS: React.CSSProperties = {
     background: 'rgba(22,60,35,0.80)',
-    border: '1px solid rgba(52,211,110,0.22)',
+    border: '1px solid rgba(34,197,94,0.18)',
     borderRadius: 10, color: 'var(--text-primary)',
     fontFamily: 'var(--font-space)', fontSize: '0.9rem',
     padding: '0.75rem 1rem 0.75rem 2.8rem',
@@ -77,7 +77,7 @@ export default function CompleteProfilePage() {
     <div className="min-h-dvh flex items-center justify-center p-5 relative overflow-hidden">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute w-96 h-96 rounded-full blur-3xl opacity-20"
-          style={{ background: 'radial-gradient(circle,#34d36e,transparent)', top:'-5%', left:'-5%' }} />
+          style={{ background: 'radial-gradient(circle,#22C55E,transparent)', top:'-5%', left:'-5%' }} />
       </div>
 
       <motion.div initial={{ opacity:0, y:24 }} animate={{ opacity:1, y:0 }}
@@ -85,7 +85,7 @@ export default function CompleteProfilePage() {
 
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 text-3xl"
-            style={{ background:'linear-gradient(135deg,rgba(52,211,110,.2),rgba(31,168,85,.1))', border:'1px solid rgba(52,211,110,.3)' }}>
+            style={{ background:'linear-gradient(135deg,rgba(34,197,94,0.16),rgba(31,168,85,.1))', border:'1px solid rgba(34,197,94,0.22)' }}>
             ✨
           </div>
           <h1 className="text-2xl font-display font-bold mb-1" style={{ color:'var(--text-primary)' }}>
@@ -99,7 +99,7 @@ export default function CompleteProfilePage() {
         <div className="glass-card p-6">
           {/* Google user info */}
           <div className="flex items-center gap-3 p-3 rounded-xl mb-5"
-            style={{ background:'rgba(52,211,110,0.07)', border:'1px solid rgba(52,211,110,0.15)' }}>
+            style={{ background:'rgba(34,197,94,0.07)', border:'1px solid rgba(34,197,94,0.12)' }}>
             <CheckCircle size={16} color="var(--accent)" />
             <div>
               <p className="text-xs font-medium" style={{ color:'var(--accent)' }}>Login via Google berhasil</p>

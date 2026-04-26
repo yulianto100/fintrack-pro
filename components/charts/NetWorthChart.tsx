@@ -11,14 +11,14 @@ const Tip = ({ active, payload, label }: any) => {
     <div
       className="px-3 py-2 rounded-xl text-xs"
       style={{
-        background: 'rgba(18,48,30,0.85)',
-        border: '1px solid rgba(52,211,110,0.25)',
+        background: 'rgba(255,255,255,0.90)',
+        border: '1px solid rgba(34,197,94,0.18)',
         backdropFilter: 'blur(10px)',
         boxShadow: '0 8px 20px rgba(0,0,0,0.25)',
       }}
     >
-      <p style={{ color: '#9fdab5' }}>{label}</p>
-      <p className="font-bold mt-0.5" style={{ color: '#34d36e' }}>
+      <p style={{ color: '#6B7280' }}>{label}</p>
+      <p className="font-bold mt-0.5" style={{ color: '#22C55E' }}>
         {formatCurrency(payload[0].value)}
       </p>
     </div>
@@ -101,8 +101,8 @@ export function NetWorthChart({
         <div
           className="text-[11px] font-bold px-2 py-1 rounded-lg"
           style={{
-            background: isUp ? 'rgba(52,211,110,0.1)' : 'rgba(239,68,68,0.1)',
-            color: isUp ? '#34d36e' : '#ef4444',
+            background: isUp ? 'rgba(34,197,94,0.10)' : 'rgba(239,68,68,0.10)',
+            color: isUp ? '#16A34A' : '#EF4444',
           }}
         >
           {isUp ? '+' : ''}
@@ -119,12 +119,12 @@ export function NetWorthChart({
               <linearGradient id="gwGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="0%"
-                  stopColor={isUp ? "#34d36e" : "#ef4444"}
+                  stopColor={isUp ? "#22C55E" : "#ef4444"}
                   stopOpacity={0.35}
                 />
                 <stop
                   offset="100%"
-                  stopColor={isUp ? "#34d36e" : "#ef4444"}
+                  stopColor={isUp ? "#22C55E" : "#ef4444"}
                   stopOpacity={0}
                 />
               </linearGradient>
@@ -132,7 +132,7 @@ export function NetWorthChart({
 
             {/* GRID */}
             <CartesianGrid
-              stroke="rgba(52,211,110,0.05)"
+              stroke="rgba(34,197,94,0.08)"
               strokeDasharray="2 4"
               vertical={false}
             />
@@ -140,7 +140,7 @@ export function NetWorthChart({
             {/* AXIS */}
             <XAxis
               dataKey="month"
-              tick={{ fill: '#4a7d62', fontSize: 10 }}
+              tick={{ fill: '#9CA3AF', fontSize: 10 }}
               axisLine={false}
               tickLine={false}
             />
@@ -153,7 +153,7 @@ export function NetWorthChart({
             <Area
               type="natural"
               dataKey="worth"
-              stroke={isUp ? "#34d36e" : "#ef4444"}
+              stroke={isUp ? "#22C55E" : "#EF4444"}
               strokeWidth={2.5}
               fill="url(#gwGrad)"
               dot={false}
@@ -166,7 +166,7 @@ export function NetWorthChart({
                       cx={props.cx}
                       cy={props.cy}
                       r={5}
-                      fill={isUp ? "#34d36e" : "#ef4444"}
+                      fill={isUp ? "#22C55E" : "#EF4444"}
                     />
 
                     {isPeak && (
@@ -186,7 +186,7 @@ export function NetWorthChart({
               style={{
                 filter: `drop-shadow(0 0 6px ${
                   isUp
-                    ? 'rgba(52,211,110,0.6)'
+                    ? 'rgba(34,197,94,0.45)'
                     : 'rgba(239,68,68,0.6)'
                 })`,
               }}

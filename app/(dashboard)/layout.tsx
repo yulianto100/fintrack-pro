@@ -27,9 +27,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (status === 'loading') {
     return (
-      <div className="min-h-dvh flex items-center justify-center" style={{ background: '#061510' }}>
+      <div className="min-h-dvh flex items-center justify-center" style={{ background: 'linear-gradient(170deg, #E8F5E9 0%, #F1F8F4 100%)' }}>
         <div className="relative w-12 h-12">
-          <div className="absolute inset-0 rounded-full border-2" style={{ borderColor: 'rgba(52,211,110,0.15)' }} />
+          <div className="absolute inset-0 rounded-full border-2" style={{ borderColor: 'rgba(34,197,94,0.15)' }} />
           <div className="absolute inset-0 rounded-full border-2 border-t-transparent animate-spin"
             style={{ borderColor: 'var(--accent)' }} />
         </div>
@@ -46,7 +46,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         style={{
           height: 'calc(var(--nav-height) + env(safe-area-inset-top, 0px))',
           paddingTop: 'env(safe-area-inset-top, 0px)',
-          background: 'rgba(6,21,16,0.88)',
+          background: 'rgba(255,255,255,0.82)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           borderBottom: '1px solid var(--border)',
@@ -87,7 +87,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         style={{
           height: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          background: 'rgba(6,21,16,0.95)',
+          background: 'rgba(255,255,255,0.90)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
           borderTop: '1px solid var(--border)',

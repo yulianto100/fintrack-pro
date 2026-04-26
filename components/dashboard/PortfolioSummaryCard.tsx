@@ -57,7 +57,7 @@ export function PortfolioSummaryCard({
   return (
     <Link href="/portfolio">
       <div className="glass-card p-4 cursor-pointer active:scale-[0.99] transition-transform"
-        style={{ borderColor: 'rgba(52,211,110,0.15)' }}>
+        style={{ borderColor: 'rgba(34,197,94,0.12)' }}>
 
         {/* Chart + total row */}
         <div className="flex items-center gap-4">

@@ -69,7 +69,7 @@ export function SahamSellModal({ holding, currentPrice, onClose, onSuccess }: Sa
             { label: 'Kepemilikan', value: `${holding.lots} lot (${holding.lots * 100} lembar)` },
             { label: 'Avg Beli',    value: formatCurrency(holding.avgPrice) },
           ].map((r) => (
-            <div key={r.label} className="p-3 rounded-xl" style={{ background: 'var(--surface-3)' }}>
+            <div key={r.label} className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.90)' }}>
               <p className="text-[10px] mb-0.5" style={{ color: 'var(--text-muted)' }}>{r.label}</p>
               <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{r.value}</p>
             </div>
@@ -105,8 +105,8 @@ export function SahamSellModal({ holding, currentPrice, onClose, onSuccess }: Sa
         {/* Preview */}
         {preview && (
           <div className="p-3.5 rounded-xl space-y-2"
-            style={{ background: preview.realizedProfit >= 0 ? 'rgba(52,211,110,0.08)' : 'rgba(252,129,129,0.08)',
-                     border: `1px solid ${preview.realizedProfit >= 0 ? 'rgba(52,211,110,0.2)' : 'rgba(252,129,129,0.2)'}` }}>
+            style={{ background: preview.realizedProfit >= 0 ? 'rgba(34,197,94,0.08)' : 'rgba(252,129,129,0.08)',
+                     border: `1px solid ${preview.realizedProfit >= 0 ? 'rgba(34,197,94,0.16)' : 'rgba(252,129,129,0.2)'}` }}>
             <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Preview Penjualan</p>
             <PreviewRow label="Lembar terjual"    value={`${formatNumber(preview.sharesSold)} lembar`} />
             <PreviewRow label="Total Hasil Jual"  value={formatCurrency(preview.totalProceeds)} />
@@ -195,7 +195,7 @@ export function EmasSellModal({ holding, currentSellPrice, sourceLabel, onClose,
             { label: 'Kepemilikan', value: `${formatNumber(holding.grams, 3)} gr` },
             { label: 'Harga Beli',  value: holding.buyPrice ? formatCurrency(holding.buyPrice) + '/gr' : '—' },
           ].map((r) => (
-            <div key={r.label} className="p-3 rounded-xl" style={{ background: 'var(--surface-3)' }}>
+            <div key={r.label} className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.90)' }}>
               <p className="text-[10px] mb-0.5" style={{ color: 'var(--text-muted)' }}>{r.label}</p>
               <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{r.value}</p>
             </div>
@@ -230,8 +230,8 @@ export function EmasSellModal({ holding, currentSellPrice, sourceLabel, onClose,
 
         {preview && (
           <div className="p-3.5 rounded-xl space-y-2"
-            style={{ background: preview.realizedProfit >= 0 ? 'rgba(52,211,110,0.08)' : 'rgba(252,129,129,0.08)',
-                     border: `1px solid ${preview.realizedProfit >= 0 ? 'rgba(52,211,110,0.2)' : 'rgba(252,129,129,0.2)'}` }}>
+            style={{ background: preview.realizedProfit >= 0 ? 'rgba(34,197,94,0.08)' : 'rgba(252,129,129,0.08)',
+                     border: `1px solid ${preview.realizedProfit >= 0 ? 'rgba(34,197,94,0.16)' : 'rgba(252,129,129,0.2)'}` }}>
             <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Preview Penjualan</p>
             <PreviewRow label="Total Hasil Jual" value={formatCurrency(preview.totalProceeds)} />
             <div className="h-px" style={{ background: 'var(--border)' }} />
@@ -268,13 +268,13 @@ function ModalWrapper({ children, onClose, title }: { children: React.ReactNode;
         <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 30, stiffness: 350 }}
           className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
-          style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', maxHeight: '90dvh', overflowY: 'auto' }}
+          style={{ background: 'rgba(255,255,255,0.80)', border: '1px solid var(--border)', maxHeight: '90dvh', overflowY: 'auto' }}
           onClick={(e) => e.stopPropagation()}>
           <div className="drag-indicator mt-3 sm:hidden" />
           <div className="flex items-center justify-between px-5 py-4">
             <h2 className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{title}</h2>
             <button onClick={onClose} className="w-9 h-9 rounded-full flex items-center justify-center"
-              style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)' }}>
+              style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)' }}>
               <X size={18} />
             </button>
           </div>

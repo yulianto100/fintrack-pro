@@ -250,7 +250,7 @@ export default function SettingsPage() {
             return (
               <div key={a.id}
                 className="flex items-center justify-between px-3 py-2.5 rounded-xl"
-                style={{ background: 'var(--surface-3)', border: `1px solid ${hasBalance ? color + '30' : 'var(--border)'}` }}>
+                style={{ background: 'rgba(255,255,255,0.90)', border: `1px solid ${hasBalance ? color + '30' : 'var(--border)'}` }}>
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <div className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
                     style={{ background: bg, color }}>
@@ -314,7 +314,7 @@ export default function SettingsPage() {
         </div>
         <Link href="/profile">
           <div className="mt-4 w-full py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all"
-            style={{ background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid rgba(52,211,110,0.3)', cursor: 'pointer' }}>
+            style={{ background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid rgba(34,197,94,0.22)', cursor: 'pointer' }}>
             ✏️ Edit Profil
           </div>
         </Link>
@@ -446,7 +446,7 @@ export default function SettingsPage() {
         <div className="space-y-2">
           {[
             { label: 'Export ke Excel (.xlsx)', onClick: handleExport,     color: 'var(--accent)',         bg: 'var(--accent-dim)' },
-            { label: 'Backup JSON',             onClick: handleExportJSON, color: 'var(--text-secondary)', bg: 'var(--surface-3)' },
+            { label: 'Backup JSON',             onClick: handleExportJSON, color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.88)' },
           ].map((b) => (
             <button key={b.label} onClick={b.onClick}
               className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
@@ -455,7 +455,7 @@ export default function SettingsPage() {
             </button>
           ))}
           <label className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 cursor-pointer"
-            style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+            style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
             <Upload size={15}/> Import dari JSON
             <input type="file" accept=".json" className="hidden" onChange={handleImport}/>
           </label>
@@ -488,13 +488,13 @@ export default function SettingsPage() {
           <motion.div initial={{ y: '100%' }} animate={{ y: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 350 }}
             className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl p-6"
-            style={{ background: 'var(--surface-1)', border: '1px solid var(--border)' }}
+            style={{ background: 'rgba(255,255,255,0.80)', border: '1px solid var(--border)' }}
             onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Kategori Baru</h2>
               <button onClick={() => setShowCatModal(false)}
                 className="w-9 h-9 rounded-full flex items-center justify-center"
-                style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)' }}>
+                style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)' }}>
                 <X size={18}/>
               </button>
             </div>
@@ -551,7 +551,7 @@ export default function SettingsPage() {
           <motion.div initial={{ y: '100%' }} animate={{ y: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 350 }}
             className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl p-6"
-            style={{ background: 'var(--surface-1)', border: '1px solid var(--border)' }}
+            style={{ background: 'rgba(255,255,255,0.80)', border: '1px solid var(--border)' }}
             onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
@@ -559,7 +559,7 @@ export default function SettingsPage() {
               </h2>
               <button onClick={() => setShowWalletModal(false)}
                 className="w-9 h-9 rounded-full flex items-center justify-center"
-                style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)' }}>
+                style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)' }}>
                 <X size={18}/>
               </button>
             </div>
@@ -589,7 +589,7 @@ export default function SettingsPage() {
                         style={{
                           background: walletForm.name === s
                             ? (walletForm.type === 'bank' ? 'rgba(59,130,246,0.2)' : 'rgba(168,85,247,0.2)')
-                            : 'var(--surface-3)',
+                            : 'rgba(255,255,255,0.88)',
                           color: walletForm.name === s
                             ? (walletForm.type === 'bank' ? '#3b82f6' : '#a855f7')
                             : 'var(--text-secondary)',

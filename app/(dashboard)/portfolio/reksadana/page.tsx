@@ -186,7 +186,7 @@ export default function ReksadanaPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-0 rounded-xl overflow-hidden" style={{ background:'var(--surface-3)' }}>
+                <div className="flex flex-col gap-0 rounded-xl overflow-hidden" style={{ background:'rgba(255,255,255,0.90)' }}>
                   {[
                     { label: 'Unit',       value: `${formatNumber(h.unit, 4)} unit`,       color: 'var(--text-secondary)' },
                     { label: 'NAB Beli',   value: `${formatCurrency(h.buyNAV)}/unit`,       color: 'var(--text-secondary)' },
@@ -232,14 +232,14 @@ export default function ReksadanaPage() {
             <motion.div initial={{ y:'100%' }} animate={{ y:0 }} exit={{ y:'100%' }}
               transition={{ type:'spring', damping:30, stiffness:350 }}
               className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
-              style={{ background:'var(--surface-1)', border:'1px solid var(--border)' }}
+              style={{ background:'rgba(255,255,255,0.80)', border:'1px solid var(--border)' }}
               onClick={(e) => e.stopPropagation()}>
               <div className="drag-indicator mt-3 sm:hidden"/>
               <div className="flex items-center justify-between px-5 py-4">
                 <h2 className="font-display font-bold text-lg" style={{ color:'var(--text-primary)' }}>Update NAB</h2>
                 <button onClick={() => setUpdateTarget(null)}
                   className="w-9 h-9 rounded-full flex items-center justify-center"
-                  style={{ background:'var(--surface-3)', color:'var(--text-secondary)' }}>
+                  style={{ background:'rgba(255,255,255,0.90)', color:'var(--text-secondary)' }}>
                   <X size={18}/>
                 </button>
               </div>
@@ -258,8 +258,8 @@ export default function ReksadanaPage() {
                   )
                   return (
                     <div className="p-3 rounded-xl space-y-1"
-                      style={{ background: pl >= 0 ? 'rgba(52,211,110,0.08)' : 'rgba(252,129,129,0.08)',
-                               border: `1px solid ${pl >= 0 ? 'rgba(52,211,110,0.2)' : 'rgba(252,129,129,0.2)'}` }}>
+                      style={{ background: pl >= 0 ? 'rgba(34,197,94,0.08)' : 'rgba(252,129,129,0.08)',
+                               border: `1px solid ${pl >= 0 ? 'rgba(34,197,94,0.16)' : 'rgba(252,129,129,0.2)'}` }}>
                       <div className="flex justify-between text-xs">
                         <span style={{ color:'var(--text-muted)' }}>Nilai Baru</span>
                         <span className="font-bold" style={{ color:'var(--blue)' }}>{formatCurrency(currentValue)}</span>
@@ -294,14 +294,14 @@ export default function ReksadanaPage() {
             <motion.div initial={{ y:'100%' }} animate={{ y:0 }} exit={{ y:'100%' }}
               transition={{ type:'spring', damping:30, stiffness:350 }}
               className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
-              style={{ background:'var(--surface-1)', border:'1px solid var(--border)', maxHeight:'92dvh', overflowY:'auto' }}
+              style={{ background:'rgba(255,255,255,0.80)', border:'1px solid var(--border)', maxHeight:'92dvh', overflowY:'auto' }}
               onClick={(e) => e.stopPropagation()}>
               <div className="drag-indicator mt-3 sm:hidden"/>
               <div className="flex items-center justify-between px-5 py-4">
                 <h2 className="font-display font-bold text-lg" style={{ color:'var(--text-primary)' }}>Tambah Reksadana</h2>
                 <button onClick={() => setShowAdd(false)}
                   className="w-9 h-9 rounded-full flex items-center justify-center"
-                  style={{ background:'var(--surface-3)', color:'var(--text-secondary)' }}>
+                  style={{ background:'rgba(255,255,255,0.90)', color:'var(--text-secondary)' }}>
                   <X size={18}/>
                 </button>
               </div>
@@ -315,7 +315,7 @@ export default function ReksadanaPage() {
                         onClick={() => setForm({ ...form, type: t.value })}
                         className="py-2.5 rounded-xl text-center transition-all"
                         style={{
-                          background: form.type === t.value ? `${t.color}16` : 'var(--surface-3)',
+                          background: form.type === t.value ? `${t.color}16` : 'rgba(255,255,255,0.88)',
                           border: `1px solid ${form.type === t.value ? t.color + '40' : 'var(--border)'}`,
                         }}>
                         <p className="text-lg mb-0.5">{t.icon}</p>
@@ -329,7 +329,7 @@ export default function ReksadanaPage() {
                         onClick={() => setForm({ ...form, type: t.value })}
                         className="py-2.5 rounded-xl text-center transition-all"
                         style={{
-                          background: form.type === t.value ? `${t.color}16` : 'var(--surface-3)',
+                          background: form.type === t.value ? `${t.color}16` : 'rgba(255,255,255,0.88)',
                           border: `1px solid ${form.type === t.value ? t.color + '40' : 'var(--border)'}`,
                         }}>
                         <p className="text-lg mb-0.5">{t.icon}</p>

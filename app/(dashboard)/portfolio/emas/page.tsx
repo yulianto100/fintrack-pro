@@ -43,7 +43,7 @@ function PriceCard({ source, price, selected, onClick }: {
       style={{
         background: selected
           ? `linear-gradient(135deg, ${cfg.color}22, ${cfg.color}0a)`
-          : 'var(--surface-3)',
+          : 'rgba(255,255,255,0.88)',
         border: `1px solid ${selected ? cfg.color + '55' : 'var(--border)'}`,
         boxShadow: selected ? `0 0 16px ${cfg.color}18` : 'none',
       }}
@@ -200,7 +200,7 @@ export default function EmasPage() {
         <div className="flex gap-2">
           <button onClick={() => { refetch(); refetchPrices() }}
             className="w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{ background:'var(--surface-3)', border:'1px solid var(--border)', color:'var(--text-secondary)' }}>
+            style={{ background:'rgba(255,255,255,0.90)', border:'1px solid var(--border)', color:'var(--text-secondary)' }}>
             <RefreshCw size={15}/>
           </button>
           <button onClick={() => setShowAdd(true)} className="btn-primary px-4 py-2 flex items-center gap-1.5 text-sm">
@@ -230,8 +230,8 @@ export default function EmasPage() {
             style={{ borderTop: '1px solid var(--border)' }}>
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
               style={{
-                background: totalPnl >= 0 ? 'rgba(52,211,110,0.12)' : 'rgba(252,129,129,0.12)',
-                border: `1px solid ${totalPnl >= 0 ? 'rgba(52,211,110,0.25)' : 'rgba(252,129,129,0.25)'}`,
+                background: totalPnl >= 0 ? 'rgba(34,197,94,0.10)' : 'rgba(252,129,129,0.12)',
+                border: `1px solid ${totalPnl >= 0 ? 'rgba(34,197,94,0.18)' : 'rgba(252,129,129,0.25)'}`,
               }}>
               {totalPnl >= 0 ? <TrendingUp size={13} color="var(--accent)"/> : <TrendingDown size={13} color="var(--red)"/>}
               <p className="text-xs font-bold" style={{ color: totalPnl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
@@ -339,7 +339,7 @@ export default function EmasPage() {
                     <div className="flex items-center gap-1.5">
                       <button onClick={() => setSellTarget(h)}
                         className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ background:'rgba(52,211,110,0.1)', color:'var(--accent)', border:'1px solid rgba(52,211,110,0.2)' }}>
+                        style={{ background:'rgba(34,197,94,0.10)', color:'var(--accent)', border:'1px solid rgba(34,197,94,0.16)' }}>
                         <DollarSign size={12}/>
                       </button>
                       <button onClick={() => handleDelete(h.id)}
@@ -367,7 +367,7 @@ export default function EmasPage() {
             <motion.div initial={{ y:'100%' }} animate={{ y:0 }} exit={{ y:'100%' }}
               transition={{ type:'spring', damping:30, stiffness:350 }}
               className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
-              style={{ background:'var(--surface-1)', border:'1px solid var(--border)', maxHeight:'92dvh', overflowY:'auto' }}
+              style={{ background:'rgba(255,255,255,0.80)', border:'1px solid var(--border)', maxHeight:'92dvh', overflowY:'auto' }}
               onClick={(e) => e.stopPropagation()}>
 
               <div className="drag-indicator mt-3 sm:hidden"/>
@@ -378,7 +378,7 @@ export default function EmasPage() {
                 </h2>
                 <button onClick={() => setShowAdd(false)}
                   className="w-9 h-9 rounded-full flex items-center justify-center"
-                  style={{ background:'var(--surface-3)', color:'var(--text-secondary)' }}>
+                  style={{ background:'rgba(255,255,255,0.90)', color:'var(--text-secondary)' }}>
                   <X size={18}/>
                 </button>
               </div>
@@ -399,7 +399,7 @@ export default function EmasPage() {
                         })}
                         className="py-3 rounded-xl flex items-center justify-center gap-2 font-medium text-sm transition-all"
                         style={{
-                          background: form.goldType === t.value ? 'rgba(246,204,96,0.14)' : 'var(--surface-3)',
+                          background: form.goldType === t.value ? 'rgba(246,204,96,0.14)' : 'rgba(255,255,255,0.88)',
                           border: `1px solid ${form.goldType === t.value ? '#f6cc6050' : 'var(--border)'}`,
                           color: form.goldType === t.value ? '#f6cc60' : 'var(--text-muted)',
                         }}>
@@ -420,7 +420,7 @@ export default function EmasPage() {
                         onClick={() => setForm({ ...form, source: src as GoldSource })}
                         className="py-3 rounded-xl text-center transition-all"
                         style={{
-                          background: form.source === src ? `${cfg.color}16` : 'var(--surface-3)',
+                          background: form.source === src ? `${cfg.color}16` : 'rgba(255,255,255,0.88)',
                           border: `1px solid ${form.source === src ? cfg.color + '50' : 'var(--border)'}`,
                         }}>
                         <p className="text-xl mb-1">{cfg.icon}</p>
@@ -454,7 +454,7 @@ export default function EmasPage() {
                     <label className="text-xs mb-1.5 block font-semibold" style={{ color:'var(--text-muted)' }}>
                       Harga Beli/gr
                       <span className="ml-1 text-[9px] font-normal px-1.5 py-0.5 rounded-full"
-                        style={{ background:'rgba(52,211,110,0.12)', color:'var(--accent)' }}>
+                        style={{ background:'rgba(34,197,94,0.10)', color:'var(--accent)' }}>
                         opsional
                       </span>
                     </label>
@@ -511,7 +511,7 @@ export default function EmasPage() {
                   <label className="text-xs mb-1.5 block font-semibold" style={{ color:'var(--text-muted)' }}>
                     Catatan
                     <span className="ml-1 text-[9px] font-normal px-1.5 py-0.5 rounded-full"
-                      style={{ background:'rgba(52,211,110,0.12)', color:'var(--accent)' }}>
+                      style={{ background:'rgba(34,197,94,0.10)', color:'var(--accent)' }}>
                       opsional
                     </span>
                   </label>

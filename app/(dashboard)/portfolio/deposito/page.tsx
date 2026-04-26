@@ -124,7 +124,7 @@ export default function DepositoPage() {
 
       {/* Summary */}
       <div className="glass-card p-5 mb-5" style={{ borderColor: 'rgba(168,85,247,0.2)' }}>
-        <div className="flex flex-col gap-0 rounded-xl overflow-hidden" style={{ background: 'var(--surface-3)' }}>
+        <div className="flex flex-col gap-0 rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.90)' }}>
           {[
             { label: 'Total Modal',  val: totals.nominal,    color: '#d6aaff' },
             { label: 'Total Bunga',  val: totals.interest,   color: 'var(--accent)' },
@@ -171,7 +171,7 @@ export default function DepositoPage() {
                       {isUrgent && <Bell size={14} color="var(--red)" className="animate-pulse" />}
                       {isNearlyDone && !isUrgent && (
                         <span className="flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full"
-                          style={{ background: 'rgba(52,211,110,0.12)', color: 'var(--accent)' }}>
+                          style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)' }}>
                           <Sparkles size={9}/> Auto-selesai
                         </span>
                       )}
@@ -186,7 +186,7 @@ export default function DepositoPage() {
                   </button>
                 </div>
 
-                <div className="flex flex-col gap-0 mb-3 rounded-xl overflow-hidden" style={{ background: 'var(--surface-3)' }}>
+                <div className="flex flex-col gap-0 mb-3 rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.90)' }}>
                   {[
                     { label: 'Modal',       value: formatCurrency(d.nominal),       color: '#d6aaff' },
                     { label: 'Bunga',       value: formatCurrency(d.totalInterest), color: 'var(--accent)' },
@@ -230,7 +230,7 @@ export default function DepositoPage() {
         <div className="mt-6">
           <button onClick={() => setShowHistory(!showHistory)}
             className="w-full flex items-center justify-between py-3 px-4 rounded-xl mb-3"
-            style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)' }}>
+            style={{ background: 'rgba(255,255,255,0.75)', color: 'var(--text-secondary)' }}>
             <span className="text-sm font-medium">Riwayat Deposito ({history.length})</span>
             <CheckCircle size={16} color="var(--text-muted)" />
           </button>
@@ -265,12 +265,12 @@ export default function DepositoPage() {
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 350 }}
               className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl p-6"
-              style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', maxHeight: '90dvh', overflowY: 'auto' }}
+              style={{ background: 'rgba(255,255,255,0.80)', border: '1px solid var(--border)', maxHeight: '90dvh', overflowY: 'auto' }}
               onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
                 <h2 className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Tambah Deposito</h2>
                 <button onClick={() => setShowAdd(false)} className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)' }}>
+                  style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)' }}>
                   <X size={16} />
                 </button>
               </div>
@@ -293,7 +293,7 @@ export default function DepositoPage() {
                         <button key={b}
                           onClick={() => setForm((p) => ({ ...p, bankName: b }))}
                           className="px-2 py-1 rounded-lg text-xs"
-                          style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                          style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
                           {b}
                         </button>
                       ))}

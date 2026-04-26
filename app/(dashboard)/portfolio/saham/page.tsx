@@ -163,7 +163,7 @@ export default function SahamPage() {
 
                 {/* Row 2: Nilai | Modal | P&L */}
                 <div className="flex flex-col gap-0 rounded-xl overflow-hidden"
-                  style={{ background: 'var(--surface-3)' }}>
+                  style={{ background: 'rgba(255,255,255,0.90)' }}>
                   {[
                     { label: 'Nilai Pasar', value: currentValue, color: 'var(--blue)',           prefix: '' },
                     { label: 'Modal',       value: costBasis,    color: 'var(--text-secondary)', prefix: '' },
@@ -196,7 +196,7 @@ export default function SahamPage() {
                     {/* Sell button */}
                     <button onClick={() => setSellTarget(h)}
                       className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg"
-                      style={{ background: 'rgba(52,211,110,0.1)', color: 'var(--accent)', border: '1px solid rgba(52,211,110,0.2)' }}>
+                      style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)', border: '1px solid rgba(34,197,94,0.16)' }}>
                       <DollarSign size={12} /> Jual
                     </button>
                     <button onClick={() => handleDelete(h.id)}
@@ -223,7 +223,7 @@ export default function SahamPage() {
               transition={{ type: 'spring', damping: 30, stiffness: 350 }}
               className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
               style={{
-                background: 'var(--surface-1)', border: '1px solid var(--border)',
+                background: 'rgba(255,255,255,0.80)', border: '1px solid var(--border)',
                 maxHeight: '90dvh', overflowY: 'auto',
               }}
               onClick={(e) => e.stopPropagation()}>
@@ -231,7 +231,7 @@ export default function SahamPage() {
               <div className="flex items-center justify-between px-5 py-4">
                 <h2 className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Tambah Saham</h2>
                 <button onClick={() => setShowAdd(false)} className="w-9 h-9 rounded-full flex items-center justify-center"
-                  style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)' }}>
+                  style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)' }}>
                   <X size={18} />
                 </button>
               </div>

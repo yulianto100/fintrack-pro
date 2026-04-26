@@ -28,20 +28,20 @@ export function IncomeExpenseBar({ transactions }: Props) {
       <div className="glass-card p-4" style={{ height:160 }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} barCategoryGap="35%" margin={{ top:4, right:4, left:0, bottom:0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(52,211,110,0.06)" vertical={false} />
-            <XAxis dataKey="month" tick={{ fill:'#4a7d62', fontSize:10 }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(34,197,94,0.08)" vertical={false} />
+            <XAxis dataKey="month" tick={{ fill:'#9CA3AF', fontSize:10 }} axisLine={false} tickLine={false} />
             <YAxis hide />
             <Tooltip formatter={(v:number,n:string)=>[formatCurrency(v),n]}
-              contentStyle={{ background:'rgba(18,48,30,0.97)',border:'1px solid rgba(52,211,110,0.25)',borderRadius:8,fontSize:11 }} cursor={false} />
-            <Bar dataKey="Pemasukan"   fill="#34d36e" radius={[10, 10, 0, 0]}
+              contentStyle={{ background:'rgba(255,255,255,0.97)',border:'1px solid rgba(34,197,94,0.18)',borderRadius:8,fontSize:11 }} cursor={false} />
+            <Bar dataKey="Pemasukan"   fill="#22C55E" radius={[10, 10, 0, 0]}
   activeBar={false} />
-            <Bar dataKey="Pengeluaran" fill="#fc8181" radius={[10, 10, 0, 0]}
+            <Bar dataKey="Pengeluaran" fill="#F87171" radius={[10, 10, 0, 0]}
   activeBar={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>
       <div className="flex items-center gap-4 mt-2 px-1">
-        {[{c:'#34d36e',l:'Pemasukan'},{c:'#fc8181',l:'Pengeluaran'}].map(({c,l})=>(
+        {[{c:'#22C55E',l:'Pemasukan'},{c:'#F87171',l:'Pengeluaran'}].map(({c,l})=>(
           <div key={l} className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-sm" style={{ background:c }}/>
             <span className="text-[10px]" style={{ color:'var(--text-muted)' }}>{l}</span>
