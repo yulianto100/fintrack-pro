@@ -70,7 +70,9 @@ export default function DashboardPage() {
   )
 
   const walletTotal = walletBalances.cash + walletBalances.bank + walletBalances.ewallet
-  const totalWealth = walletTotal + goldValue + depositValue + stockValue
+  const sbnValue = useMemo(() => sbnList.filter((h) => h.status === 'active').reduce((s, h) => s + h.nominal, 0), [sbnList])
+  const reksadanaValue = useMemo(() => reksadanaList.reduce((s, h) => s + h.unit * h.currentNAV, 0), [reksadanaList])
+  const totalWealth = walletTotal + goldValue + depositValue + stockValue + sbnValue + reksadanaValue
 
   useEffect(() => {
     if (totalWealth > 0 && allTx.length > 0) {
@@ -222,9 +224,9 @@ export default function DashboardPage() {
           stockValue={stockValue}
           depositValue={depositValue}
           depositCount={deposits.filter((d) => d.status === 'active').length}
-          sbnValue={sbnList.filter((h) => h.status === 'active').reduce((s, h) => s + h.nominal, 0)}
+          sbnValue={sbnValue}
           sbnCount={sbnList.filter((h) => h.status === 'active').length}
-          reksadanaValue={reksadanaList.reduce((s, h) => s + h.unit * h.currentNAV, 0)}
+          reksadanaValue={reksadanaValue}
           reksadanaCount={reksadanaList.length}
           hidden={hidden}
         />
@@ -238,8 +240,8 @@ export default function DashboardPage() {
         goldValue={goldValue}
         stockValue={stockValue}
         depositValue={depositValue}
-        sbnValue={sbnList.filter((h) => h.status === 'active').reduce((s, h) => s + h.nominal, 0)}
-        reksadanaValue={reksadanaList.reduce((s, h) => s + h.unit * h.currentNAV, 0)}
+        sbnValue={sbnValue}
+        reksadanaValue={reksadanaValue}
         hidden={hidden}
       />
 
