@@ -259,3 +259,40 @@ export interface ImportLog {
   skipped:     number
   createdAt:   string
 }
+
+// ---- RECURRING TRANSACTIONS ----
+export type RecurringFrequency = 'daily' | 'weekly' | 'monthly'
+
+export interface RecurringTransaction {
+  id: string
+  userId: string
+  type: 'income' | 'expense'
+  amount: number
+  categoryId: string
+  categoryName?: string
+  categoryIcon?: string
+  wallet: WalletType
+  walletAccountId?: string
+  description: string
+  frequency: RecurringFrequency
+  nextRunDate: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+// ---- CATEGORIZATION LEARNING ----
+export interface CategoryLearning {
+  keyword: string
+  categoryId: string
+  categoryName?: string
+  updatedAt: string
+}
+
+// ---- NET WORTH BREAKDOWN ----
+export interface NetWorthAsset {
+  label: string
+  value: number
+  color: string
+  type: 'asset' | 'liability'
+}

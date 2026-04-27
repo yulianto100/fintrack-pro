@@ -19,6 +19,7 @@ import { StreakBanner } from '@/components/dashboard/StreakBanner'
 import { WeeklySummary } from '@/components/dashboard/WeeklySummary'
 import { BudgetProgress } from '@/components/dashboard/BudgetProgress'
 import { NetWorthChart } from '@/components/charts/NetWorthChart'
+import { NetWorthBreakdown } from '@/components/dashboard/NetWorthBreakdown'
 
 export default function DashboardPage() {
   const { data: session } = useSession()
@@ -228,6 +229,19 @@ export default function DashboardPage() {
           hidden={hidden}
         />
       </motion.div>
+
+      {/* Net Worth Breakdown */}
+      <NetWorthBreakdown
+        cashBalance={walletBalances.cash}
+        bankBalance={walletBalances.bank}
+        ewalletBalance={walletBalances.ewallet}
+        goldValue={goldValue}
+        stockValue={stockValue}
+        depositValue={depositValue}
+        sbnValue={sbnList.filter((h) => h.status === 'active').reduce((s, h) => s + h.nominal, 0)}
+        reksadanaValue={reksadanaList.reduce((s, h) => s + h.unit * h.currentNAV, 0)}
+        hidden={hidden}
+      />
 
       {/* Budget progress */}
       {budgets.length > 0 && (

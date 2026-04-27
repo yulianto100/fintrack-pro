@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { LayoutDashboard, ArrowLeftRight, TrendingUp, Settings, Target, PiggyBank } from 'lucide-react'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
+import { useDarkMode } from '@/hooks/useDarkMode'
 
 const NAV_TABS = [
   { href: '/',             icon: LayoutDashboard, label: 'Dashboard'  },
@@ -20,6 +22,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { data: session, status } = useSession()
   const router   = useRouter()
   const pathname = usePathname()
+  useDarkMode() // Initialize dark mode from localStorage on mount
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login')
@@ -52,18 +55,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           borderBottom: '1px solid var(--border)',
         }}
       >
-        <Link href="/settings">
-          <div className="w-9 h-9 rounded-full overflow-hidden" style={{ boxShadow: '0 0 0 2px var(--accent)' }}>
-            {session.user?.image ? (
-              <Image src={session.user.image} alt="avatar" width={36} height={36} className="object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-sm font-bold"
-                style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
-                {session.user?.name?.[0]?.toUpperCase()}
-              </div>
-            )}
-          </div>
-        </Link>
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          <Link href="/settings">
+            <div className="w-9 h-9 rounded-full overflow-hidden" style={{ boxShadow: '0 0 0 2px var(--accent)' }}>
+              {session.user?.image ? (
+                <Image src={session.user.image} alt="avatar" width={36} height={36} className="object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-sm font-bold"
+                  style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
+                  {session.user?.name?.[0]?.toUpperCase()}
+                </div>
+              )}
+            </div>
+          </Link>
+        </div>
       </header>
 
       <main

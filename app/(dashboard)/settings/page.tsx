@@ -7,11 +7,11 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useApiList } from '@/hooks/useApiData'
-import {
-  Bell, BellOff, Download, Upload, LogOut, Tag, Plus, Trash2, X,
-  Landmark, Wallet, Pencil, Check, Lock, ChevronDown, ChevronUp,
+import { Bell, BellOff, Download, Upload, LogOut, Tag, Plus, Trash2, X,
+  Landmark, Wallet, Pencil, Check, Lock, ChevronDown, ChevronUp, Moon, Sun, Repeat,
 } from 'lucide-react'
 import type { Category, WalletAccount, WalletAccountType } from '@/types'
+import { useDarkMode } from '@/hooks/useDarkMode'
 import toast from 'react-hot-toast'
 
 // Default suggestions for quick-add
@@ -23,6 +23,7 @@ interface WalletAccountForm { type: WalletAccountType; name: string }
 export default function SettingsPage() {
   const { data: session } = useSession()
   const { supported, subscribed, loading: notifLoading, subscribe, unsubscribe } = usePushNotifications()
+  const { isDark, toggle: toggleDark } = useDarkMode()
 
   // Categories
   const { data: categories, refetch: refetchCats } = useApiList<Category>('/api/categories', { refreshMs: 5000 })
@@ -518,6 +519,52 @@ export default function SettingsPage() {
             </div>
           </Link>
         </div>
+      </motion.div>
+
+      {/* Dark Mode Toggle */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}
+        className="glass-card p-5">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: isDark ? 'rgba(251,191,36,0.15)' : 'rgba(99,115,142,0.12)' }}>
+            {isDark ? <Sun size={18} color="#FBBF24" /> : <Moon size={18} color="#6B7280" />}
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Mode Gelap</p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {isDark ? 'Aktif — tampilan gelap' : 'Nonaktif — tampilan terang'}
+            </p>
+          </div>
+          <button
+            onClick={toggleDark}
+            className="relative w-12 h-6 rounded-full transition-all flex-shrink-0"
+            style={{ background: isDark ? 'var(--accent)' : 'rgba(0,0,0,0.15)' }}
+          >
+            <div
+              className="absolute top-0.5 transition-all rounded-full w-5 h-5 bg-white shadow-sm"
+              style={{ left: isDark ? '26px' : '2px' }}
+            />
+          </button>
+        </div>
+      </motion.div>
+
+      {/* Recurring Transactions */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.19 }}>
+        <Link href="/recurring">
+          <div className="glass-card p-5 flex items-center gap-3 cursor-pointer">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(34,197,94,0.12)' }}>
+              <Repeat size={18} color="var(--accent)" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Transaksi Berulang</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                Kelola gaji, langganan, dan cicilan otomatis
+              </p>
+            </div>
+            <ChevronDown size={16} color="var(--text-muted)" style={{ transform: 'rotate(-90deg)' }} />
+          </div>
+        </Link>
       </motion.div>
 
       {/* Sign out */}

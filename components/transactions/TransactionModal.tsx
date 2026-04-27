@@ -7,7 +7,15 @@ import { useTransactions } from '@/hooks/useTransactions'
 import { useApiList } from '@/hooks/useApiData'
 import type { Category, Transaction, TransactionType, WalletType, WalletAccount } from '@/types'
 import { capitalizeWords, formatCurrency } from '@/lib/utils'
+import { autoCategorize, learnCategoryMapping } from '@/lib/categorization'
 import toast from 'react-hot-toast'
+import type { RecurringFrequency } from '@/types'
+
+const RECURRING_FREQS: { value: RecurringFrequency; label: string; icon: string }[] = [
+  { value: 'daily',   label: 'Harian',   icon: '🌅' },
+  { value: 'weekly',  label: 'Mingguan', icon: '📅' },
+  { value: 'monthly', label: 'Bulanan',  icon: '🗓️' },
+]
 
 interface Props {
   transaction?: Transaction
@@ -63,7 +71,10 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
   const [toExtAccountId,  setToExtAccountId ] = useState('')
   const [toExtWalletType, setToExtWalletType] = useState('')
 
-  const lookupDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Recurring transaction toggle
+  const [isRecurring,        setIsRecurring       ] = useState(false)
+  const [recurringFrequency, setRecurringFrequency] = useState<RecurringFrequency>('monthly')
+  const [autoSuggestedCat,   setAutoSuggestedCat  ] = useState('')
 
   // All wallet accounts from the API
   const [walletAccounts, setWalletAccounts] = useState<WalletAccount[]>([])
@@ -78,6 +89,19 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
 
   const handleSetWallet   = (w: WalletType) => { setWallet(w);   setWalletAccountId('') }
   const handleSetToWallet = (w: WalletType) => { setToWallet(w); setToWalletAccountId('') }
+
+  // Auto-categorize on description change
+  const handleDescriptionChange = (val: string) => {
+    setDescription(capitalizeWords(val))
+    if (!categoryId && type !== 'transfer' && val.length >= 3) {
+      const suggested = autoCategorize(val, categories, type as 'income' | 'expense')
+      if (suggested) {
+        setCategoryId(suggested)
+        const catName = categories.find((c) => c.id === suggested)?.name || ''
+        setAutoSuggestedCat(catName)
+      }
+    }
+  }
 
   const filteredCategories = categories.filter(
     (c) => c.type === type || (type === 'transfer' && c.type === 'expense')
@@ -247,6 +271,30 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
       let result
       if (isEdit) result = await updateTransaction(transaction.id, data)
       else        result = await addTransaction(data)
+
+      // Learn category mapping from description if user selected a category
+      if (!isEdit && description && categoryId && type !== 'transfer') {
+        const catName = categories.find((c) => c.id === categoryId)?.name
+        if (catName) learnCategoryMapping(description.toLowerCase().split(' ')[0], catName)
+      }
+
+      // Save recurring transaction if toggled
+      if (!isEdit && isRecurring && type !== 'transfer' && categoryId) {
+        const cat = categories.find((c) => c.id === categoryId)
+        await fetch('/api/recurring-transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type, amount: raw,
+            categoryId, categoryName: cat?.name, categoryIcon: cat?.icon,
+            wallet, walletAccountId: walletAccountId || undefined,
+            description: description || '',
+            frequency: recurringFrequency,
+          }),
+        })
+        toast.success('Transaksi berulang dibuat! 🔁')
+      }
+
       onClose(result)
     } finally {
       setSaving(false)
@@ -572,11 +620,60 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
                   Keterangan
                   <span className="ml-1 text-[9px] font-normal px-1.5 py-0.5 rounded-full"
                     style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)' }}>opsional</span>
+                  {autoSuggestedCat && !categoryId && (
+                    <span className="ml-1 text-[9px] font-normal px-1.5 py-0.5 rounded-full"
+                      style={{ background: 'rgba(34,197,94,0.15)', color: 'var(--accent)' }}>
+                      🤖 Auto: {autoSuggestedCat}
+                    </span>
+                  )}
                 </label>
                 <input type="text" className="input-glass text-sm" placeholder="Catatan transaksi"
-                  value={description} onChange={(e) => setDescription(capitalizeWords(e.target.value))} />
+                  value={description} onChange={(e) => handleDescriptionChange(e.target.value)} />
               </div>
             </div>
+
+            {/* Recurring toggle — only for income/expense, not edit mode */}
+            {!isEdit && type !== 'transfer' && (
+              <div className="rounded-2xl p-4" style={{ background: isRecurring ? 'rgba(34,197,94,0.07)' : 'rgba(255,255,255,0.6)', border: `1px solid ${isRecurring ? 'rgba(34,197,94,0.25)' : 'var(--border)'}` }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🔁</span>
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        Jadikan Berulang
+                      </p>
+                      <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                        Otomatis dicatat sesuai frekuensi
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsRecurring((v) => !v)}
+                    className="relative w-12 h-6 rounded-full transition-all flex-shrink-0"
+                    style={{ background: isRecurring ? 'var(--accent)' : 'rgba(0,0,0,0.15)' }}
+                  >
+                    <div className="absolute top-0.5 transition-all rounded-full w-5 h-5 bg-white shadow-sm"
+                      style={{ left: isRecurring ? '26px' : '2px' }} />
+                  </button>
+                </div>
+                {isRecurring && (
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {RECURRING_FREQS.map((f) => (
+                      <button key={f.value}
+                        onClick={() => setRecurringFrequency(f.value)}
+                        className="py-2 rounded-xl text-xs font-semibold transition-all"
+                        style={{
+                          background: recurringFrequency === f.value ? 'var(--accent)' : 'rgba(255,255,255,0.85)',
+                          color: recurringFrequency === f.value ? '#fff' : 'var(--text-muted)',
+                          border: `1px solid ${recurringFrequency === f.value ? 'var(--accent)' : 'var(--border)'}`,
+                        }}>
+                        {f.icon} {f.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Save button */}
             <button

@@ -381,3 +381,108 @@ input[type="date"]::-webkit-date-and-time-value {
   height: 6px;
   transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* ─────────────────────────────────────────
+   DARK MODE THEME
+───────────────────────────────────────── */
+.dark {
+  /* Surfaces — deep dark green */
+  --surface-0: #0A1A0F;
+  --surface-1: rgba(16, 32, 20, 0.90);
+  --surface-2: rgba(20, 38, 25, 0.85);
+  --surface-3: rgba(24, 44, 30, 0.92);
+  --surface-4: rgba(12, 24, 16, 0.95);
+
+  --border:       rgba(34, 197, 94, 0.18);
+  --border-hover: rgba(34, 197, 94, 0.35);
+
+  /* Accent — same vibrant green */
+  --accent:       #22C55E;
+  --accent-light: #4ADE80;
+  --accent-dark:  #16A34A;
+  --accent-dim:   rgba(34, 197, 94, 0.14);
+  --accent-glow:  rgba(34, 197, 94, 0.30);
+
+  /* Semantic */
+  --red:        #F87171;
+  --red-dim:    rgba(248, 113, 113, 0.14);
+  --blue:       #60A5FA;
+  --blue-dim:   rgba(96, 165, 250, 0.12);
+  --gold:       #FBBF24;
+  --gold-dim:   rgba(251, 191, 36, 0.12);
+  --purple:     #C084FC;
+  --purple-dim: rgba(192, 132, 252, 0.12);
+  --teal:       #2DD4BF;
+  --teal-dim:   rgba(45, 212, 191, 0.12);
+
+  /* Text */
+  --text-primary:   #F0FAF4;
+  --text-secondary: #D1FAE5;
+  --text-muted:     #6EE7A0;
+}
+
+/* Dark mode body background */
+.dark body {
+  background:
+    radial-gradient(ellipse 110% 60% at 15% -8%,  rgba(34, 197, 94, 0.08) 0%, transparent 55%),
+    radial-gradient(ellipse  80% 55% at 88% 108%, rgba(74, 222, 128, 0.06) 0%, transparent 55%),
+    radial-gradient(ellipse  50% 40% at 50%  50%, rgba(20, 83, 45, 0.20) 0%, transparent 60%),
+    linear-gradient(170deg, #060F09 0%, #0A1A0F 100%);
+}
+
+/* Dark glass cards */
+.dark .glass-card {
+  background: rgba(14, 28, 18, 0.88) !important;
+  border-color: rgba(34, 197, 94, 0.14) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35), 0 1px 4px rgba(0,0,0,0.2) !important;
+}
+.dark .glass-card:hover {
+  border-color: rgba(34, 197, 94, 0.26) !important;
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(34,197,94,0.12) !important;
+}
+.dark .glass-hero {
+  background: linear-gradient(135deg,
+    rgba(14, 28, 18, 0.92) 0%,
+    rgba(10, 22, 14, 0.95) 100%
+  ) !important;
+  border-color: rgba(34, 197, 94, 0.22) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.40) !important;
+}
+.dark .input-glass {
+  background: rgba(10, 20, 13, 0.90) !important;
+  border-color: rgba(34, 197, 94, 0.18) !important;
+  color: var(--text-primary) !important;
+}
+.dark .input-glass:focus {
+  background: rgba(12, 24, 16, 0.95) !important;
+  border-color: var(--accent) !important;
+}
+.dark select.input-glass option {
+  background: #0a1a0f !important;
+  color: var(--text-primary) !important;
+}
+.dark .skeleton {
+  background: linear-gradient(90deg,
+    rgba(34,197,94,0.06) 0%, rgba(34,197,94,0.12) 50%, rgba(34,197,94,0.06) 100%)
+    0 0 / 200% auto !important;
+}
+
+/* Dark header/nav */
+.dark header,
+.dark nav {
+  background: rgba(8, 16, 10, 0.92) !important;
+  border-color: rgba(34, 197, 94, 0.12) !important;
+}
+
+/* Dark recharts */
+.dark .recharts-cartesian-grid line { stroke: rgba(34,197,94,0.10) !important; }
+.dark .recharts-text { fill: var(--text-muted) !important; }
+
+/* Dark modal backgrounds */
+.dark [style*="rgba(255,255,255,0.80)"],
+.dark [style*="rgba(255,255,255,0.85)"],
+.dark [style*="rgba(255,255,255,0.88)"],
+.dark [style*="rgba(255,255,255,0.90)"],
+.dark [style*="rgba(255,255,255,0.92)"] {
+  background: rgba(12, 24, 16, 0.95) !important;
+}
