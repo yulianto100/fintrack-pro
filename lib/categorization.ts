@@ -26,7 +26,7 @@ const DEFAULT_KEYWORD_MAP: Record<string, string> = {
   shopee: 'Belanja', tokopedia: 'Belanja', lazada: 'Belanja', blibli: 'Belanja',
   bukalapak: 'Belanja', tiktokshop: 'Belanja', zalora: 'Belanja', jd: 'Belanja',
   amazon: 'Belanja', ebay: 'Belanja', ikea: 'Belanja', uniqlo: 'Belanja',
-  zara: 'Belanja', h&m: 'Belanja',
+  zara: 'Belanja', 'h&m': 'Belanja',
 
   // Entertainment
   netflix: 'Hiburan', spotify: 'Hiburan', youtube: 'Hiburan', disney: 'Hiburan',

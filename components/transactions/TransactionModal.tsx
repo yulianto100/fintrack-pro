@@ -70,6 +70,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
   const [lookupLoading,   setLookupLoading  ] = useState(false)
   const [toExtAccountId,  setToExtAccountId ] = useState('')
   const [toExtWalletType, setToExtWalletType] = useState('')
+  const lookupDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Recurring transaction toggle
   const [isRecurring,        setIsRecurring       ] = useState(false)
