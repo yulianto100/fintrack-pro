@@ -65,7 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="w-8 h-8 rounded-xl overflow-hidden flex-shrink-0"
             style={{ boxShadow: '0 0 0 1px rgba(34,197,94,0.25)' }}>
             <Image
-              src="/icons/icon-192x192.png"
+              src="/icons/icon-header-64.png"
               alt="Finuvo"
               width={32}
               height={32}
