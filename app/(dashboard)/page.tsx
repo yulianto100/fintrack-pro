@@ -254,7 +254,7 @@ export default function DashboardPage() {
         <RecentTransactions transactions={transactions.slice(0, 5)} hidden={hidden} />
       </motion.div>
 
-      <QuickAddFAB />
+      <QuickAddFAB walletBalances={walletBalances} />
     </div>
   )
 }
