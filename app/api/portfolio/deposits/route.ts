@@ -64,9 +64,45 @@ export async function PATCH(request: Request) {
   const userId = await getUserId()
   if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   try {
-    const { id, ...updates } = await request.json()
+    const { id, nominal, interestRate, tenorMonths, startDate, ...rest } = await request.json()
     if (!id) return NextResponse.json({ success: false, error: 'id wajib diisi' }, { status: 400 })
-    await getAdminDatabase().ref(`users/${userId}/portfolio/deposits/${id}`).update({ ...updates, updatedAt: new Date().toISOString() })
+
+    const updates: Record<string, unknown> = { ...rest, updatedAt: new Date().toISOString() }
+
+    // Always parse numeric fields as numbers to prevent string concatenation bugs
+    const parsedNominal      = nominal      !== undefined ? parseFloat(nominal)      : undefined
+    const parsedInterestRate = interestRate !== undefined ? parseFloat(interestRate) : undefined
+    const parsedTenorMonths  = tenorMonths  !== undefined ? parseInt(tenorMonths)    : undefined
+
+    if (parsedNominal      !== undefined) updates.nominal      = parsedNominal
+    if (parsedInterestRate !== undefined) updates.interestRate = parsedInterestRate
+    if (parsedTenorMonths  !== undefined) updates.tenorMonths  = parsedTenorMonths
+    if (startDate          !== undefined) updates.startDate    = startDate
+
+    // Recalculate derived fields whenever any financial input changes
+    const hasFinancialChange =
+      parsedNominal !== undefined ||
+      parsedInterestRate !== undefined ||
+      parsedTenorMonths !== undefined ||
+      startDate !== undefined
+
+    if (hasFinancialChange) {
+      const db   = getAdminDatabase()
+      const snap = await db.ref(`users/${userId}/portfolio/deposits/${id}`).get()
+      if (snap.exists()) {
+        const current = snap.val() as Deposit
+        const n = parsedNominal      ?? current.nominal
+        const r = parsedInterestRate ?? current.interestRate
+        const t = parsedTenorMonths  ?? current.tenorMonths
+        const s = startDate          ?? current.startDate
+        const { maturityDate, finalValue, totalInterest } = calculateDepositMaturity(n, r, t, s)
+        updates.maturityDate  = maturityDate
+        updates.finalValue    = finalValue
+        updates.totalInterest = totalInterest
+      }
+    }
+
+    await getAdminDatabase().ref(`users/${userId}/portfolio/deposits/${id}`).update(updates)
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json({ success: false, error: String(err) }, { status: 500 })

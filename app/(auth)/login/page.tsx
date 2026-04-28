@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Eye, EyeOff, Mail, Lock, User, AtSign } from 'lucide-react'
+import Image from 'next/image'
 
 type Tab = 'login' | 'register'
 
@@ -134,12 +135,33 @@ export default function LoginPage() {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 overflow-hidden"
-            style={{
-              boxShadow: '0 0 32px rgba(34,197,94,0.20)',
-              border: '1px solid rgba(34,197,94,0.22)',
-            }}>
-            <img src="/icons/icon-192x192.png" alt="Finuvo" className="w-full h-full object-cover" style={{ borderRadius: 'inherit' }} />
+          <div className="relative inline-flex items-center justify-center mb-4">
+            {/* Outer glow pulse */}
+            <div
+              className="absolute rounded-[28px] animate-pulse"
+              style={{
+                width: 88, height: 88,
+                background: 'radial-gradient(circle, rgba(34,197,94,0.18) 0%, transparent 70%)',
+              }}
+            />
+            {/* Icon */}
+            <div
+              className="relative rounded-[22px] overflow-hidden"
+              style={{
+                width: 68, height: 68,
+                boxShadow: '0 0 32px rgba(34,197,94,0.28), 0 0 64px rgba(34,197,94,0.10)',
+                border: '1px solid rgba(34,197,94,0.22)',
+              }}
+            >
+              <Image
+                src="/icons/icon-512x512.png"
+                alt="Finuvo"
+                width={68}
+                height={68}
+                className="object-cover w-full h-full"
+                priority
+              />
+            </div>
           </div>
           <h1 className="text-2xl font-display font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
             Finuvo
