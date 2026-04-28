@@ -32,7 +32,7 @@ export function IncomeExpenseBar({ transactions }: Props) {
             <XAxis dataKey="month" tick={{ fill:'#9CA3AF', fontSize:10 }} axisLine={false} tickLine={false} />
             <YAxis hide />
             <Tooltip formatter={(v:number,n:string)=>[formatCurrency(v),n]}
-              contentStyle={{ background:'rgba(255,255,255,0.97)',border:'1px solid rgba(34,197,94,0.18)',borderRadius:8,fontSize:11 }} cursor={false} />
+              contentStyle={{ background:'var(--surface-sheet)',border:'1px solid rgba(34,197,94,0.18)',borderRadius:8,fontSize:11 }} cursor={false} />
             <Bar dataKey="Pemasukan"   fill="#22C55E" radius={[10, 10, 0, 0]}
   activeBar={false} />
             <Bar dataKey="Pengeluaran" fill="#F87171" radius={[10, 10, 0, 0]}

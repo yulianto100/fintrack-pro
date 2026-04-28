@@ -32,7 +32,7 @@ export function ExpensePieChart({ transactions, month }: Props) {
                   {data.map((_,i) => <Cell key={i} fill={COLORS[i%COLORS.length]} opacity={0.9}/>)}
                 </Pie>
                 <Tooltip formatter={(v:number)=>[formatCurrency(v),'']}
-                  contentStyle={{ background:'rgba(255,255,255,0.97)',border:'1px solid rgba(34,197,94,0.18)',borderRadius:8,fontSize:11 }} />
+                  contentStyle={{ background:'var(--surface-sheet)',border:'1px solid rgba(34,197,94,0.18)',borderRadius:8,fontSize:11 }} />
               </PieChart>
             </ResponsiveContainer>
           </div>

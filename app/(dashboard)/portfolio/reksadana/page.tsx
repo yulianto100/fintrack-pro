@@ -65,7 +65,7 @@ function ModalShell({ title, onClose, children }: {
       <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 350 }}
         className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
-        style={{ background: 'rgba(255,255,255,0.92)', border: '1px solid var(--border)', maxHeight: '92dvh', overflowY: 'auto' }}
+        style={{ background: 'var(--surface-sheet)', border: '1px solid var(--border)', maxHeight: '92dvh', overflowY: 'auto' }}
         onClick={(e) => e.stopPropagation()}>
         <div className="drag-indicator mt-3 sm:hidden" />
         <div className="flex items-center justify-between px-5 py-4">
@@ -256,7 +256,7 @@ export default function ReksadanaPage() {
             <button key={t.value} onClick={() => onSelect(t.value)}
               className="py-2.5 rounded-xl text-center transition-all"
               style={{
-                background: selected === t.value ? `${t.color}16` : 'rgba(255,255,255,0.88)',
+                background: selected === t.value ? `${t.color}16` : 'var(--surface-btn)',
                 border: `1px solid ${selected === t.value ? t.color + '40' : 'var(--border)'}`,
               }}>
               <p className="text-lg mb-0.5">{t.icon}</p>
@@ -269,7 +269,7 @@ export default function ReksadanaPage() {
             <button key={t.value} onClick={() => onSelect(t.value)}
               className="py-2.5 rounded-xl text-center transition-all"
               style={{
-                background: selected === t.value ? `${t.color}16` : 'rgba(255,255,255,0.88)',
+                background: selected === t.value ? `${t.color}16` : 'var(--surface-btn)',
                 border: `1px solid ${selected === t.value ? t.color + '40' : 'var(--border)'}`,
               }}>
               <p className="text-lg mb-0.5">{t.icon}</p>
@@ -396,7 +396,7 @@ export default function ReksadanaPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-0 rounded-xl overflow-hidden mb-3" style={{ background: 'rgba(255,255,255,0.90)' }}>
+                <div className="flex flex-col gap-0 rounded-xl overflow-hidden mb-3" style={{ background: 'var(--surface-close)' }}>
                   {[
                     { label: 'Unit',         value: `${formatNumber(h.unit, 4)} unit`,  color: 'var(--text-secondary)' },
                     { label: 'NAB Beli',     value: `${formatCurrency(h.buyNAV)}/unit`, color: 'var(--text-secondary)' },

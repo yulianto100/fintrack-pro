@@ -57,7 +57,7 @@ function ModalShell({ title, onClose, children }: {
       <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 350 }}
         className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
-        style={{ background: 'rgba(255,255,255,0.92)', border: '1px solid var(--border)', maxHeight: '92dvh', overflowY: 'auto' }}
+        style={{ background: 'var(--surface-sheet)', border: '1px solid var(--border)', maxHeight: '92dvh', overflowY: 'auto' }}
         onClick={(e) => e.stopPropagation()}>
         <div className="drag-indicator mt-3 sm:hidden" />
         <div className="flex items-center justify-between px-5 py-4">
@@ -291,7 +291,7 @@ export default function SBNPage() {
                 onClick={() => setF({ ...f, type: t.value })}
                 className="py-2.5 rounded-xl text-center transition-all"
                 style={{
-                  background: f.type === t.value ? 'rgba(168,85,247,0.14)' : 'rgba(255,255,255,0.88)',
+                  background: f.type === t.value ? 'rgba(168,85,247,0.14)' : 'var(--surface-btn)',
                   border: `1px solid ${f.type === t.value ? 'rgba(168,85,247,0.4)' : 'var(--border)'}`,
                 }}>
                 <p className="text-xs font-bold" style={{ color: f.type === t.value ? '#d6aaff' : 'var(--text-muted)' }}>
@@ -307,7 +307,7 @@ export default function SBNPage() {
                 onClick={() => setF({ ...f, type: t.value })}
                 className="py-2.5 rounded-xl text-center transition-all"
                 style={{
-                  background: f.type === t.value ? 'rgba(168,85,247,0.14)' : 'rgba(255,255,255,0.88)',
+                  background: f.type === t.value ? 'rgba(168,85,247,0.14)' : 'var(--surface-btn)',
                   border: `1px solid ${f.type === t.value ? 'rgba(168,85,247,0.4)' : 'var(--border)'}`,
                 }}>
                 <p className="text-xs font-bold" style={{ color: f.type === t.value ? '#d6aaff' : 'var(--text-muted)' }}>
@@ -478,7 +478,7 @@ export default function SBNPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-0 rounded-xl overflow-hidden mb-3" style={{ background: 'rgba(255,255,255,0.90)' }}>
+              <div className="flex flex-col gap-0 rounded-xl overflow-hidden mb-3" style={{ background: 'var(--surface-close)' }}>
                 {[
                   { label: 'Nominal',      value: formatCurrency(h.nominal),       color: '#d6aaff' },
                   { label: 'Bunga Kotor',  value: formatCurrency(h.grossReturn),   color: 'var(--text-secondary)' },

@@ -51,7 +51,7 @@ export function QuickAddFAB() {
                     <button
                       onClick={() => handleTx(opt.type)}
                       className="flex items-center gap-3 pr-4 pl-3 py-2.5 rounded-2xl shadow-lg whitespace-nowrap"
-                      style={{ background: 'rgba(255,255,255,0.90)', border: `1px solid ${opt.color}35`, color: 'var(--text-primary)' }}
+                      style={{ background: 'var(--surface-close)', border: `1px solid ${opt.color}35`, color: 'var(--text-primary)' }}
                     >
                       <span className="text-lg">{opt.icon}</span>
                       <span className="text-sm font-medium">{opt.label}</span>
@@ -60,7 +60,7 @@ export function QuickAddFAB() {
                     <Link href={opt.href} onClick={() => setMenuOpen(false)}>
                       <div
                         className="flex items-center gap-3 pr-4 pl-3 py-2.5 rounded-2xl shadow-lg whitespace-nowrap cursor-pointer"
-                        style={{ background: 'rgba(255,255,255,0.90)', border: `1px solid ${opt.color}35`, color: 'var(--text-primary)' }}
+                        style={{ background: 'var(--surface-close)', border: `1px solid ${opt.color}35`, color: 'var(--text-primary)' }}
                       >
                         <span className="text-lg">{opt.icon}</span>
                         <span className="text-sm font-medium">{opt.label}</span>

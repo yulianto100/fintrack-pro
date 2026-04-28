@@ -176,7 +176,7 @@ export function CsvImporter({ onDone }: { onDone?: () => void }) {
           <div key={s} className="flex items-center gap-1">
             <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
               style={{
-                background: step === s ? 'var(--accent)' : steps_done(step).includes(s) ? 'rgba(34,197,94,0.16)' : 'rgba(255,255,255,0.88)',
+                background: step === s ? 'var(--accent)' : steps_done(step).includes(s) ? 'rgba(34,197,94,0.16)' : 'var(--surface-btn)',
                 color:      step === s ? 'white'        : steps_done(step).includes(s) ? 'var(--accent)' : 'var(--text-muted)',
               }}>
               {steps_done(step).includes(s) ? <Check size={10}/> : i+1}
@@ -214,7 +214,7 @@ export function CsvImporter({ onDone }: { onDone?: () => void }) {
             </div>
 
             {/* Format hints */}
-            <div className="mt-4 p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.75)', border: '1px solid var(--border)' }}>
+            <div className="mt-4 p-4 rounded-xl" style={{ background: 'var(--surface-btn-sm)', border: '1px solid var(--border)' }}>
               <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>FORMAT YANG DIDUKUNG</p>
               <div className="space-y-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
                 {['BCA, Mandiri, BNI, BRI — export CSV dari internet banking',
@@ -241,7 +241,7 @@ export function CsvImporter({ onDone }: { onDone?: () => void }) {
               </div>
             </div>
 
-            <div className="p-4 rounded-xl space-y-3" style={{ background: 'rgba(255,255,255,0.75)', border: '1px solid var(--border)' }}>
+            <div className="p-4 rounded-xl space-y-3" style={{ background: 'var(--surface-btn-sm)', border: '1px solid var(--border)' }}>
               <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>MAPPING KOLOM (WAJIB)</p>
               <SelectCol label="Kolom Tanggal *"    field="date" />
               <SelectCol label="Kolom Deskripsi *"  field="description" />
@@ -261,7 +261,7 @@ export function CsvImporter({ onDone }: { onDone?: () => void }) {
                   <button key={w.value} onClick={() => setWallet(w.value)}
                     className="flex-1 py-2 rounded-xl text-xs font-medium"
                     style={{
-                      background: wallet === w.value ? 'var(--accent-dim)' : 'rgba(255,255,255,0.88)',
+                      background: wallet === w.value ? 'var(--accent-dim)' : 'var(--surface-btn)',
                       color:      wallet === w.value ? 'var(--accent)' : 'var(--text-secondary)',
                       border:    `1px solid ${wallet === w.value ? 'rgba(34,197,94,0.22)' : 'var(--border)'}`,
                     }}>
@@ -274,13 +274,13 @@ export function CsvImporter({ onDone }: { onDone?: () => void }) {
             {/* Sample preview of first 3 rows */}
             {rawRows.length > 0 && mapping.date && (
               <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-                <p className="text-[10px] px-3 py-2 font-semibold" style={{ color: 'var(--text-muted)', background: 'rgba(255,255,255,0.75)' }}>
+                <p className="text-[10px] px-3 py-2 font-semibold" style={{ color: 'var(--text-muted)', background: 'var(--surface-btn-sm)' }}>
                   PREVIEW 3 BARIS PERTAMA
                 </p>
                 <div className="overflow-x-auto">
                   <table className="w-full text-[10px]">
                     <thead>
-                      <tr style={{ background: 'rgba(255,255,255,0.90)' }}>
+                      <tr style={{ background: 'var(--surface-close)' }}>
                         {headers.slice(0, 5).map((h) => (
                           <th key={h} className="px-2 py-1.5 text-left font-semibold"
                             style={{ color: Object.values(mapping).includes(h) ? 'var(--accent)' : 'var(--text-muted)' }}>
@@ -308,7 +308,7 @@ export function CsvImporter({ onDone }: { onDone?: () => void }) {
 
             <div className="flex gap-2">
               <button onClick={reset} className="flex-1 py-3 rounded-xl text-sm"
-                style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                style={{ background: 'var(--surface-close)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
                 Batal
               </button>
               <button onClick={buildPreview}
@@ -324,7 +324,7 @@ export function CsvImporter({ onDone }: { onDone?: () => void }) {
           <motion.div key="preview" initial={{ opacity:0,x:20 }} animate={{ opacity:1,x:0 }} exit={{ opacity:0,x:-20 }}
             className="space-y-4">
             <div className="flex items-center gap-3 p-3 rounded-xl"
-              style={{ background: 'rgba(255,255,255,0.75)', border: '1px solid var(--border)' }}>
+              style={{ background: 'var(--surface-btn-sm)', border: '1px solid var(--border)' }}>
               <AlertTriangle size={16} color="#f59e0b"/>
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 <strong>{preview.length} transaksi</strong> siap diimport. Review sebelum simpan.
@@ -336,7 +336,7 @@ export function CsvImporter({ onDone }: { onDone?: () => void }) {
               {preview.slice(0, 50).map((row, i) => (
                 <div key={i}
                   className="flex items-center gap-3 px-3 py-2.5"
-                  style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'rgba(255,255,255,0.75)' : 'transparent' }}>
+                  style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--surface-btn-sm)' : 'transparent' }}>
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0"
                     style={{ background: row.type === 'income' ? 'rgba(34,197,94,0.10)' : 'rgba(239,68,68,0.12)' }}>
                     {row.type === 'income' ? '↑' : '↓'}
@@ -362,7 +362,7 @@ export function CsvImporter({ onDone }: { onDone?: () => void }) {
 
             <div className="flex gap-2">
               <button onClick={() => setStep('mapping')} className="flex-1 py-3 rounded-xl text-sm"
-                style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                style={{ background: 'var(--surface-close)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
                 ← Edit Mapping
               </button>
               <button onClick={handleSave} disabled={saving}

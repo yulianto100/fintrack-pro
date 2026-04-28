@@ -132,13 +132,13 @@ export default function GoalsPage() {
             <motion.div initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}}
               transition={{type:'spring',damping:30,stiffness:350}}
               className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
-              style={{background:'rgba(255,255,255,0.80)',border:'1px solid var(--border)',maxHeight:'90dvh',overflowY:'auto'}}
+              style={{background:'var(--surface-modal)',border:'1px solid var(--border)',maxHeight:'90dvh',overflowY:'auto'}}
               onClick={e=>e.stopPropagation()}>
               <div className="drag-indicator mt-3 sm:hidden"/>
               <div className="flex items-center justify-between px-5 py-4">
                 <h2 className="font-display font-bold text-lg" style={{color:'var(--text-primary)'}}>Buat Financial Goal</h2>
                 <button onClick={()=>setShowAdd(false)} className="w-9 h-9 rounded-full flex items-center justify-center"
-                  style={{background:'rgba(255,255,255,0.90)',color:'var(--text-secondary)'}}>
+                  style={{background:'var(--surface-close)',color:'var(--text-secondary)'}}>
                   <X size={18}/>
                 </button>
               </div>
@@ -151,7 +151,7 @@ export default function GoalsPage() {
                       <button key={ic} onClick={()=>setForm({...form,icon:ic})}
                         className="w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all"
                         style={{
-                          background: form.icon===ic ? `${form.color}25` : 'rgba(255,255,255,0.88)',
+                          background: form.icon===ic ? `${form.color}25` : 'var(--surface-btn)',
                           border:`1px solid ${form.icon===ic ? form.color+'55' : 'var(--border)'}`,
                         }}>{ic}</button>
                     ))}
@@ -216,7 +216,7 @@ export default function GoalsPage() {
             <motion.div initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}}
               transition={{type:'spring',damping:30,stiffness:350}}
               className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl p-6"
-              style={{background:'rgba(255,255,255,0.80)',border:'1px solid var(--border)'}}
+              style={{background:'var(--surface-modal)',border:'1px solid var(--border)'}}
               onClick={e=>e.stopPropagation()}>
               <h2 className="font-display font-bold text-lg mb-1" style={{color:'var(--text-primary)'}}>
                 {showTopUp.icon} Top Up Progress

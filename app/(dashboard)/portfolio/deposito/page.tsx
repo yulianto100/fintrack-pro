@@ -179,7 +179,7 @@ export default function DepositoPage() {
 
       {/* Summary */}
       <div className="glass-card p-5 mb-5" style={{ borderColor: 'rgba(168,85,247,0.2)' }}>
-        <div className="flex flex-col gap-0 rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.90)' }}>
+        <div className="flex flex-col gap-0 rounded-xl overflow-hidden" style={{ background: 'var(--surface-close)' }}>
           {[
             { label: 'Total Modal',  val: totals.nominal,    color: '#d6aaff' },
             { label: 'Total Bunga',  val: totals.interest,   color: 'var(--accent)' },
@@ -248,7 +248,7 @@ export default function DepositoPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-0 mb-3 rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.90)' }}>
+                <div className="flex flex-col gap-0 mb-3 rounded-xl overflow-hidden" style={{ background: 'var(--surface-close)' }}>
                   {[
                     { label: 'Modal',       value: formatCurrency(d.nominal),       color: '#d6aaff' },
                     { label: 'Bunga',       value: formatCurrency(d.totalInterest), color: 'var(--accent)' },
@@ -292,7 +292,7 @@ export default function DepositoPage() {
         <div className="mt-6">
           <button onClick={() => setShowHistory(!showHistory)}
             className="w-full flex items-center justify-between py-3 px-4 rounded-xl mb-3"
-            style={{ background: 'rgba(255,255,255,0.75)', color: 'var(--text-secondary)' }}>
+            style={{ background: 'var(--surface-btn-sm)', color: 'var(--text-secondary)' }}>
             <span className="text-sm font-medium">Riwayat Deposito ({history.length})</span>
             <CheckCircle size={16} color="var(--text-muted)" />
           </button>
@@ -327,12 +327,12 @@ export default function DepositoPage() {
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 350 }}
               className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl p-6"
-              style={{ background: 'rgba(255,255,255,0.80)', border: '1px solid var(--border)', maxHeight: '90dvh', overflowY: 'auto' }}
+              style={{ background: 'var(--surface-modal)', border: '1px solid var(--border)', maxHeight: '90dvh', overflowY: 'auto' }}
               onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
                 <h2 className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Tambah Deposito</h2>
                 <button onClick={() => setShowAdd(false)} className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)' }}>
+                  style={{ background: 'var(--surface-close)', color: 'var(--text-secondary)' }}>
                   <X size={16} />
                 </button>
               </div>
@@ -355,7 +355,7 @@ export default function DepositoPage() {
                         <button key={b}
                           onClick={() => setForm((p) => ({ ...p, bankName: b }))}
                           className="px-2 py-1 rounded-lg text-xs"
-                          style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                          style={{ background: 'var(--surface-close)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
                           {b}
                         </button>
                       ))}
@@ -449,7 +449,7 @@ export default function DepositoPage() {
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 350 }}
               className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
-              style={{ background: 'rgba(255,255,255,0.92)', border: '1px solid var(--border)', maxHeight: '92dvh', overflowY: 'auto' }}
+              style={{ background: 'var(--surface-sheet)', border: '1px solid var(--border)', maxHeight: '92dvh', overflowY: 'auto' }}
               onClick={(e) => e.stopPropagation()}>
               <div className="drag-indicator mt-3 sm:hidden" />
               <div className="flex items-center justify-between px-5 py-4">

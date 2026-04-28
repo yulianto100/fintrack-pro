@@ -11,7 +11,7 @@ const Tip = ({ active, payload, label }: any) => {
     <div
       className="px-3 py-2 rounded-xl text-xs"
       style={{
-        background: 'rgba(255,255,255,0.90)',
+        background: 'var(--surface-close)',
         border: '1px solid rgba(34,197,94,0.18)',
         backdropFilter: 'blur(10px)',
         boxShadow: '0 8px 20px rgba(0,0,0,0.25)',

@@ -46,7 +46,7 @@ export function BudgetProgress({ budgets }: { budgets: BudgetStatus[] }) {
                   </span>
                 </div>
               </div>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.90)' }}>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--surface-close)' }}>
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${Math.min(b.percent, 100)}%` }}

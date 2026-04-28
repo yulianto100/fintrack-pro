@@ -17,7 +17,7 @@ export default function ImportPage() {
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => router.back()}
           className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)' }}>
+          style={{ background: 'var(--surface-close)', color: 'var(--text-secondary)' }}>
           <ArrowLeft size={18} />
         </button>
         <div>

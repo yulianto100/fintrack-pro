@@ -42,7 +42,7 @@ function ModalShell({ title, onClose, children }: {
       <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 350 }}
         className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
-        style={{ background: 'rgba(255,255,255,0.92)', border: '1px solid var(--border)', maxHeight: '92dvh', overflowY: 'auto' }}
+        style={{ background: 'var(--surface-sheet)', border: '1px solid var(--border)', maxHeight: '92dvh', overflowY: 'auto' }}
         onClick={(e) => e.stopPropagation()}>
         <div className="drag-indicator mt-3 sm:hidden" />
         <div className="flex items-center justify-between px-5 py-4">
@@ -206,7 +206,7 @@ export default function SahamPage() {
         <div className="flex gap-2">
           <button onClick={() => { refetch(); refetchPrices() }}
             className="w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.90)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+            style={{ background: 'var(--surface-close)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
             <RefreshCw size={15} />
           </button>
           <button onClick={() => setShowAdd(true)} className="btn-primary px-4 py-2 flex items-center gap-1.5 text-sm">

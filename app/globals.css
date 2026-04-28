@@ -15,6 +15,17 @@
   --surface-3: rgba(255, 255, 255, 0.85);
   --surface-4: rgba(240, 250, 244, 0.95);
 
+  /* Component surface tokens */
+  --surface-modal:    rgba(255, 255, 255, 0.80);
+  --surface-sheet:    rgba(255, 255, 255, 0.92);
+  --surface-header:   rgba(255, 255, 255, 0.82);
+  --surface-nav:      rgba(255, 255, 255, 0.90);
+  --surface-btn:      rgba(255, 255, 255, 0.88);
+  --surface-btn-sm:   rgba(255, 255, 255, 0.75);
+  --surface-subtle:   rgba(255, 255, 255, 0.60);
+  --surface-close:    rgba(255, 255, 255, 0.90);
+  --surface-row:      rgba(255, 255, 255, 0.90);
+
   --border:       rgba(34, 197, 94, 0.14);
   --border-hover: rgba(34, 197, 94, 0.30);
 
@@ -393,6 +404,17 @@ input[type="date"]::-webkit-date-and-time-value {
   --surface-3: rgba(24, 44, 30, 0.92);
   --surface-4: rgba(12, 24, 16, 0.95);
 
+  /* Component surface tokens — dark overrides */
+  --surface-modal:    rgba(10, 22, 14, 0.97);
+  --surface-sheet:    rgba(10, 22, 14, 0.97);
+  --surface-header:   rgba(6, 14, 9, 0.96);
+  --surface-nav:      rgba(6, 14, 9, 0.96);
+  --surface-btn:      rgba(20, 40, 26, 0.95);
+  --surface-btn-sm:   rgba(16, 34, 22, 0.92);
+  --surface-subtle:   rgba(16, 32, 20, 0.88);
+  --surface-close:    rgba(22, 44, 28, 0.95);
+  --surface-row:      rgba(14, 28, 18, 0.95);
+
   --border:       rgba(34, 197, 94, 0.18);
   --border-hover: rgba(34, 197, 94, 0.35);
 
@@ -478,11 +500,53 @@ input[type="date"]::-webkit-date-and-time-value {
 .dark .recharts-cartesian-grid line { stroke: rgba(34,197,94,0.10) !important; }
 .dark .recharts-text { fill: var(--text-muted) !important; }
 
-/* Dark modal backgrounds */
+/* ─── DARK MODE — Inline style overrides ─────────────────────────────────────
+   Catches hardcoded rgba(255,255,255,…) values in component inline styles.
+   Uses CSS variables so the override is consistent with the theme tokens.
+─────────────────────────────────────────────────────────────────────────────*/
+
+/* Modal / sheet containers */
 .dark [style*="rgba(255,255,255,0.80)"],
-.dark [style*="rgba(255,255,255,0.85)"],
-.dark [style*="rgba(255,255,255,0.88)"],
-.dark [style*="rgba(255,255,255,0.90)"],
-.dark [style*="rgba(255,255,255,0.92)"] {
-  background: rgba(12, 24, 16, 0.95) !important;
+.dark [style*="rgba(255,255,255,0.82)"],
+.dark [style*="rgba(255,255,255,0.85)"] {
+  background: var(--surface-modal) !important;
+}
+
+/* Sheet / drawer – high opacity */
+.dark [style*="rgba(255,255,255,0.92)"],
+.dark [style*="rgba(255,255,255,0.95)"],
+.dark [style*="rgba(255,255,255,0.97)"] {
+  background: var(--surface-sheet) !important;
+}
+
+/* Button-sized chips and pickers */
+.dark [style*="rgba(255,255,255,0.88)"] {
+  background: var(--surface-btn) !important;
+}
+
+/* Row / nav / close buttons */
+.dark [style*="rgba(255,255,255,0.90)"] {
+  background: var(--surface-close) !important;
+}
+
+/* Subtle / inner card backgrounds */
+.dark [style*="rgba(255,255,255,0.75)"] {
+  background: var(--surface-btn-sm) !important;
+}
+
+.dark [style*="rgba(255,255,255,0.60)"],
+.dark [style*="rgba(255,255,255,0.6)"] {
+  background: var(--surface-subtle) !important;
+}
+
+/* Recharts tooltip */
+.dark .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--surface-sheet) !important;
+  border-color: rgba(34, 197, 94, 0.22) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Loading screen */
+.dark .min-h-dvh[style*="linear-gradient(170deg"] {
+  background: linear-gradient(170deg, #060F09 0%, #0A1A0F 100%) !important;
 }

@@ -49,7 +49,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         style={{
           height: 'calc(var(--nav-height) + env(safe-area-inset-top, 0px))',
           paddingTop: 'env(safe-area-inset-top, 0px)',
-          background: 'rgba(255,255,255,0.82)',
+          background: 'var(--surface-header)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           borderBottom: '1px solid var(--border)',
@@ -93,7 +93,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         style={{
           height: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          background: 'rgba(255,255,255,0.90)',
+          background: 'var(--surface-nav)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
           borderTop: '1px solid var(--border)',

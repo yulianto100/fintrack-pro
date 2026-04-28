@@ -166,7 +166,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
             <button key={w.value} onClick={() => onSelect(w.value)}
               className="flex-1 flex flex-col items-center py-2.5 rounded-xl text-xs transition-all"
               style={{
-                background: selected === w.value ? `${accentColor}20` : 'rgba(255,255,255,0.88)',
+                background: selected === w.value ? `${accentColor}20` : 'var(--surface-btn)',
                 border:    `1px solid ${selected === w.value ? accentColor + '50' : 'rgba(34,197,94,0.15)'}`,
                 color:      selected === w.value ? accentColor : 'var(--text-secondary)',
               }}>
@@ -182,7 +182,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
                 onClick={() => onSelectAccount(selectedAccount === acc.id ? '' : acc.id)}
                 className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1"
                 style={{
-                  background: selectedAccount === acc.id ? `${accentColor}25` : 'rgba(255,255,255,0.88)',
+                  background: selectedAccount === acc.id ? `${accentColor}25` : 'var(--surface-btn)',
                   border:    `1px solid ${selectedAccount === acc.id ? accentColor + '60' : 'rgba(34,197,94,0.12)'}`,
                   color:      selectedAccount === acc.id ? accentColor : 'var(--text-secondary)',
                 }}>
@@ -319,7 +319,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
               onClick={() => { setToExtAccountId(acc.id); setToExtWalletType(acc.type) }}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all"
               style={{
-                background: toExtAccountId === acc.id ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.88)',
+                background: toExtAccountId === acc.id ? 'rgba(34,197,94,0.15)' : 'var(--surface-btn)',
                 border: `1px solid ${toExtAccountId === acc.id ? 'rgba(34,197,94,0.30)' : 'rgba(34,197,94,0.15)'}`,
                 color: toExtAccountId === acc.id ? 'var(--accent)' : 'var(--text-secondary)',
               }}>
@@ -346,7 +346,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
           initial={{ y: '100%', opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: '100%', opacity: 0 }}
           transition={{ type: 'spring', damping: 30, stiffness: 350 }}
           className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
-          style={{ background: 'rgba(255,255,255,0.80)', border: '1px solid var(--border)', maxHeight: '92dvh', overflowY: 'auto' }}
+          style={{ background: 'var(--surface-modal)', border: '1px solid var(--border)', maxHeight: '92dvh', overflowY: 'auto' }}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="drag-indicator mt-3 sm:hidden" />
@@ -358,7 +358,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
             </h2>
             <button onClick={() => onClose()}
               className="w-9 h-9 rounded-full flex items-center justify-center"
-              style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)' }}>
+              style={{ background: 'var(--surface-close)', color: 'var(--text-secondary)' }}>
               <X size={18} />
             </button>
           </div>
@@ -370,7 +370,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
                 onClick={() => { setType(tab.type); setCategoryId(''); setTransferMode('internal') }}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium"
                 style={{
-                  background: type === tab.type ? `${tab.color}20` : 'rgba(255,255,255,0.75)',
+                  background: type === tab.type ? `${tab.color}20` : 'var(--surface-btn-sm)',
                   color:      type === tab.type ? tab.color         : 'var(--text-muted)',
                   border:    `1px solid ${type === tab.type ? tab.color + '50' : 'var(--border)'}`,
                 }}>
@@ -414,7 +414,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
                         <button key={cat.id} onClick={() => setCategoryId(cat.id)}
                           className="flex flex-col items-center gap-1 p-2 rounded-xl transition-all"
                           style={{
-                            background: categoryId === cat.id ? `${cat.color}25` : 'rgba(255,255,255,0.88)',
+                            background: categoryId === cat.id ? `${cat.color}25` : 'var(--surface-btn)',
                             border:    `1px solid ${categoryId === cat.id ? cat.color + '70' : 'rgba(34,197,94,0.15)'}`,
                           }}>
                           <span className="text-xl">{cat.icon}</span>
@@ -454,7 +454,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
                       onClick={() => setTransferMode(m.value)}
                       className="py-3 px-3 rounded-xl text-left transition-all"
                       style={{
-                        background: transferMode === m.value ? 'rgba(99,179,237,0.15)' : 'rgba(255,255,255,0.88)',
+                        background: transferMode === m.value ? 'rgba(99,179,237,0.15)' : 'var(--surface-btn)',
                         border: `1px solid ${transferMode === m.value ? 'rgba(99,179,237,0.5)' : 'var(--border)'}`,
                       }}>
                       <div className="flex items-center gap-2 mb-0.5">
@@ -635,7 +635,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
 
             {/* Recurring toggle — only for income/expense, not edit mode */}
             {!isEdit && type !== 'transfer' && (
-              <div className="rounded-2xl p-4" style={{ background: isRecurring ? 'rgba(34,197,94,0.07)' : 'rgba(255,255,255,0.6)', border: `1px solid ${isRecurring ? 'rgba(34,197,94,0.25)' : 'var(--border)'}` }}>
+              <div className="rounded-2xl p-4" style={{ background: isRecurring ? 'rgba(34,197,94,0.07)' : 'var(--surface-subtle)', border: `1px solid ${isRecurring ? 'rgba(34,197,94,0.25)' : 'var(--border)'}` }}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-base">🔁</span>
@@ -664,7 +664,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
                         onClick={() => setRecurringFrequency(f.value)}
                         className="py-2 rounded-xl text-xs font-semibold transition-all"
                         style={{
-                          background: recurringFrequency === f.value ? 'var(--accent)' : 'rgba(255,255,255,0.85)',
+                          background: recurringFrequency === f.value ? 'var(--accent)' : 'var(--surface-btn-sm)',
                           color: recurringFrequency === f.value ? '#fff' : 'var(--text-muted)',
                           border: `1px solid ${recurringFrequency === f.value ? 'var(--accent)' : 'var(--border)'}`,
                         }}>
