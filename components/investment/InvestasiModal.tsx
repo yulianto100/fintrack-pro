@@ -1,14 +1,21 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  X, TrendingUp, ChevronRight, AlertCircle, CheckCircle2,
+  X, TrendingUp, AlertCircle, CheckCircle2,
   Wallet, ArrowRight, Loader2
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { formatCurrency } from '@/lib/utils'
 import type { WalletType } from '@/types'
+
+interface WalletAccount {
+  id: string
+  name: string
+  type: 'bank' | 'ewallet'
+  balance: number
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -147,7 +154,23 @@ export function InvestasiModal({ walletBalances, onClose, onSuccess }: Props) {
   const [step,        setStep       ] = useState<1 | 2 | 3>(1)
   const [investType,  setInvestType ] = useState<InvestType | null>(null)
   const [wallet,      setWallet     ] = useState<WalletType>('bank')
+  const [walletAccountId, setWalletAccountId] = useState<string>('')
+  const [walletAccounts,  setWalletAccounts ] = useState<WalletAccount[]>([])
   const [saving,      setSaving     ] = useState(false)
+
+  // Fetch wallet accounts so we can show sub-account picker
+  useEffect(() => {
+    fetch('/api/wallet-accounts')
+      .then(r => r.json())
+      .then(j => { if (j.success) setWalletAccounts(j.data || []) })
+      .catch(() => {})
+  }, [])
+
+  // Reset sub-account when wallet type changes
+  const handleWalletChange = (w: WalletType) => {
+    setWallet(w)
+    setWalletAccountId('')
+  }
 
   // ── Saham fields
   const [kodeSaham,   setKodeSaham  ] = useState('')
@@ -190,8 +213,14 @@ export function InvestasiModal({ walletBalances, onClose, onSuccess }: Props) {
     }
   }, [investType, hargaLot, jumlahLot, beratEmas, hargaGram, nominalReksa, nominalSBN, nominalDepo])
 
-  const currentBalance = walletBalances[wallet]
-  const insufficient   = total > 0 && total > currentBalance
+  // Balance: use specific account balance if selected, else wallet-type total
+  const selectedAccount   = walletAccounts.find(a => a.id === walletAccountId)
+  const currentBalance    = selectedAccount
+    ? selectedAccount.balance
+    : walletBalances[wallet]
+  const subAccountsForWallet = walletAccounts.filter(a => a.type === wallet)
+  const needsSubAccount   = (wallet === 'bank' || wallet === 'ewallet') && subAccountsForWallet.length > 0
+  const insufficient      = total > 0 && total > currentBalance
 
   const typeInfo = INVEST_TYPES.find(t => t.id === investType)
 
@@ -208,9 +237,15 @@ export function InvestasiModal({ walletBalances, onClose, onSuccess }: Props) {
     }
   }, [investType, total, kodeSaham, hargaLot, jumlahLot, beratEmas, hargaGram, namaReksa, namaSBN, bankDepo, bungaDepo, durasiDepo])
 
-  // ── Submit ────────────────────────────────────────────────────────────────
+  // Step-3 submit guard: also block if sub-account required but not selected
+  const submitReady = useMemo(() => {
+    if (!formValid) return false
+    if (needsSubAccount && !walletAccountId) return false
+    return true
+  }, [formValid, needsSubAccount, walletAccountId])
+
   const handleSubmit = useCallback(async () => {
-    if (!investType || !formValid || insufficient) return
+    if (!investType || !submitReady || insufficient) return
     setSaving(true)
     try {
       const today = new Date().toISOString().split('T')[0]
@@ -220,6 +255,7 @@ export function InvestasiModal({ walletBalances, onClose, onSuccess }: Props) {
         type: 'expense',
         amount: total,
         wallet,
+        ...(walletAccountId ? { walletAccountId } : {}),
         description: getDescription(),
         date: today,
         categoryId: 'investasi',  // special sentinel (API falls back gracefully)
@@ -684,33 +720,99 @@ export function InvestasiModal({ walletBalances, onClose, onSuccess }: Props) {
                         <motion.button
                           key={w.value}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => setWallet(w.value)}
+                          onClick={() => handleWalletChange(w.value)}
                           className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all"
                           style={{
                             background: active
-                              ? canPay
-                                ? 'rgba(34,197,94,0.12)'
-                                : 'rgba(239,68,68,0.10)'
+                              ? canPay ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.10)'
                               : 'rgba(255,255,255,0.04)',
                             border: active
-                              ? canPay
-                                ? '1.5px solid rgba(34,197,94,0.40)'
-                                : '1.5px solid rgba(239,68,68,0.40)'
+                              ? canPay ? '1.5px solid rgba(34,197,94,0.40)' : '1.5px solid rgba(239,68,68,0.40)'
                               : '1.5px solid rgba(255,255,255,0.08)',
                           }}
                         >
                           <span className="text-lg">{w.icon}</span>
-                          <p className="text-[10px] font-semibold" style={{ color: active ? (canPay ? 'var(--accent)' : 'var(--red)') : 'var(--text-secondary)' }}>
+                          <p className="text-[10px] font-semibold"
+                            style={{ color: active ? (canPay ? 'var(--accent)' : 'var(--red)') : 'var(--text-secondary)' }}>
                             {w.label}
                           </p>
-                          <p className="text-[9px] font-mono leading-none" style={{ color: canPay ? 'var(--text-muted)' : 'var(--red)' }}>
+                          <p className="text-[9px] font-mono leading-none"
+                            style={{ color: canPay ? 'var(--text-muted)' : 'var(--red)' }}>
                             {formatCurrency(bal)}
                           </p>
                         </motion.button>
                       )
                     })}
                   </div>
+
+                  {/* Sub-account picker for Bank / E-Wallet */}
+                  {needsSubAccount && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-1.5 pt-1"
+                    >
+                      <p className="text-[10px] font-semibold uppercase tracking-wide"
+                        style={{ color: walletAccountId ? 'var(--accent)' : 'rgba(245,158,11,0.85)' }}>
+                        {walletAccountId ? '✓ Rekening dipilih' : '⚠ Pilih rekening spesifik'}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {subAccountsForWallet.map(acc => {
+                          const isActive  = walletAccountId === acc.id
+                          const canPayAcc = acc.balance >= total
+                          return (
+                            <motion.button
+                              key={acc.id}
+                              whileTap={{ scale: 0.93 }}
+                              onClick={() => setWalletAccountId(prev => prev === acc.id ? '' : acc.id)}
+                              className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all"
+                              style={{
+                                background: isActive
+                                  ? canPayAcc ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)'
+                                  : 'rgba(255,255,255,0.05)',
+                                border: isActive
+                                  ? canPayAcc ? '1px solid rgba(34,197,94,0.50)' : '1px solid rgba(239,68,68,0.45)'
+                                  : '1px solid rgba(255,255,255,0.10)',
+                              }}
+                            >
+                              {isActive && (
+                                <CheckCircle2 size={12} color={canPayAcc ? 'var(--accent)' : 'var(--red)'} />
+                              )}
+                              <div className="text-left">
+                                <p className="text-xs font-semibold leading-tight"
+                                  style={{ color: isActive ? (canPayAcc ? 'var(--accent)' : 'var(--red)') : 'var(--text-primary)' }}>
+                                  {acc.name}
+                                </p>
+                                <p className="text-[9px] font-mono"
+                                  style={{ color: canPayAcc ? 'var(--text-muted)' : 'var(--red)' }}>
+                                  {formatCurrency(acc.balance)}
+                                </p>
+                              </div>
+                            </motion.button>
+                          )
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
                 </div>
+
+                {/* Sub-account required warning */}
+                {needsSubAccount && !walletAccountId && !insufficient && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-start gap-2.5 rounded-xl px-4 py-3"
+                    style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.28)' }}
+                  >
+                    <AlertCircle size={16} color="#F59E0B" className="mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold" style={{ color: '#F59E0B' }}>Pilih rekening terlebih dahulu</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: 'rgba(245,158,11,0.70)' }}>
+                        Pilih rekening Bank / E-Wallet spesifik agar saldo terpotong dengan benar.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
 
                 {/* Balance warning */}
                 {insufficient && (
@@ -724,13 +826,16 @@ export function InvestasiModal({ walletBalances, onClose, onSuccess }: Props) {
                     <div>
                       <p className="text-xs font-semibold" style={{ color: 'var(--red)' }}>Saldo tidak cukup</p>
                       <p className="text-[10px] mt-0.5" style={{ color: 'rgba(239,68,68,0.70)' }}>
-                        Kurang {formatCurrency(total - currentBalance)}. Top up dompet terlebih dahulu.
+                        {selectedAccount
+                          ? `Saldo ${selectedAccount.name}: ${formatCurrency(currentBalance)}. Kurang ${formatCurrency(total - currentBalance)}.`
+                          : `Kurang ${formatCurrency(total - currentBalance)}. Top up dompet terlebih dahulu.`
+                        }
                       </p>
                     </div>
                   </motion.div>
                 )}
 
-                {!insufficient && total > 0 && (
+                {!insufficient && submitReady && total > 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -738,7 +843,9 @@ export function InvestasiModal({ walletBalances, onClose, onSuccess }: Props) {
                     style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.18)' }}
                   >
                     <div>
-                      <p className="text-[10px]" style={{ color: 'rgba(34,197,94,0.70)' }}>Sisa saldo setelah transaksi</p>
+                      <p className="text-[10px]" style={{ color: 'rgba(34,197,94,0.70)' }}>
+                        Sisa saldo {selectedAccount ? selectedAccount.name : ''} setelah transaksi
+                      </p>
                       <p className="text-sm font-bold font-mono" style={{ color: 'var(--accent)' }}>
                         {formatCurrency(currentBalance - total)}
                       </p>
@@ -778,15 +885,15 @@ export function InvestasiModal({ walletBalances, onClose, onSuccess }: Props) {
           ) : (
             <motion.button
               whileTap={{ scale: 0.97 }}
-              disabled={saving || insufficient || !formValid}
+              disabled={saving || insufficient || !submitReady}
               onClick={handleSubmit}
               className="w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 font-semibold text-sm transition-all"
               style={{
-                background: saving || insufficient
+                background: saving || insufficient || !submitReady
                   ? 'rgba(255,255,255,0.06)'
                   : 'linear-gradient(135deg,#22C55E,#16A34A)',
-                color: saving || insufficient ? 'var(--text-muted)' : '#fff',
-                boxShadow: !saving && !insufficient ? '0 6px 20px rgba(34,197,94,0.30)' : 'none',
+                color: saving || insufficient || !submitReady ? 'var(--text-muted)' : '#fff',
+                boxShadow: !saving && !insufficient && submitReady ? '0 6px 20px rgba(34,197,94,0.30)' : 'none',
               }}
             >
               {saving

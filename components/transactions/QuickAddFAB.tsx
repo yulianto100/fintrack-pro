@@ -18,59 +18,114 @@ interface Props {
 }
 
 export function QuickAddFAB({ walletBalances, onInvestmentSuccess }: Props) {
+  const [menuOpen,   setMenuOpen  ] = useState(false)
   const [txOpen,     setTxOpen    ] = useState(false)
   const [investOpen, setInvestOpen] = useState(false)
 
   const defaultBalances: WalletBalances = walletBalances ?? { cash: 0, bank: 0, ewallet: 0 }
 
+  const openTx = () => { setMenuOpen(false); setTxOpen(true) }
+  const openInvest = () => { setMenuOpen(false); setInvestOpen(true) }
+
   return (
     <>
-      {/* ── Two-button FAB column ──────────────────────────────────────── */}
-      <div
-        className="fab-container"
-        style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}
-      >
-        {/* 📈 Investasi */}
+      {/* ── Backdrop (closes menu on outside tap) ─────────────────────── */}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            key="fab-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40"
+            onClick={() => setMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── FAB container ─────────────────────────────────────────────── */}
+      <div className="fab-container">
+
+        {/* Expanded options — appear above the main FAB */}
+        <AnimatePresence>
+          {menuOpen && (
+            <div className="absolute bottom-16 right-0 flex flex-col items-end gap-2.5 mb-2">
+
+              {/* 📈 Investasi (top) */}
+              <motion.button
+                initial={{ opacity: 0, x: 16, scale: 0.85 }}
+                animate={{ opacity: 1, x: 0,  scale: 1    }}
+                exit={{    opacity: 0, x: 16, scale: 0.85 }}
+                transition={{ delay: 0.05, type: 'spring', stiffness: 380, damping: 26 }}
+                whileTap={{ scale: 0.92 }}
+                onClick={openInvest}
+                className="flex items-center gap-3 pr-4 pl-3 py-2.5 rounded-2xl shadow-lg"
+                style={{
+                  background: 'var(--surface-close)',
+                  border:     '1px solid rgba(245,158,11,0.35)',
+                  color:      'var(--text-primary)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <span
+                  className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: 'rgba(245,158,11,0.18)' }}
+                >
+                  <TrendingUp size={14} color="#F59E0B" strokeWidth={2.5} />
+                </span>
+                <span className="text-sm font-semibold">Investasi</span>
+              </motion.button>
+
+              {/* ➕ Tambah Transaksi (bottom, closer to FAB) */}
+              <motion.button
+                initial={{ opacity: 0, x: 16, scale: 0.85 }}
+                animate={{ opacity: 1, x: 0,  scale: 1    }}
+                exit={{    opacity: 0, x: 16, scale: 0.85 }}
+                transition={{ delay: 0, type: 'spring', stiffness: 380, damping: 26 }}
+                whileTap={{ scale: 0.92 }}
+                onClick={openTx}
+                className="flex items-center gap-3 pr-4 pl-3 py-2.5 rounded-2xl shadow-lg"
+                style={{
+                  background: 'var(--surface-close)',
+                  border:     '1px solid rgba(34,197,94,0.35)',
+                  color:      'var(--text-primary)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <span
+                  className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: 'rgba(34,197,94,0.18)' }}
+                >
+                  <Plus size={15} color="var(--accent)" strokeWidth={2.8} />
+                </span>
+                <span className="text-sm font-semibold">Tambah Transaksi</span>
+              </motion.button>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Main round + FAB ──────────────────────────────────────────── */}
         <motion.button
-          initial={{ opacity: 0, x: 40 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.06, type: 'spring', stiffness: 380, damping: 30 }}
-          whileTap={{ scale: 0.90 }}
-          onClick={() => setInvestOpen(true)}
-          className="flex items-center gap-2.5 pl-4 pr-5 h-12 rounded-2xl shadow-xl"
+          whileTap={{ scale: 0.88 }}
+          onClick={() => setMenuOpen(p => !p)}
+          className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl"
           style={{
-            background: 'linear-gradient(135deg,#F59E0B,#D97706)',
-            boxShadow:  '0 6px 20px rgba(245,158,11,0.35)',
-            color:      '#fff',
-            whiteSpace: 'nowrap',
-            fontWeight: 600,
-            fontSize:   14,
+            background: menuOpen
+              ? 'linear-gradient(135deg,#F87171,#e53e3e)'
+              : 'linear-gradient(135deg,#22C55E,#16A34A)',
+            boxShadow: menuOpen
+              ? '0 8px 24px rgba(252,129,129,0.40)'
+              : '0 8px 24px rgba(34,197,94,0.28)',
           }}
         >
-          <TrendingUp size={18} strokeWidth={2.5} />
-          <span>Investasi</span>
+          <motion.div
+            animate={{ rotate: menuOpen ? 45 : 0 }}
+            transition={{ duration: 0.2, type: 'spring', stiffness: 400, damping: 25 }}
+          >
+            <Plus size={26} color="#fff" strokeWidth={2.8} />
+          </motion.div>
         </motion.button>
 
-        {/* ➕ Tambah Transaksi */}
-        <motion.button
-          initial={{ opacity: 0, x: 40 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0, type: 'spring', stiffness: 380, damping: 30 }}
-          whileTap={{ scale: 0.90 }}
-          onClick={() => setTxOpen(true)}
-          className="flex items-center gap-2.5 pl-4 pr-5 h-14 rounded-2xl shadow-xl"
-          style={{
-            background: 'linear-gradient(135deg,#22C55E,#16A34A)',
-            boxShadow:  '0 8px 24px rgba(34,197,94,0.30)',
-            color:      '#fff',
-            whiteSpace: 'nowrap',
-            fontWeight: 700,
-            fontSize:   15,
-          }}
-        >
-          <Plus size={22} strokeWidth={2.8} />
-          <span>Tambah Transaksi</span>
-        </motion.button>
       </div>
 
       {/* ── Transaction Modal ──────────────────────────────────────────── */}
@@ -91,9 +146,7 @@ export function QuickAddFAB({ walletBalances, onInvestmentSuccess }: Props) {
             key="invest-modal"
             walletBalances={defaultBalances}
             onClose={() => setInvestOpen(false)}
-            onSuccess={() => {
-              onInvestmentSuccess?.()
-            }}
+            onSuccess={() => onInvestmentSuccess?.()}
           />
         )}
       </AnimatePresence>
