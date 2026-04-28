@@ -13,7 +13,6 @@ import Link from 'next/link'
 import { WalletCard } from '@/components/dashboard/WalletCard'
 import { QuickAddFAB } from '@/components/transactions/QuickAddFAB'
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions'
-import { PortfolioSummaryCard } from '@/components/dashboard/PortfolioSummaryCard'
 import { SmartInsights } from '@/components/dashboard/SmartInsights'
 import { StreakBanner } from '@/components/dashboard/StreakBanner'
 import { WeeklySummary } from '@/components/dashboard/WeeklySummary'
@@ -207,29 +206,6 @@ export default function DashboardPage() {
       {/* Weekly Summary */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}>
         <WeeklySummary transactions={allTx} />
-      </motion.div>
-
-      {/* Portfolio summary */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
-        <div className="flex items-center justify-between mb-2 px-1">
-          <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>PORTOFOLIO</p>
-          <Link href="/portfolio" className="flex items-center gap-1 text-xs" style={{ color: 'var(--accent)' }}>
-            Lihat semua <ArrowRight size={12} />
-          </Link>
-        </div>
-        <PortfolioSummaryCard
-          goldValue={goldValue}
-          goldGrams={goldHoldings.reduce((s, h) => s + h.grams, 0)}
-          stockCount={stocks.length}
-          stockValue={stockValue}
-          depositValue={depositValue}
-          depositCount={deposits.filter((d) => d.status === 'active').length}
-          sbnValue={sbnValue}
-          sbnCount={sbnList.filter((h) => h.status === 'active').length}
-          reksadanaValue={reksadanaValue}
-          reksadanaCount={reksadanaList.length}
-          hidden={hidden}
-        />
       </motion.div>
 
       {/* Net Worth Breakdown */}

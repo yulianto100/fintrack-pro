@@ -50,7 +50,7 @@ export function WeeklySummary({ transactions }: { transactions: Transaction[] })
           { label: 'Saldo',  value: summary.balance, color: isPositive ? 'var(--accent)' : 'var(--red)', icon: isPositive ? '✓' : '!' },
         ].map(({ label, value, color, icon }) => (
           <div key={label} className="rounded-xl p-3 text-center"
-            style={{ background: 'rgba(255,255,255,0.90)' }}>
+            style={{ background: 'var(--surface-3)', border: '1px solid var(--border)' }}>
             <p className="text-[9px] mb-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
             <p className="text-xs font-bold font-mono leading-tight" style={{ color }}>
               {value < 0 ? '-' : ''}{formatCurrency(Math.abs(value))}

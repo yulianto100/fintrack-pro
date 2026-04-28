@@ -206,7 +206,8 @@ export default function PortfolioPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={pieData} cx="50%" cy="50%" innerRadius={28} outerRadius={46}
-                    dataKey="value" strokeWidth={0}>
+                    dataKey="value" strokeWidth={2} stroke="transparent"
+                    isAnimationActive={false}>
                     {pieData.map((entry) => (
                       <Cell key={entry.name} fill={entry.color} opacity={0.9} />
                     ))}
@@ -214,7 +215,8 @@ export default function PortfolioPage() {
                   <Tooltip
                     formatter={(v: number) => [`${v.toFixed(1)}%`, '']}
                     contentStyle={{ background: 'rgba(10,30,20,0.95)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 11 }}
-                    itemStyle={{ color: '#fff' }} labelStyle={{ color: '#aaa' }} cursor={false}
+                    itemStyle={{ color: '#fff' }} labelStyle={{ color: '#aaa' }}
+                    wrapperStyle={{ zIndex: 100, outline: 'none' }}
                   />
                 </PieChart>
               </ResponsiveContainer>
