@@ -30,16 +30,54 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (status === 'loading') {
     return (
-      <div className="min-h-dvh flex items-center justify-center" style={{ background: 'linear-gradient(170deg, #060F09 0%, #0A1A0F 100%)' }}>
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative w-14 h-14">
-            <Image src="/icons/icon-192x192.png" alt="Finuvo" width={56} height={56} className="rounded-2xl" />
+      <div
+        className="min-h-dvh flex flex-col items-center justify-center"
+        style={{ background: '#050E08' }}
+      >
+        {/* Glow ring behind icon */}
+        <div className="relative flex items-center justify-center">
+          {/* Outer glow pulse */}
+          <div
+            className="absolute rounded-[36px] animate-pulse"
+            style={{
+              width: 180, height: 180,
+              background: 'radial-gradient(circle, rgba(34,197,94,0.18) 0%, transparent 70%)',
+            }}
+          />
+          {/* Icon */}
+          <div
+            className="relative rounded-[32px] overflow-hidden"
+            style={{
+              width: 140, height: 140,
+              boxShadow: '0 0 60px rgba(34,197,94,0.25), 0 0 120px rgba(34,197,94,0.10)',
+            }}
+          >
+            <Image
+              src="/icons/icon-512x512.png"
+              alt="Finuvo"
+              width={140}
+              height={140}
+              className="object-cover w-full h-full"
+              priority
+            />
           </div>
-          <div className="relative w-8 h-8">
-            <div className="absolute inset-0 rounded-full border-2" style={{ borderColor: 'rgba(34,197,94,0.15)' }} />
-            <div className="absolute inset-0 rounded-full border-2 border-t-transparent animate-spin"
-              style={{ borderColor: 'var(--accent)' }} />
-          </div>
+        </div>
+
+        {/* App name */}
+        <p
+          className="mt-6 text-xl font-display font-bold tracking-tight"
+          style={{ color: 'var(--accent)', letterSpacing: '-0.02em' }}
+        >
+          Finuvo
+        </p>
+
+        {/* Spinner */}
+        <div className="relative w-6 h-6 mt-5">
+          <div className="absolute inset-0 rounded-full border-2" style={{ borderColor: 'rgba(34,197,94,0.12)' }} />
+          <div
+            className="absolute inset-0 rounded-full border-2 border-t-transparent animate-spin"
+            style={{ borderColor: 'var(--accent)' }}
+          />
         </div>
       </div>
     )

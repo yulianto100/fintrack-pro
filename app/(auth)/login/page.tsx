@@ -139,7 +139,7 @@ export default function LoginPage() {
               boxShadow: '0 0 32px rgba(34,197,94,0.20)',
               border: '1px solid rgba(34,197,94,0.22)',
             }}>
-            <img src="/icons/icon-192x192.png" alt="Finuvo" className="w-full h-full object-cover" />
+            <img src="/icons/icon-192x192.png" alt="Finuvo" className="w-full h-full object-cover" style={{ borderRadius: 'inherit' }} />
           </div>
           <h1 className="text-2xl font-display font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
             Finuvo

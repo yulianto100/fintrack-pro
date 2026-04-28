@@ -4,8 +4,8 @@
   "description": "Kelola keuangan & portofolio investasi Anda",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#061510",
-  "theme_color": "#061510",
+  "background_color": "#050E08",
+  "theme_color": "#050E08",
   "orientation": "portrait",
   "icons": [
     { "src": "/icons/icon-72x72.png",   "sizes": "72x72",   "type": "image/png" },
