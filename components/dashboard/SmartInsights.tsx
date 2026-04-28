@@ -28,7 +28,7 @@ const STYLE: Record<string, { bg: string; border: string; text: string }> = {
   success: { bg: 'rgba(34,197,94,0.06)',  border: 'rgba(34,197,94,0.16)', text: '#22C55E' },
 }
 
-const STORAGE_KEY = 'fintrack_dismissed_insights'
+const STORAGE_KEY = 'finuvo_dismissed_insights'
 function loadDismissed(): Set<string> {
   try { const r = localStorage.getItem(STORAGE_KEY); return new Set(r ? JSON.parse(r) : []) } catch { return new Set() }
 }

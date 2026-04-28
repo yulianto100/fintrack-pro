@@ -1,5 +1,5 @@
 // ============================================
-// FINTRACK PRO - TypeScript Types (v3)
+// FINUVO - TypeScript Types (v3)
 // ============================================
 
 export type WalletType = 'cash' | 'bank' | 'ewallet'

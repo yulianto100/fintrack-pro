@@ -28,8 +28,8 @@ function prevYM(): string {
   return ym(d)
 }
 
-const NOTIFICATION_STORAGE_KEY = 'fintrack_notifications'
-const DISMISSED_STORAGE_KEY    = 'fintrack_notifications_dismissed'
+const NOTIFICATION_STORAGE_KEY = 'finuvo_notifications'
+const DISMISSED_STORAGE_KEY    = 'finuvo_notifications_dismissed'
 
 export function loadNotifications(): AppNotification[] {
   if (typeof window === 'undefined') return []

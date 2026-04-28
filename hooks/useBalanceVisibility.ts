@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 
-const STORAGE_KEY = 'fintrack_balance_hidden'
+const STORAGE_KEY = 'finuvo_balance_hidden'
 
 /**
  * Persists balance visibility preference in localStorage.

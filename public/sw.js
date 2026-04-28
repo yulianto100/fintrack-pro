@@ -1,5 +1,5 @@
-// FinTrack Pro Service Worker
-const CACHE_NAME = 'fintrack-v1'
+// Finuvo Service Worker
+const CACHE_NAME = 'finuvo-v1'
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',

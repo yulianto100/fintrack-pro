@@ -9,20 +9,32 @@ const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains', display: 'swap' })
 
 export const metadata: Metadata = {
-  title:       { default: 'FinTrack Pro', template: '%s | FinTrack Pro' },
+  title:       { default: 'Finuvo', template: '%s | Finuvo' },
   description: 'Kelola keuangan & portofolio investasi Anda',
   manifest:    '/manifest.json',
-  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'FinTrack Pro' },
-  icons:       { icon: '/icons/icon-192x192.png', apple: '/icons/apple-touch-icon.png' },
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Finuvo' },
+  icons: {
+    icon:  [
+      { url: '/favicon.ico',            sizes: 'any' },
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: '/icons/apple-touch-icon.png',
+  },
+  openGraph: {
+    title:       'Finuvo',
+    description: 'Kelola keuangan & portofolio investasi Anda',
+    type:        'website',
+  },
 }
 
 export const viewport: Viewport = {
-  themeColor:     '#E8F5E9',
+  themeColor:     '#061510',
   width:          'device-width',
   initialScale:   1,
   maximumScale:   1,
   userScalable:   false,
-  viewportFit:    'cover',           // ← enables safe-area-inset-* on iPhone
+  viewportFit:    'cover',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

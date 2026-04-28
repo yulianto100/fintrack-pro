@@ -30,11 +30,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (status === 'loading') {
     return (
-      <div className="min-h-dvh flex items-center justify-center" style={{ background: 'linear-gradient(170deg, #E8F5E9 0%, #F1F8F4 100%)' }}>
-        <div className="relative w-12 h-12">
-          <div className="absolute inset-0 rounded-full border-2" style={{ borderColor: 'rgba(34,197,94,0.15)' }} />
-          <div className="absolute inset-0 rounded-full border-2 border-t-transparent animate-spin"
-            style={{ borderColor: 'var(--accent)' }} />
+      <div className="min-h-dvh flex items-center justify-center" style={{ background: 'linear-gradient(170deg, #060F09 0%, #0A1A0F 100%)' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-14 h-14">
+            <Image src="/icons/icon-192x192.png" alt="Finuvo" width={56} height={56} className="rounded-2xl" />
+          </div>
+          <div className="relative w-8 h-8">
+            <div className="absolute inset-0 rounded-full border-2" style={{ borderColor: 'rgba(34,197,94,0.15)' }} />
+            <div className="absolute inset-0 rounded-full border-2 border-t-transparent animate-spin"
+              style={{ borderColor: 'var(--accent)' }} />
+          </div>
         </div>
       </div>
     )
@@ -45,7 +50,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-dvh flex flex-col" style={{ background: 'transparent' }}>
       <header
-        className="fixed top-0 left-0 right-0 z-40 flex items-center justify-end px-4"
+        className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4"
         style={{
           height: 'calc(var(--nav-height) + env(safe-area-inset-top, 0px))',
           paddingTop: 'env(safe-area-inset-top, 0px)',
@@ -55,6 +60,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           borderBottom: '1px solid var(--border)',
         }}
       >
+        {/* ── Left: App logo + name ── */}
+        <Link href="/" className="flex items-center gap-2 select-none">
+          <div className="w-8 h-8 rounded-xl overflow-hidden flex-shrink-0"
+            style={{ boxShadow: '0 0 0 1px rgba(34,197,94,0.25)' }}>
+            <Image
+              src="/icons/icon-192x192.png"
+              alt="Finuvo"
+              width={32}
+              height={32}
+              className="object-cover w-full h-full"
+            />
+          </div>
+          <span
+            className="font-display font-bold text-base tracking-tight"
+            style={{ color: 'var(--accent)', letterSpacing: '-0.02em' }}
+          >
+            Finuvo
+          </span>
+        </Link>
+
+        {/* ── Right: Notification + Avatar ── */}
         <div className="flex items-center gap-2">
           <NotificationBell />
           <Link href="/settings">

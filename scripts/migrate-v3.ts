@@ -1,5 +1,5 @@
 /**
- * FinTrack Pro - Database Migration Script v3
+ * Finuvo - Database Migration Script v3
  * Run: npx ts-node scripts/migrate-v3.ts
  *
  * What it does:
@@ -27,7 +27,7 @@ if (!admin.apps.length) {
 const db = admin.database()
 
 async function migrate() {
-  console.log('🚀 Starting FinTrack Pro v3 migration...\n')
+  console.log('🚀 Starting Finuvo v3 migration...\n')
 
   const usersSnap = await db.ref('users').get()
   if (!usersSnap.exists()) { console.log('No users found. Done.'); return }

@@ -60,7 +60,7 @@ const DEFAULT_KEYWORD_MAP: Record<string, string> = {
   topup: 'Top Up', 'top up': 'Top Up', isi: 'Top Up',
 }
 
-const STORAGE_KEY = 'fintrack_cat_learning'
+const STORAGE_KEY = 'finuvo_cat_learning'
 
 // ── Load learned mappings from localStorage ───────────────────────────────────
 function loadLearned(): Record<string, string> {

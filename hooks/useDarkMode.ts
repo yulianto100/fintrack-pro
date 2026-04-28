@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 
-const STORAGE_KEY = 'fintrack_theme'
+const STORAGE_KEY = 'finuvo_theme'
 
 export function useDarkMode() {
   const [isDark, setIsDark] = useState<boolean>(false)

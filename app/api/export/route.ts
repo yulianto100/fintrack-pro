@@ -69,7 +69,7 @@ export async function GET(request: Request) {
     }))), 'Deposito')
 
     const buffer   = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
-    const filename = `fintrack-${month || 'all'}-${new Date().toISOString().split('T')[0]}.xlsx`
+    const filename = `finuvo-${month || 'all'}-${new Date().toISOString().split('T')[0]}.xlsx`
 
     return new NextResponse(buffer, {
       status: 200,
