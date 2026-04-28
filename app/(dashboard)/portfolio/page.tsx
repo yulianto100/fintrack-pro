@@ -108,7 +108,20 @@ export default function PortfolioPage() {
       pct: totalPortfolio > 0 ? (reksadanaSummary.totalValue / totalPortfolio) * 100 : 0 },
   ]
 
-  const pieData = investmentSections.filter((s) => s.pct > 0).map((s) => ({ name: s.title, value: s.pct, color: s.color }))
+  const pieData = investmentSections.filter((s) => s.pct > 0).map((s) => ({ name: s.title, value: s.pct, amount: s.value, color: s.color }))
+
+  function CustomPortfolioTooltip({ active, payload }: { active?: boolean; payload?: { payload: { name: string; value: number; amount: number; color: string } }[] }) {
+    if (!active || !payload?.length) return null
+    const { name, amount, pct: _pct, color } = { ...payload[0].payload, pct: payload[0].payload.value }
+    return (
+      <div className="px-3 py-2 rounded-xl text-xs font-medium"
+        style={{ background: 'rgba(10, 26, 15, 0.95)', border: '1px solid rgba(34,197,94,0.25)', color: 'var(--text-primary)', pointerEvents: 'none' }}>
+        <p style={{ color: 'var(--text-muted)' }}>{name}</p>
+        <p className="font-bold" style={{ color }}>{formatCurrency(amount)}</p>
+        <p style={{ color: 'var(--text-muted)' }}>{_pct.toFixed(1)}%</p>
+      </div>
+    )
+  }
 
   // Filter mode: if coming from dashboard wallet card
   if (filterType === 'bank' || filterType === 'ewallet') {
@@ -213,9 +226,7 @@ export default function PortfolioPage() {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(v: number) => [`${v.toFixed(1)}%`, '']}
-                    contentStyle={{ background: 'rgba(10,30,20,0.95)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 11 }}
-                    itemStyle={{ color: '#fff' }} labelStyle={{ color: '#aaa' }}
+                    content={<CustomPortfolioTooltip />}
                     wrapperStyle={{ zIndex: 100, outline: 'none' }}
                   />
                 </PieChart>
