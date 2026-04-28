@@ -106,7 +106,7 @@ export default function DashboardPage() {
           </div>
           <Link href="/import"
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium"
-            style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+            style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
             <Upload size={13}/> Import CSV
           </Link>
         </div>

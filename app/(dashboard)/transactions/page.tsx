@@ -85,8 +85,8 @@ export default function TransactionsPage() {
             onClick={() => setShowFilters(!showFilters)}
             className="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
             style={{
-              background: showFilters ? 'var(--accent-dim)' : 'rgba(255,255,255,0.75)',
-              border: '1px solid var(--border)',
+              background: showFilters ? 'var(--accent-dim)' : 'var(--surface-3)',
+              border: `1px solid ${showFilters ? 'rgba(34,197,94,0.30)' : 'var(--border)'}`,
               color: showFilters ? 'var(--accent)' : 'var(--text-secondary)',
             }}
           >
@@ -96,7 +96,7 @@ export default function TransactionsPage() {
             onClick={handleExport}
             className="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
             style={{
-              background: 'rgba(255,255,255,0.75)',
+              background: 'var(--surface-3)',
               border: '1px solid var(--border)',
               color: 'var(--text-secondary)',
             }}
@@ -198,7 +198,7 @@ export default function TransactionsPage() {
               <button
                 onClick={() => setFilters({ month: undefined })}
                 className="text-xs w-full py-2 rounded-lg transition-all"
-                style={{ color: 'var(--text-muted)', background: 'rgba(255,255,255,0.90)' }}
+                style={{ color: 'var(--text-muted)', background: 'var(--surface-3)', border: '1px solid var(--border)' }}
               >
                 Reset filter
               </button>
@@ -334,7 +334,7 @@ export default function TransactionsPage() {
                               {t.tags && t.tags.length > 0 && (
                                 <div className="flex gap-1 flex-wrap">
                                   {t.tags.map((tag) => (
-                                    <span key={tag} className="badge" style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-muted)' }}>
+                                    <span key={tag} className="badge" style={{ background: 'var(--surface-3)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
                                       #{tag}
                                     </span>
                                   ))}

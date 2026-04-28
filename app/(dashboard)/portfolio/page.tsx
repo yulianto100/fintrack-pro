@@ -124,7 +124,7 @@ export default function PortfolioPage() {
         <div className="flex items-center gap-3 mb-5">
           <Link href="/portfolio"
             className="w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)' }}>
+            style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
             ←
           </Link>
           <h1 className="text-xl font-display font-bold" style={{ color: 'var(--text-primary)' }}>{title}</h1>
@@ -192,7 +192,7 @@ export default function PortfolioPage() {
           </div>
         </div>
         <button onClick={refetch} className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.90)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+          style={{ background: 'var(--surface-3)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
           <RefreshCw size={15} />
         </button>
       </div>

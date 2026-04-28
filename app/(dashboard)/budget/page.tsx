@@ -92,7 +92,7 @@ export default function BudgetPage() {
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => router.back()}
           className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)' }}>
+          style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1">
@@ -125,7 +125,7 @@ export default function BudgetPage() {
             </p>
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>/ {formatCurrency(totalBudget)}</p>
           </div>
-          <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.90)' }}>
+          <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface-3)' }}>
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${Math.min((totalSpent / totalBudget) * 100, 100)}%` }}
@@ -158,7 +158,7 @@ export default function BudgetPage() {
             const over    = b.percent >= 100
             const warning = b.percent >= 80
             const color   = over ? 'var(--red)' : warning ? '#f97316' : 'var(--accent)'
-            const bg      = over ? 'rgba(239,68,68,0.08)' : warning ? 'rgba(249,115,22,0.08)' : 'rgba(255,255,255,0.75)'
+            const bg      = over ? 'rgba(239,68,68,0.08)' : warning ? 'rgba(249,115,22,0.08)' : 'var(--surface-1)'
 
             return (
               <motion.div key={b.id}
@@ -197,7 +197,7 @@ export default function BudgetPage() {
                     </button>
                   </div>
                 </div>
-                <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.90)' }}>
+                <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface-3)' }}>
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.min(b.percent, 100)}%` }}
@@ -229,7 +229,7 @@ export default function BudgetPage() {
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 350 }}
               className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl p-6"
-              style={{ background: 'rgba(255,255,255,0.80)', border: '1px solid var(--border)' }}
+              style={{ background: 'var(--surface-4)', border: '1px solid var(--border)' }}
               onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
                 <h2 className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
@@ -237,7 +237,7 @@ export default function BudgetPage() {
                 </h2>
                 <button onClick={() => setShowAdd(false)}
                   className="w-9 h-9 rounded-full flex items-center justify-center"
-                  style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)' }}>
+                  style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
                   <X size={18} />
                 </button>
               </div>
@@ -259,7 +259,7 @@ export default function BudgetPage() {
                           onClick={() => setForm((p) => ({ ...p, categoryId: cat.id }))}
                           className="flex flex-col items-center gap-1 p-2 rounded-xl transition-all"
                           style={{
-                            background: form.categoryId === cat.id ? `${cat.color}25` : 'rgba(255,255,255,0.88)',
+                            background: form.categoryId === cat.id ? `${cat.color}25` : 'var(--surface-3)',
                             border:    `1px solid ${form.categoryId === cat.id ? cat.color + '70' : 'rgba(34,197,94,0.15)'}`,
                           }}>
                           <span className="text-xl">{cat.icon}</span>
@@ -297,7 +297,7 @@ export default function BudgetPage() {
                       <button key={amount}
                         onClick={() => setForm((p) => ({ ...p, limitAmount: amount.toLocaleString('id-ID') }))}
                         className="px-2.5 py-1 rounded-lg text-xs"
-                        style={{ background: 'rgba(255,255,255,0.90)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                        style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
                         {formatCurrency(amount)}
                       </button>
                     ))}
