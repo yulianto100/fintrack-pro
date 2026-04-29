@@ -105,6 +105,10 @@ export interface Deposit {
   status: 'active' | 'matured' | 'withdrawn'
   notes?: string
   notificationSent?: { h3?: boolean; h2?: boolean; h1?: boolean; h0?: boolean }
+  // Target wallet for maturity payout
+  targetWallet?: string
+  targetWalletAccountId?: string
+  targetWalletAccountName?: string
   createdAt: string; updatedAt: string
 }
 

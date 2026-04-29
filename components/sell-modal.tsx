@@ -1,11 +1,165 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react'
+import { X, TrendingUp, TrendingDown, AlertCircle, Wallet, CheckCircle2, Plus } from 'lucide-react'
 import { formatCurrency, formatNumber } from '@/lib/utils'
 import { calcStockSellProfit, calcGoldSellProfit } from '@/lib/investment-calculator'
 import toast from 'react-hot-toast'
+import type { WalletType } from '@/types'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface WalletAccount { id: string; name: string; type: 'bank' | 'ewallet'; balance: number }
+
+const WALLET_OPTS: { value: WalletType; icon: string; label: string }[] = [
+  { value: 'cash',    icon: '💵', label: 'Tunai'    },
+  { value: 'bank',    icon: '🏦', label: 'Bank'     },
+  { value: 'ewallet', icon: '📱', label: 'E-Wallet' },
+]
+
+// ─── Shared helpers ───────────────────────────────────────────────────────────
+
+async function getOrCreateInvestasiCategory(): Promise<{ id: string; name: string; icon: string }> {
+  try {
+    const res  = await fetch('/api/categories?type=income')
+    const json = await res.json()
+    if (json.success && Array.isArray(json.data)) {
+      const found = json.data.find((c: { name: string }) => c.name.toLowerCase() === 'investasi')
+      if (found) return { id: found.id, name: found.name, icon: found.icon }
+    }
+    const cr = await fetch('/api/categories', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Investasi', type: 'income', icon: '📈', color: '#22C55E' }),
+    })
+    const cj = await cr.json()
+    if (cj.success) return { id: cj.data.id, name: 'Investasi', icon: '📈' }
+  } catch { /* fall through */ }
+  return { id: '', name: 'Investasi', icon: '📈' }
+}
+
+async function getOrCreateWalletAccount(
+  type: 'bank' | 'ewallet',
+  name: string,
+  accounts: WalletAccount[],
+): Promise<string> {
+  const existing = accounts.find(
+    (a) => a.type === type && a.name.toLowerCase() === name.toLowerCase()
+  )
+  if (existing) return existing.id
+  try {
+    const res  = await fetch('/api/wallet-accounts', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, name }),
+    })
+    const json = await res.json()
+    if (json.success) return json.data.id
+  } catch { /* ignore */ }
+  return ''
+}
+
+// ─── Wallet Selector ──────────────────────────────────────────────────────────
+
+interface WalletSelectorProps {
+  targetWallet: WalletType
+  targetWalletAccountId: string
+  newWalletName: string
+  walletAccounts: WalletAccount[]
+  onWalletChange: (w: WalletType) => void
+  onAccountChange: (id: string) => void
+  onNewWalletName: (n: string) => void
+}
+
+function WalletSelector({
+  targetWallet, targetWalletAccountId, newWalletName,
+  walletAccounts, onWalletChange, onAccountChange, onNewWalletName,
+}: WalletSelectorProps) {
+  const subAccounts = walletAccounts.filter((a) => a.type === targetWallet)
+  const needsSub    = targetWallet === 'bank' || targetWallet === 'ewallet'
+  const [showNew, setShowNew] = useState(false)
+
+  const handleWallet = (w: WalletType) => {
+    onWalletChange(w); onAccountChange(''); onNewWalletName(''); setShowNew(false)
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5"
+        style={{ color: 'var(--text-muted)' }}>
+        <Wallet size={11} />Hasil jual masuk ke
+      </p>
+      <div className="grid grid-cols-3 gap-2">
+        {WALLET_OPTS.map((w) => {
+          const active = targetWallet === w.value
+          return (
+            <motion.button key={w.value} whileTap={{ scale: 0.95 }}
+              onClick={() => handleWallet(w.value)}
+              className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all"
+              style={{
+                background: active ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)',
+                border: active ? '1.5px solid rgba(34,197,94,0.40)' : '1.5px solid rgba(255,255,255,0.08)',
+              }}>
+              <span className="text-lg">{w.icon}</span>
+              <p className="text-[10px] font-semibold"
+                style={{ color: active ? 'var(--accent)' : 'var(--text-secondary)' }}>
+                {w.label}
+              </p>
+            </motion.button>
+          )
+        })}
+      </div>
+
+      {needsSub && (
+        <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+          {subAccounts.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {subAccounts.map((acc) => {
+                const isActive = targetWalletAccountId === acc.id
+                return (
+                  <motion.button key={acc.id} whileTap={{ scale: 0.93 }}
+                    onClick={() => { onAccountChange(isActive ? '' : acc.id); onNewWalletName(''); setShowNew(false) }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all"
+                    style={{
+                      background: isActive ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
+                      border: isActive ? '1px solid rgba(34,197,94,0.50)' : '1px solid rgba(255,255,255,0.10)',
+                    }}>
+                    {isActive && <CheckCircle2 size={12} color="var(--accent)" />}
+                    <p className="text-xs font-semibold"
+                      style={{ color: isActive ? 'var(--accent)' : 'var(--text-primary)' }}>
+                      {acc.name}
+                    </p>
+                  </motion.button>
+                )
+              })}
+            </div>
+          )}
+          {!showNew ? (
+            <button onClick={() => { setShowNew(true); onAccountChange('') }}
+              className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl transition-all"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.15)', color: 'var(--text-muted)' }}>
+              <Plus size={12} /> Wallet baru
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <input
+                autoFocus type="text"
+                placeholder={`Nama ${targetWallet === 'bank' ? 'bank' : 'e-wallet'} baru`}
+                value={newWalletName}
+                onChange={(e) => { onNewWalletName(e.target.value); onAccountChange('') }}
+                className="input-glass flex-1 text-sm"
+              />
+              <button onClick={() => { setShowNew(false); onNewWalletName('') }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: 'rgba(255,255,255,0.06)' }}>
+                <X size={14} style={{ color: 'var(--text-muted)' }} />
+              </button>
+            </div>
+          )}
+        </motion.div>
+      )}
+    </div>
+  )
+}
 
 // ─── SAHAM SELL MODAL ─────────────────────────────────────────────────────────
 
@@ -21,6 +175,16 @@ export function SahamSellModal({ holding, currentPrice, onClose, onSuccess }: Sa
   const [sellPrice, setSellPrice] = useState(String(currentPrice || ''))
   const [saving,    setSaving   ] = useState(false)
 
+  const [targetWallet,          setTargetWallet         ] = useState<WalletType>('bank')
+  const [targetWalletAccountId, setTargetWalletAccountId] = useState('')
+  const [newWalletName,         setNewWalletName        ] = useState('')
+  const [walletAccounts,        setWalletAccounts       ] = useState<WalletAccount[]>([])
+
+  useEffect(() => {
+    fetch('/api/wallet-accounts').then(r => r.json())
+      .then(j => { if (j.success) setWalletAccounts(j.data || []) }).catch(() => {})
+  }, [])
+
   const preview = useMemo(() => {
     const lots  = parseInt(sellLots  || '0')
     const price = parseFloat(sellPrice || '0')
@@ -32,63 +196,66 @@ export function SahamSellModal({ holding, currentPrice, onClose, onSuccess }: Sa
   const handleSell = async () => {
     const lots  = parseInt(sellLots)
     const price = parseFloat(sellPrice)
-    if (!lots || lots <= 0)        { toast.error('Masukkan jumlah lot');         return }
-    if (lots > holding.lots)       { toast.error('Lot melebihi kepemilikan');    return }
-    if (!price || price <= 0)      { toast.error('Masukkan harga jual');         return }
+    if (!lots || lots <= 0)   { toast.error('Masukkan jumlah lot');      return }
+    if (lots > holding.lots)  { toast.error('Lot melebihi kepemilikan'); return }
+    if (!price || price <= 0) { toast.error('Masukkan harga jual');      return }
 
     setSaving(true)
     try {
-      // 1. Update holding (reduce/delete)
       const res  = await fetch('/api/portfolio/stocks', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: holding.id, action: 'sell', sellLots: lots, sellPrice: price }),
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
 
       const profit        = json.realizedProfit as number
-      const totalProceeds = lots * 100 * price   // exact amount from user input
+      const totalProceeds = lots * 100 * price
+      const walletLabel   = WALLET_OPTS.find(w => w.value === targetWallet)?.label ?? targetWallet
 
-      // 2. Auto-create income transaction → Bank wallet
+      // Resolve / auto-create wallet account if needed
+      let resolvedAccountId = targetWalletAccountId
+      if (!resolvedAccountId && newWalletName.trim() && (targetWallet === 'bank' || targetWallet === 'ewallet')) {
+        resolvedAccountId = await getOrCreateWalletAccount(targetWallet, newWalletName.trim(), walletAccounts)
+        if (resolvedAccountId)
+          toast.success(`💳 Wallet "${newWalletName.trim()}" dibuat otomatis`, { id: 'new-wallet', duration: 3000 })
+      }
+
+      // Find / create Investasi income category
+      const category = await getOrCreateInvestasiCategory()
+
       try {
         await fetch('/api/transactions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            type:                'income',
-            amount:              totalProceeds,
-            wallet:              'bank',
-            description:         `Hasil jual saham ${holding.symbol} (${lots} lot @ Rp ${price.toLocaleString('id-ID')})`,
-            date:                new Date().toISOString().split('T')[0],
-            categoryId:          '',
+            type: 'income', amount: totalProceeds, wallet: targetWallet,
+            ...(resolvedAccountId && { walletAccountId: resolvedAccountId }),
+            description: `Hasil jual saham ${holding.symbol} (${lots} lot @ Rp ${price.toLocaleString('id-ID')})`,
+            date: new Date().toISOString().split('T')[0],
+            categoryId: category.id, categoryName: category.name, categoryIcon: category.icon,
             isSystemTransaction: true,
           }),
         })
-        toast.success(
-          `💰 ${formatCurrency(totalProceeds)} masuk ke Bank`,
-          { id: 'sell-income', duration: 4000 }
-        )
-      } catch { /* silent — sell itself succeeded */ }
+        const destLabel = resolvedAccountId
+          ? (walletAccounts.find(a => a.id === resolvedAccountId)?.name ?? newWalletName.trim() ?? walletLabel)
+          : walletLabel
+        toast.success(`💰 ${formatCurrency(totalProceeds)} masuk ke ${destLabel}`, { id: 'sell-income', duration: 4000 })
+      } catch { /* silent */ }
 
       if (json.deleted) {
         toast.success(`✓ ${holding.symbol} terjual semua. P&L: ${profit >= 0 ? '+' : ''}${formatCurrency(profit)}`)
       } else {
         toast.success(`✓ Jual ${lots} lot ${holding.symbol}. Realized P&L: ${profit >= 0 ? '+' : ''}${formatCurrency(profit)}`)
       }
-      onSuccess()
-      onClose()
+      onSuccess(); onClose()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Gagal menjual saham')
-    } finally {
-      setSaving(false)
-    }
+    } finally { setSaving(false) }
   }
 
   return (
     <ModalWrapper onClose={onClose} title={`Jual ${holding.symbol}`}>
       <div className="space-y-4">
-        {/* Info baris */}
         <div className="grid grid-cols-2 gap-2">
           {[
             { label: 'Kepemilikan', value: `${holding.lots} lot (${holding.lots * 100} lembar)` },
@@ -105,11 +272,9 @@ export function SahamSellModal({ holding, currentPrice, onClose, onSuccess }: Sa
           <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
             Jumlah Lot Dijual <span style={{ color: 'var(--accent)' }}>*</span>
           </label>
-          <input
-            type="number" min="1" max={holding.lots} className="input-glass"
+          <input type="number" min="1" max={holding.lots} className="input-glass"
             placeholder={`Maks ${holding.lots} lot`}
-            value={sellLots} onChange={(e) => setSellLots(e.target.value)}
-          />
+            value={sellLots} onChange={(e) => setSellLots(e.target.value)} />
           {parseInt(sellLots || '0') > holding.lots && (
             <p className="text-xs mt-1 flex items-center gap-1" style={{ color: 'var(--red)' }}>
               <AlertCircle size={11}/> Melebihi kepemilikan
@@ -121,20 +286,17 @@ export function SahamSellModal({ holding, currentPrice, onClose, onSuccess }: Sa
           <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
             Harga Jual / Lembar <span style={{ color: 'var(--accent)' }}>*</span>
           </label>
-          <input
-            type="number" className="input-glass" placeholder="Rp"
-            value={sellPrice} onChange={(e) => setSellPrice(e.target.value)}
-          />
+          <input type="number" className="input-glass" placeholder="Rp"
+            value={sellPrice} onChange={(e) => setSellPrice(e.target.value)} />
         </div>
 
-        {/* Preview */}
         {preview && (
           <div className="p-3.5 rounded-xl space-y-2"
             style={{ background: preview.realizedProfit >= 0 ? 'rgba(34,197,94,0.08)' : 'rgba(252,129,129,0.08)',
                      border: `1px solid ${preview.realizedProfit >= 0 ? 'rgba(34,197,94,0.16)' : 'rgba(252,129,129,0.2)'}` }}>
             <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Preview Penjualan</p>
-            <PreviewRow label="Lembar terjual"    value={`${formatNumber(preview.sharesSold)} lembar`} />
-            <PreviewRow label="Total Hasil Jual"  value={formatCurrency(preview.totalProceeds)} />
+            <PreviewRow label="Lembar terjual"   value={`${formatNumber(preview.sharesSold)} lembar`} />
+            <PreviewRow label="Total Hasil Jual" value={formatCurrency(preview.totalProceeds)} />
             <div className="h-px" style={{ background: 'var(--border)' }} />
             <div className="flex items-center justify-between">
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Realized P&L</p>
@@ -150,6 +312,15 @@ export function SahamSellModal({ holding, currentPrice, onClose, onSuccess }: Sa
             </div>
           </div>
         )}
+
+        <div className="p-3.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
+          <WalletSelector
+            targetWallet={targetWallet} targetWalletAccountId={targetWalletAccountId}
+            newWalletName={newWalletName} walletAccounts={walletAccounts}
+            onWalletChange={setTargetWallet} onAccountChange={setTargetWalletAccountId}
+            onNewWalletName={setNewWalletName}
+          />
+        </div>
 
         <SellButton saving={saving} onSell={handleSell} />
       </div>
@@ -172,69 +343,80 @@ export function EmasSellModal({ holding, currentSellPrice, sourceLabel, onClose,
   const [sellPrice, setSellPrice] = useState(String(currentSellPrice || ''))
   const [saving,    setSaving   ] = useState(false)
 
+  const [targetWallet,          setTargetWallet         ] = useState<WalletType>('bank')
+  const [targetWalletAccountId, setTargetWalletAccountId] = useState('')
+  const [newWalletName,         setNewWalletName        ] = useState('')
+  const [walletAccounts,        setWalletAccounts       ] = useState<WalletAccount[]>([])
+
+  useEffect(() => {
+    fetch('/api/wallet-accounts').then(r => r.json())
+      .then(j => { if (j.success) setWalletAccounts(j.data || []) }).catch(() => {})
+  }, [])
+
   const preview = useMemo(() => {
     const grams = parseFloat(sellGrams || '0')
     const price = parseFloat(sellPrice || '0')
     if (!grams || !price || grams > holding.grams) return null
     const { realizedProfit } = calcGoldSellProfit(grams, price, holding.buyPrice || 0)
-    const totalProceeds = grams * price
-    return { realizedProfit, totalProceeds }
+    return { realizedProfit, totalProceeds: grams * price }
   }, [sellGrams, sellPrice, holding])
 
   const handleSell = async () => {
     const grams = parseFloat(sellGrams)
     const price = parseFloat(sellPrice)
-    if (!grams || grams <= 0)      { toast.error('Masukkan jumlah gram');      return }
-    if (grams > holding.grams)     { toast.error('Gram melebihi kepemilikan'); return }
-    if (!price || price <= 0)      { toast.error('Masukkan harga jual');       return }
+    if (!grams || grams <= 0)   { toast.error('Masukkan jumlah gram');      return }
+    if (grams > holding.grams)  { toast.error('Gram melebihi kepemilikan'); return }
+    if (!price || price <= 0)   { toast.error('Masukkan harga jual');       return }
 
     setSaving(true)
     try {
-      // 1. Update holding (reduce/delete)
       const res  = await fetch('/api/portfolio/gold', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: holding.id, action: 'sell', sellGrams: grams, sellPrice: price }),
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
 
       const profit        = json.realizedProfit as number
-      const totalProceeds = grams * price   // exact amount from user input
+      const totalProceeds = grams * price
+      const walletLabel   = WALLET_OPTS.find(w => w.value === targetWallet)?.label ?? targetWallet
 
-      // 2. Auto-create income transaction → Bank wallet
+      let resolvedAccountId = targetWalletAccountId
+      if (!resolvedAccountId && newWalletName.trim() && (targetWallet === 'bank' || targetWallet === 'ewallet')) {
+        resolvedAccountId = await getOrCreateWalletAccount(targetWallet, newWalletName.trim(), walletAccounts)
+        if (resolvedAccountId)
+          toast.success(`💳 Wallet "${newWalletName.trim()}" dibuat otomatis`, { id: 'new-wallet', duration: 3000 })
+      }
+
+      const category = await getOrCreateInvestasiCategory()
+
       try {
         await fetch('/api/transactions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            type:                'income',
-            amount:              totalProceeds,
-            wallet:              'bank',
-            description:         `Hasil jual emas ${sourceLabel} (${grams}gr @ Rp ${price.toLocaleString('id-ID')}/gr)`,
-            date:                new Date().toISOString().split('T')[0],
-            categoryId:          '',
+            type: 'income', amount: totalProceeds, wallet: targetWallet,
+            ...(resolvedAccountId && { walletAccountId: resolvedAccountId }),
+            description: `Hasil jual emas ${sourceLabel} (${grams}gr @ Rp ${price.toLocaleString('id-ID')}/gr)`,
+            date: new Date().toISOString().split('T')[0],
+            categoryId: category.id, categoryName: category.name, categoryIcon: category.icon,
             isSystemTransaction: true,
           }),
         })
-        toast.success(
-          `💰 ${formatCurrency(totalProceeds)} masuk ke Bank`,
-          { id: 'sell-income', duration: 4000 }
-        )
-      } catch { /* silent — sell itself succeeded */ }
+        const destLabel = resolvedAccountId
+          ? (walletAccounts.find(a => a.id === resolvedAccountId)?.name ?? newWalletName.trim() ?? walletLabel)
+          : walletLabel
+        toast.success(`💰 ${formatCurrency(totalProceeds)} masuk ke ${destLabel}`, { id: 'sell-income', duration: 4000 })
+      } catch { /* silent */ }
 
       if (json.deleted) {
         toast.success(`✓ Emas ${sourceLabel} terjual semua. P&L: ${profit >= 0 ? '+' : ''}${formatCurrency(profit)}`)
       } else {
         toast.success(`✓ Jual ${grams}gr ${sourceLabel}. Realized P&L: ${profit >= 0 ? '+' : ''}${formatCurrency(profit)}`)
       }
-      onSuccess()
-      onClose()
+      onSuccess(); onClose()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Gagal menjual emas')
-    } finally {
-      setSaving(false)
-    }
+    } finally { setSaving(false) }
   }
 
   return (
@@ -256,11 +438,9 @@ export function EmasSellModal({ holding, currentSellPrice, sourceLabel, onClose,
           <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
             Gram Dijual <span style={{ color: 'var(--accent)' }}>*</span>
           </label>
-          <input
-            type="number" step="0.001" min="0.001" className="input-glass"
+          <input type="number" step="0.001" min="0.001" className="input-glass"
             placeholder={`Maks ${formatNumber(holding.grams, 3)} gr`}
-            value={sellGrams} onChange={(e) => setSellGrams(e.target.value)}
-          />
+            value={sellGrams} onChange={(e) => setSellGrams(e.target.value)} />
           {parseFloat(sellGrams || '0') > holding.grams && (
             <p className="text-xs mt-1 flex items-center gap-1" style={{ color: 'var(--red)' }}>
               <AlertCircle size={11}/> Melebihi kepemilikan
@@ -272,10 +452,8 @@ export function EmasSellModal({ holding, currentSellPrice, sourceLabel, onClose,
           <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
             Harga Jual / Gram <span style={{ color: 'var(--accent)' }}>*</span>
           </label>
-          <input
-            type="number" className="input-glass" placeholder="Rp"
-            value={sellPrice} onChange={(e) => setSellPrice(e.target.value)}
-          />
+          <input type="number" className="input-glass" placeholder="Rp"
+            value={sellPrice} onChange={(e) => setSellPrice(e.target.value)} />
         </div>
 
         {preview && (
@@ -299,6 +477,15 @@ export function EmasSellModal({ holding, currentSellPrice, sourceLabel, onClose,
             </div>
           </div>
         )}
+
+        <div className="p-3.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
+          <WalletSelector
+            targetWallet={targetWallet} targetWalletAccountId={targetWalletAccountId}
+            newWalletName={newWalletName} walletAccounts={walletAccounts}
+            onWalletChange={setTargetWallet} onAccountChange={setTargetWalletAccountId}
+            onNewWalletName={setNewWalletName}
+          />
+        </div>
 
         <SellButton saving={saving} onSell={handleSell} />
       </div>

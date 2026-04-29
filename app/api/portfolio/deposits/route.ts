@@ -36,7 +36,8 @@ export async function POST(request: Request) {
   if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   try {
     const body = await request.json()
-    const { bankName, nominal, interestRate, tenorMonths, startDate, notes } = body
+    const { bankName, nominal, interestRate, tenorMonths, startDate, notes,
+            targetWallet, targetWalletAccountId, targetWalletAccountName } = body
     if (!bankName || !nominal || !interestRate || !tenorMonths || !startDate)
       return NextResponse.json({ success: false, error: 'Semua field wajib diisi' }, { status: 400 })
 
@@ -51,6 +52,9 @@ export async function POST(request: Request) {
       nominal: parseFloat(nominal), interestRate: parseFloat(interestRate),
       tenorMonths: parseInt(tenorMonths), startDate, maturityDate, finalValue, totalInterest,
       status: 'active', notes: notes || '', notificationSent: {},
+      ...(targetWallet             && { targetWallet }),
+      ...(targetWalletAccountId   && { targetWalletAccountId }),
+      ...(targetWalletAccountName && { targetWalletAccountName }),
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     }
     await newRef.set(deposit)

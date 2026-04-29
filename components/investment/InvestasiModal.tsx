@@ -250,24 +250,49 @@ export function InvestasiModal({ walletBalances, onClose, onSuccess }: Props) {
       case 'deposito':
         await fetch('/api/portfolio/deposits', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bankName: bankDepo, nominal: total, interestRate: parseFloat(bungaDepo), tenorMonths: parseInt(durasiDepo), startDate: depoDate || date, notes: 'Dibeli via FAB' }),
+          body: JSON.stringify({
+            bankName: bankDepo, nominal: total, interestRate: parseFloat(bungaDepo),
+            tenorMonths: parseInt(durasiDepo), startDate: depoDate || date, notes: 'Dibeli via FAB',
+            targetWallet: wallet,
+            ...(walletAccountId && { targetWalletAccountId: walletAccountId }),
+          }),
         }); break
     }
+  }
+
+  /** Find or create a "Tabungan" expense category */
+  async function getOrCreateTabunganCategory(): Promise<{ id: string; name: string; icon: string }> {
+    try {
+      const res  = await fetch('/api/categories?type=expense')
+      const json = await res.json()
+      if (json.success && Array.isArray(json.data)) {
+        const found = json.data.find((c: { name: string }) => c.name.toLowerCase() === 'tabungan')
+        if (found) return { id: found.id, name: found.name, icon: found.icon }
+      }
+      const cr = await fetch('/api/categories', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Tabungan', type: 'expense', icon: '🏦', color: '#22C55E' }),
+      })
+      const cj = await cr.json()
+      if (cj.success) return { id: cj.data.id, name: 'Tabungan', icon: '🏦' }
+    } catch { /* fall through */ }
+    return { id: '', name: 'Tabungan', icon: '🏦' }
   }
 
   const handleSubmit = async () => {
     if (!investType || !submitReady || insufficient) return
     setSaving(true)
     try {
-      const date = todayStr()
+      const date     = todayStr()
+      const category = await getOrCreateTabunganCategory()
       const txRes = await fetch('/api/transactions', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'expense', amount: total, wallet,
           ...(walletAccountId ? { walletAccountId } : {}),
           description: getDescription(), date,
-          categoryId: 'investasi', categoryName: 'Investasi',
-          categoryIcon: typeInfo?.icon || '📈', tags: ['investasi'],
+          categoryId: category.id, categoryName: category.name,
+          categoryIcon: category.icon, tags: ['investasi'],
         }),
       })
       const txJson = await txRes.json()

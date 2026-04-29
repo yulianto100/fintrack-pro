@@ -4,12 +4,39 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApiList } from '@/hooks/useApiData'
 import { formatCurrency, formatDate, formatNumber, enrichDeposit, capitalizeFirst } from '@/lib/utils'
-import type { Deposit, DepositWithCountdown } from '@/types'
-import { Plus, Trash2, Bell, Clock, CheckCircle, X, Sparkles, Pencil, AlertCircle } from 'lucide-react'
+import type { Deposit, DepositWithCountdown, WalletType } from '@/types'
+import { Plus, Trash2, Bell, Clock, CheckCircle, X, Sparkles, Pencil, AlertCircle, Wallet, CheckCircle2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 // Common bank names for quick-select autocomplete
 const BANK_SUGGESTIONS = ['BCA', 'Mandiri', 'BRI', 'BNI', 'CIMB Niaga', 'Jago', 'Sinarmas', 'Danamon', 'Permata', 'BTN']
+
+interface WalletAccount { id: string; name: string; type: 'bank' | 'ewallet'; balance: number }
+
+const WALLET_OPTS: { value: WalletType; icon: string; label: string }[] = [
+  { value: 'cash',    icon: '💵', label: 'Tunai'    },
+  { value: 'bank',    icon: '🏦', label: 'Bank'     },
+  { value: 'ewallet', icon: '📱', label: 'E-Wallet' },
+]
+
+/** Find or create Investasi income category */
+async function getOrCreateInvestasiCategory(): Promise<{ id: string; name: string; icon: string }> {
+  try {
+    const res  = await fetch('/api/categories?type=income')
+    const json = await res.json()
+    if (json.success && Array.isArray(json.data)) {
+      const found = json.data.find((c: { name: string }) => c.name.toLowerCase() === 'investasi')
+      if (found) return { id: found.id, name: found.name, icon: found.icon }
+    }
+    const cr = await fetch('/api/categories', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Investasi', type: 'income', icon: '📈', color: '#22C55E' }),
+    })
+    const cj = await cr.json()
+    if (cj.success) return { id: cj.data.id, name: 'Investasi', icon: '📈' }
+  } catch { /* fall through */ }
+  return { id: '', name: 'Investasi', icon: '📈' }
+}
 
 export default function DepositoPage() {
   const { data: deposits, loading, refetch } = useApiList<Deposit>('/api/portfolio/deposits?status=all', { refreshMs: 30000 })
@@ -20,6 +47,16 @@ export default function DepositoPage() {
     bankName: '', nominal: '', interestRate: '', tenorMonths: '',
     startDate: new Date().toISOString().split('T')[0], notes: '',
   })
+
+  // ── Wallet state for add form ──
+  const [walletAccounts,        setWalletAccounts       ] = useState<WalletAccount[]>([])
+  const [targetWallet,          setTargetWallet         ] = useState<WalletType>('bank')
+  const [targetWalletAccountId, setTargetWalletAccountId] = useState('')
+
+  useEffect(() => {
+    fetch('/api/wallet-accounts').then(r => r.json())
+      .then(j => { if (j.success) setWalletAccounts(j.data || []) }).catch(() => {})
+  }, [])
 
   // ── Edit modal state ──
   const [editTarget, setEditTarget] = useState<Deposit | null>(null)
@@ -42,6 +79,8 @@ export default function DepositoPage() {
     const matured = list.filter((d) => d.percentComplete >= 100 && d.status === 'active')
     if (matured.length === 0) return
 
+    const category = await getOrCreateInvestasiCategory()
+
     for (const d of matured) {
       try {
         await fetch('/api/portfolio/deposits', {
@@ -49,19 +88,25 @@ export default function DepositoPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: d.id, status: 'matured', updatedAt: new Date().toISOString() }),
         })
-        // Auto-create income transaction to Bank wallet
-        const finalAmount = d.netFinalValue ?? d.finalValue
+        const finalAmount  = d.netFinalValue ?? d.finalValue
+        const wallet       = (d.targetWallet as WalletType) || 'bank'
+        const walletLabel  = WALLET_OPTS.find(w => w.value === wallet)?.label ?? wallet
+        const accountId    = d.targetWalletAccountId || undefined
+        const accountName  = d.targetWalletAccountName || walletLabel
+
         await fetch('/api/transactions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            type: 'income', amount: finalAmount, wallet: 'bank',
+            type: 'income', amount: finalAmount, wallet,
+            ...(accountId && { walletAccountId: accountId }),
             description: `Deposito jatuh tempo: ${d.bankName}`,
-            date: new Date().toISOString().split('T')[0], categoryId: '',
+            date: new Date().toISOString().split('T')[0],
+            categoryId: category.id, categoryName: category.name, categoryIcon: category.icon,
             isSystemTransaction: true,
           }),
         })
-        toast.success(`🏦 Deposito ${d.bankName} cair — ${formatCurrency(finalAmount)} masuk ke Bank`, { duration: 5000 })
+        toast.success(`🏦 Deposito ${d.bankName} cair — ${formatCurrency(finalAmount)} masuk ke ${accountName}`, { duration: 5000 })
       } catch { /* silent fail */ }
     }
     if (matured.length > 0) refetch()
@@ -80,9 +125,15 @@ export default function DepositoPage() {
     }
     setSaving(true)
     try {
+      const payload: Record<string, unknown> = { ...form }
+      if (targetWallet)           payload.targetWallet            = targetWallet
+      if (targetWalletAccountId)  payload.targetWalletAccountId  = targetWalletAccountId
+      const accountName = walletAccounts.find(a => a.id === targetWalletAccountId)?.name
+      if (accountName)            payload.targetWalletAccountName = accountName
+
       const res  = await fetch('/api/portfolio/deposits', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
@@ -90,6 +141,8 @@ export default function DepositoPage() {
       setShowAdd(false)
       refetch()
       setForm({ bankName: '', nominal: '', interestRate: '', tenorMonths: '', startDate: new Date().toISOString().split('T')[0], notes: '' })
+      setTargetWallet('bank')
+      setTargetWalletAccountId('')
     } catch { toast.error('Gagal menambahkan deposito') }
     finally { setSaving(false) }
   }
@@ -413,6 +466,64 @@ export default function DepositoPage() {
                   <label className="text-xs mb-1.5 block" style={{ color: 'var(--text-muted)' }}>Catatan (opsional)</label>
                   <input type="text" className="input-glass" placeholder="Misal: Untuk dana darurat"
                     value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+                </div>
+
+                {/* Wallet target for maturity payout */}
+                <div className="p-3.5 rounded-xl space-y-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5"
+                    style={{ color: 'var(--text-muted)' }}>
+                    <Wallet size={11} />Dana cair masuk ke
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {WALLET_OPTS.map((w) => {
+                      const active = targetWallet === w.value
+                      return (
+                        <motion.button key={w.value} whileTap={{ scale: 0.95 }}
+                          onClick={() => { setTargetWallet(w.value); setTargetWalletAccountId('') }}
+                          className="flex flex-col items-center gap-1.5 py-2.5 px-2 rounded-xl transition-all"
+                          style={{
+                            background: active ? 'rgba(168,85,247,0.14)' : 'rgba(255,255,255,0.04)',
+                            border: active ? '1.5px solid rgba(168,85,247,0.45)' : '1.5px solid rgba(255,255,255,0.08)',
+                          }}>
+                          <span className="text-base">{w.icon}</span>
+                          <p className="text-[10px] font-semibold"
+                            style={{ color: active ? '#a855f7' : 'var(--text-secondary)' }}>
+                            {w.label}
+                          </p>
+                        </motion.button>
+                      )
+                    })}
+                  </div>
+                  {(targetWallet === 'bank' || targetWallet === 'ewallet') && (
+                    <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}>
+                      {walletAccounts.filter(a => a.type === targetWallet).length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {walletAccounts.filter(a => a.type === targetWallet).map(acc => {
+                            const isActive = targetWalletAccountId === acc.id
+                            return (
+                              <motion.button key={acc.id} whileTap={{ scale: 0.93 }}
+                                onClick={() => setTargetWalletAccountId(isActive ? '' : acc.id)}
+                                className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all"
+                                style={{
+                                  background: isActive ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.05)',
+                                  border: isActive ? '1px solid rgba(168,85,247,0.50)' : '1px solid rgba(255,255,255,0.10)',
+                                }}>
+                                {isActive && <CheckCircle2 size={12} color="#a855f7" />}
+                                <p className="text-xs font-semibold"
+                                  style={{ color: isActive ? '#a855f7' : 'var(--text-primary)' }}>
+                                  {acc.name}
+                                </p>
+                              </motion.button>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                          Belum ada rekening {targetWallet} — dana akan masuk ke saldo {targetWallet} umum.
+                        </p>
+                      )}
+                    </motion.div>
+                  )}
                 </div>
 
                 <div className="flex items-start gap-2 p-3 rounded-xl" style={{ background: 'rgba(59,130,246,0.08)' }}>
