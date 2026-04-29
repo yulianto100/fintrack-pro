@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useApiList } from '@/hooks/useApiData'
 import { Bell, BellOff, Download, Upload, LogOut, Tag, Plus, Trash2, X,
-  Landmark, Wallet, Pencil, Check, Lock, ChevronDown, ChevronUp, Moon, Sun, Repeat,
+  Landmark, Wallet, Pencil, Check, Lock, ChevronDown, ChevronUp, Moon, Sun,
 } from 'lucide-react'
 import type { Category, WalletAccount, WalletAccountType } from '@/types'
 import { useDarkMode } from '@/hooks/useDarkMode'
@@ -546,25 +546,6 @@ export default function SettingsPage() {
             />
           </button>
         </div>
-      </motion.div>
-
-      {/* Recurring Transactions */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.19 }}>
-        <Link href="/recurring">
-          <div className="glass-card p-5 flex items-center gap-3 cursor-pointer">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(34,197,94,0.12)' }}>
-              <Repeat size={18} color="var(--accent)" />
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Transaksi Berulang</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Kelola gaji, langganan, dan cicilan otomatis
-              </p>
-            </div>
-            <ChevronDown size={16} color="var(--text-muted)" style={{ transform: 'rotate(-90deg)' }} />
-          </div>
-        </Link>
       </motion.div>
 
       {/* Sign out */}
