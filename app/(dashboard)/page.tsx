@@ -25,7 +25,7 @@ export default function DashboardPage() {
   const { hidden, toggle, mounted } = useBalanceVisibility()
 
   const { data: transactions } = useApiList<Transaction>('/api/transactions?limit=7&sort=createdAt',  { refreshMs: 8000 })
-  const { data: allTx }        = useApiList<Transaction>('/api/transactions?limit=500',               { refreshMs: 15000 })
+  const { data: allTx, refetch: refetchAllTx } = useApiList<Transaction>('/api/transactions?limit=500', { refreshMs: 15000 })
   const { data: goldHoldings } = useApiList<GoldHolding>('/api/portfolio/gold',                       { refreshMs: 30000 })
   const { data: stocks }       = useApiList<StockHolding>('/api/portfolio/stocks',                    { refreshMs: 30000 })
   const { data: deposits }     = useApiList<Deposit>('/api/portfolio/deposits?status=all',            { refreshMs: 30000 })
@@ -82,6 +82,13 @@ export default function DashboardPage() {
       }).catch(() => {})
     }
   }, [totalWealth, allTx.length])
+
+  // Immediately refresh allTx (and thus walletBalances) whenever a buy/sell investment fires the event
+  useEffect(() => {
+    const handler = () => refetchAllTx()
+    window.addEventListener('fintrack:wallet-updated', handler)
+    return () => window.removeEventListener('fintrack:wallet-updated', handler)
+  }, [refetchAllTx])
 
   const firstName = session?.user?.name?.split(' ')[0] || 'User'
   const hour      = new Date().getHours()

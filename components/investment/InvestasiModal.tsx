@@ -298,6 +298,9 @@ export function InvestasiModal({ walletBalances, onClose, onSuccess }: Props) {
       const txJson = await txRes.json()
       if (!txJson.success) throw new Error(txJson.error || 'Gagal membuat transaksi')
       await addToPortfolio(date)
+      // Sync wallet account balances so stored balance reflects the deduction immediately
+      try { await fetch('/api/wallet-accounts/sync', { method: 'POST' }) } catch { /* silent */ }
+      window.dispatchEvent(new CustomEvent('fintrack:wallet-updated'))
       toast.success('Investasi berhasil ditambahkan 🎉', { duration: 3500 })
       onSuccess?.()
       onClose()

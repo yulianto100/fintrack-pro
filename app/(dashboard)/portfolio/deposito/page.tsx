@@ -109,7 +109,12 @@ export default function DepositoPage() {
         toast.success(`🏦 Deposito ${d.bankName} cair — ${formatCurrency(finalAmount)} masuk ke ${accountName}`, { duration: 5000 })
       } catch { /* silent fail */ }
     }
-    if (matured.length > 0) refetch()
+    if (matured.length > 0) {
+      // Sync wallet account balances so stored balance reflects the proceeds immediately
+      try { await fetch('/api/wallet-accounts/sync', { method: 'POST' }) } catch { /* silent */ }
+      window.dispatchEvent(new CustomEvent('fintrack:wallet-updated'))
+      refetch()
+    }
   }, [refetch])
 
   // Run auto-complete check whenever deposits are refreshed

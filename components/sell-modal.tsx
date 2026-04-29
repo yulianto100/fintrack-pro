@@ -247,6 +247,9 @@ export function SahamSellModal({ holding, currentPrice, onClose, onSuccess }: Sa
       } else {
         toast.success(`✓ Jual ${lots} lot ${holding.symbol}. Realized P&L: ${profit >= 0 ? '+' : ''}${formatCurrency(profit)}`)
       }
+      // Sync wallet account balances so stored balance reflects the proceeds immediately
+      try { await fetch('/api/wallet-accounts/sync', { method: 'POST' }) } catch { /* silent */ }
+      window.dispatchEvent(new CustomEvent('fintrack:wallet-updated'))
       onSuccess(); onClose()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Gagal menjual saham')
@@ -413,6 +416,9 @@ export function EmasSellModal({ holding, currentSellPrice, sourceLabel, onClose,
       } else {
         toast.success(`✓ Jual ${grams}gr ${sourceLabel}. Realized P&L: ${profit >= 0 ? '+' : ''}${formatCurrency(profit)}`)
       }
+      // Sync wallet account balances so stored balance reflects the proceeds immediately
+      try { await fetch('/api/wallet-accounts/sync', { method: 'POST' }) } catch { /* silent */ }
+      window.dispatchEvent(new CustomEvent('fintrack:wallet-updated'))
       onSuccess(); onClose()
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Gagal menjual emas')

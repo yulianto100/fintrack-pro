@@ -169,7 +169,12 @@ export default function SBNPage() {
         toast.success(`🏛️ SBN ${h.seri} jatuh tempo — ${formatCurrency(h.totalFinal)} masuk ke Bank`, { duration: 5000 })
       } catch { /* silent */ }
     }
-    if (maturedNow.length) refetch()
+    if (maturedNow.length) {
+      // Sync wallet account balances so stored balance reflects the proceeds immediately
+      try { await fetch('/api/wallet-accounts/sync', { method: 'POST' }) } catch { /* silent */ }
+      window.dispatchEvent(new CustomEvent('fintrack:wallet-updated'))
+      refetch()
+    }
   }, [refetch])
 
   useEffect(() => { if (active.length) autoCompleteMatured(active) }, [active, autoCompleteMatured])

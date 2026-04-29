@@ -227,6 +227,9 @@ export default function ReksadanaPage() {
       } catch { /* silent */ }
     }
     await fetch(`/api/portfolio/reksadana?id=${id}`, { method: 'DELETE' })
+    // Sync wallet account balances so stored balance reflects the proceeds immediately
+    try { await fetch('/api/wallet-accounts/sync', { method: 'POST' }) } catch { /* silent */ }
+    window.dispatchEvent(new CustomEvent('fintrack:wallet-updated'))
     toast.success('Reksadana dihapus'); refetch()
   }
 
