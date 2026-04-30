@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useEffect, useState } from 'react'
+import { useMemo, useEffect, useState, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -12,7 +12,7 @@ import type { GoldHolding, StockHolding, Deposit, WalletAccount, SBNHolding, Rek
 import { ArrowRight, RefreshCw, Wifi, WifiOff, Landmark, Wallet } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 
-export default function PortfolioPage() {
+function PortfolioContent() {
   const searchParams = useSearchParams()
   const filterType   = searchParams.get('type') // 'bank' | 'ewallet' | null
   const { hidden }   = useBalanceVisibility()
@@ -327,5 +327,19 @@ export default function PortfolioPage() {
         ))}
       </div>
     </div>
+  )
+}
+
+export default function PortfolioPage() {
+  return (
+    <Suspense fallback={
+      <div className="px-4 py-5 max-w-2xl mx-auto space-y-4">
+        <div className="skeleton h-8 w-48 rounded-xl" />
+        <div className="skeleton h-32 rounded-2xl" />
+        <div className="skeleton h-24 rounded-2xl" />
+      </div>
+    }>
+      <PortfolioContent />
+    </Suspense>
   )
 }
