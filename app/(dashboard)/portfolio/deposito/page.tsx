@@ -6,6 +6,7 @@ import { useApiList } from '@/hooks/useApiData'
 import { formatCurrency, formatDate, formatNumber, enrichDeposit, capitalizeFirst } from '@/lib/utils'
 import type { Deposit, DepositWithCountdown, WalletType } from '@/types'
 import { Plus, Trash2, Bell, Clock, CheckCircle, X, Sparkles, Pencil, AlertCircle, Wallet, CheckCircle2 } from 'lucide-react'
+import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import toast from 'react-hot-toast'
 
 // Common bank names for quick-select autocomplete
@@ -40,6 +41,8 @@ async function getOrCreateInvestasiCategory(): Promise<{ id: string; name: strin
 
 export default function DepositoPage() {
   const { data: deposits, loading, refetch } = useApiList<Deposit>('/api/portfolio/deposits?status=all', { refreshMs: 30000 })
+  const { hidden } = useBalanceVisibility()
+  const MASKED = '••••••'
   const [showAdd,     setShowAdd    ] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [saving,      setSaving     ] = useState(false)
@@ -247,7 +250,7 @@ export default function DepositoPage() {
               className="flex items-center justify-between px-4 py-3"
               style={{ borderBottom: i < 2 ? '1px solid var(--border)' : 'none' }}>
               <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{row.label}</p>
-              <p className="text-sm font-bold font-mono" style={{ color: row.color }}>{formatCurrency(row.val)}</p>
+              <p className="text-sm font-bold font-mono" style={{ color: row.color, letterSpacing: hidden ? 1 : 'normal' }}>{hidden ? MASKED : formatCurrency(row.val)}</p>
             </div>
           ))}
         </div>
@@ -308,9 +311,9 @@ export default function DepositoPage() {
 
                 <div className="flex flex-col gap-0 mb-3 rounded-xl overflow-hidden" style={{ background: 'var(--surface-close)' }}>
                   {[
-                    { label: 'Modal',       value: formatCurrency(d.nominal),       color: '#d6aaff' },
-                    { label: 'Bunga',       value: formatCurrency(d.totalInterest), color: 'var(--accent)' },
-                    { label: 'Nilai Akhir', value: formatCurrency(d.finalValue),    color: 'var(--text-primary)' },
+                    { label: 'Modal',       value: hidden ? MASKED : formatCurrency(d.nominal),       color: '#d6aaff' },
+                    { label: 'Bunga',       value: hidden ? MASKED : formatCurrency(d.totalInterest), color: 'var(--accent)' },
+                    { label: 'Nilai Akhir', value: hidden ? MASKED : formatCurrency(d.finalValue),    color: 'var(--text-primary)' },
                   ].map((row, ri) => (
                     <div key={row.label}
                       className="flex items-center justify-between px-3 py-2"

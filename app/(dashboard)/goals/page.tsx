@@ -13,6 +13,7 @@ import { InsightCard } from '@/components/goals/InsightCard'
 import { generateInsights, getMonthlyNetSavings } from '@/lib/goals-finance'
 import { formatCurrency, getCurrentMonth, getMonthOptions } from '@/lib/utils'
 import { Target, PiggyBank, X, ChevronDown } from 'lucide-react'
+import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import toast from 'react-hot-toast'
 
 const GOAL_ICONS  = ['🎯','🏠','🚗','✈️','📱','💍','🎓','💪','🌴','👶','💼','🏋️']
@@ -22,6 +23,8 @@ function GoalsContent() {
   const searchParams = useSearchParams()
   const router       = useRouter()
   const activeTab    = (searchParams.get('tab') === 'budget' ? 'budget' : 'goals') as 'goals' | 'budget'
+
+  const { hidden } = useBalanceVisibility()
 
   const setTab = (tab: 'goals' | 'budget') => {
     router.replace(tab === 'budget' ? '/goals?tab=budget' : '/goals', { scroll: false })
@@ -187,7 +190,7 @@ function GoalsContent() {
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>PROGRESS KESELURUHAN</p>
                   <p className="text-sm font-bold font-mono" style={{ color: 'var(--accent)' }}>
-                    {totalTarget > 0 ? (totalCurrent / totalTarget * 100).toFixed(1) : 0}%
+                    {hidden ? '••%' : `${totalTarget > 0 ? (totalCurrent / totalTarget * 100).toFixed(1) : 0}%`}
                   </p>
                 </div>
                 <div className="progress-bar mb-3">
@@ -200,11 +203,11 @@ function GoalsContent() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Terkumpul</p>
-                    <p className="text-sm font-bold" style={{ color: 'var(--accent)' }}>{formatCurrency(totalCurrent)}</p>
+                    <p className="text-sm font-bold font-mono" style={{ color: 'var(--accent)', letterSpacing: hidden ? 2 : 'normal' }}>{hidden ? '••••••' : formatCurrency(totalCurrent)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Total Target</p>
-                    <p className="text-sm font-bold" style={{ color: 'var(--text-secondary)' }}>{formatCurrency(totalTarget)}</p>
+                    <p className="text-sm font-bold font-mono" style={{ color: 'var(--text-secondary)', letterSpacing: hidden ? 2 : 'normal' }}>{hidden ? '••••••' : formatCurrency(totalTarget)}</p>
                   </div>
                 </div>
               </motion.div>
@@ -228,7 +231,7 @@ function GoalsContent() {
             <div className="space-y-3">
               {goals.map((g, i) => (
                 <GoalCard key={g.id} goal={g} onDelete={handleDeleteGoal}
-                  onTopUp={setShowTopUp} monthlyContribution={monthlyNet} index={i} />
+                  onTopUp={setShowTopUp} monthlyContribution={monthlyNet} index={i} hidden={hidden} />
               ))}
             </div>
           </motion.div>
@@ -260,7 +263,7 @@ function GoalsContent() {
                   <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>RINGKASAN BUDGET</p>
                   <p className="text-sm font-bold font-mono"
                     style={{ color: totalSpent > totalBudget ? 'var(--red)' : 'var(--accent)' }}>
-                    {totalBudget > 0 ? (totalSpent / totalBudget * 100).toFixed(0) : 0}%
+                    {hidden ? '••%' : `${totalBudget > 0 ? (totalSpent / totalBudget * 100).toFixed(0) : 0}%`}
                   </p>
                 </div>
                 <div className="h-2 rounded-full overflow-hidden mb-3" style={{ background: 'var(--surface-3)' }}>
@@ -274,14 +277,14 @@ function GoalsContent() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Terpakai</p>
-                    <p className="text-sm font-bold"
-                      style={{ color: totalSpent > totalBudget ? 'var(--red)' : 'var(--accent)' }}>
-                      {formatCurrency(totalSpent)}
+                    <p className="text-sm font-bold font-mono"
+                      style={{ color: totalSpent > totalBudget ? 'var(--red)' : 'var(--accent)', letterSpacing: hidden ? 2 : 'normal' }}>
+                      {hidden ? '••••••' : formatCurrency(totalSpent)}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Total Limit</p>
-                    <p className="text-sm font-bold" style={{ color: 'var(--text-secondary)' }}>{formatCurrency(totalBudget)}</p>
+                    <p className="text-sm font-bold font-mono" style={{ color: 'var(--text-secondary)', letterSpacing: hidden ? 2 : 'normal' }}>{hidden ? '••••••' : formatCurrency(totalBudget)}</p>
                   </div>
                 </div>
               </motion.div>
@@ -304,7 +307,7 @@ function GoalsContent() {
 
             <div className="space-y-3">
               {budgetsByMonth.map((b, i) => (
-                <BudgetCard key={b.id} budget={b} onDelete={handleDeleteBudget} index={i} />
+                <BudgetCard key={b.id} budget={b} onDelete={handleDeleteBudget} index={i} hidden={hidden} />
               ))}
             </div>
           </motion.div>

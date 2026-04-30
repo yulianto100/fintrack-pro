@@ -8,6 +8,7 @@ import { formatCurrency, formatPercent, parseLotValue, calcProfitLoss, formatDat
 import type { StockHolding } from '@/types'
 import { Plus, Trash2, TrendingUp, TrendingDown, X, DollarSign, Pencil, AlertCircle, RefreshCw } from 'lucide-react'
 import { SahamSellModal } from '@/components/sell-modal'
+import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import toast from 'react-hot-toast'
 
 // ─── Tiny helpers ────────────────────────────────────────────────────────────
@@ -64,6 +65,8 @@ export default function SahamPage() {
   const { data: holdings, loading, refetch } = useApiList<StockHolding>('/api/portfolio/stocks', { refreshMs: 15000 })
   const symbols = useMemo(() => [...new Set((holdings || []).map((s) => s.symbol))], [holdings])
   const { prices, loading: pricesLoading, refetch: refetchPrices } = useStockPrices(symbols)
+  const { hidden } = useBalanceVisibility()
+  const MASKED = '••••••'
 
   // ── Add modal ──
   const [showAdd, setShowAdd] = useState(false)
@@ -220,14 +223,14 @@ export default function SahamPage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>Total Nilai Pasar</p>
-            <p className="text-2xl font-display font-bold" style={{ color: 'var(--blue)' }}>
-              {formatCurrency(totals.value)}
+            <p className="text-2xl font-display font-bold" style={{ color: 'var(--blue)', letterSpacing: hidden ? 2 : 'normal' }}>
+              {hidden ? MASKED : formatCurrency(totals.value)}
             </p>
           </div>
           <div className="text-right">
             <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>Total Modal</p>
-            <p className="text-sm font-bold font-mono" style={{ color: 'var(--text-secondary)' }}>
-              {formatCurrency(totals.cost)}
+            <p className="text-sm font-bold font-mono" style={{ color: 'var(--text-secondary)', letterSpacing: hidden ? 1 : 'normal' }}>
+              {hidden ? MASKED : formatCurrency(totals.cost)}
             </p>
           </div>
         </div>
@@ -241,12 +244,12 @@ export default function SahamPage() {
               {totals.pl >= 0
                 ? <TrendingUp size={13} color="var(--accent)" />
                 : <TrendingDown size={13} color="var(--red)" />}
-              <p className="text-xs font-bold" style={{ color: totals.pl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
-                {totals.pl >= 0 ? '+' : ''}{formatCurrency(totals.pl)} P&L
+              <p className="text-xs font-bold" style={{ color: totals.pl >= 0 ? 'var(--accent)' : 'var(--red)', letterSpacing: hidden ? 1 : 'normal' }}>
+                {hidden ? MASKED : <>{totals.pl >= 0 ? '+' : ''}{formatCurrency(totals.pl)} P&L</>}
               </p>
             </div>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              {formatPercent(totals.plPct)} dari modal
+            <p className="text-xs" style={{ color: 'var(--text-muted)', letterSpacing: hidden ? 1 : 'normal' }}>
+              {hidden ? MASKED : `${formatPercent(totals.plPct)} dari modal`}
             </p>
           </div>
         )}
@@ -304,13 +307,13 @@ export default function SahamPage() {
                     <p className="text-xs font-semibold mb-0.5" style={{ color: 'var(--text-muted)' }}>
                       TOTAL NILAI SEKARANG
                     </p>
-                    <p className="text-sm font-bold font-mono" style={{ color: 'var(--text-primary)' }}>
-                      {pricesLoading ? '—' : formatCurrency(totalValue)}
+                    <p className="text-sm font-bold font-mono" style={{ color: 'var(--text-primary)', letterSpacing: hidden ? 1 : 'normal' }}>
+                      {pricesLoading ? '—' : hidden ? MASKED : formatCurrency(totalValue)}
                     </p>
                     {group.totalCost > 0 && (
                       <p className="text-xs font-medium"
-                        style={{ color: groupPl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
-                        {groupPl >= 0 ? '+' : ''}{formatCurrency(groupPl)}
+                        style={{ color: groupPl >= 0 ? 'var(--accent)' : 'var(--red)', letterSpacing: hidden ? 1 : 'normal' }}>
+                        {hidden ? MASKED : <>{groupPl >= 0 ? '+' : ''}{formatCurrency(groupPl)}</>}
                       </p>
                     )}
                   </div>
@@ -324,8 +327,8 @@ export default function SahamPage() {
                   }}>
                   <div className="flex items-center gap-2">
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Harga kini</p>
-                    <p className="text-xs font-bold font-mono" style={{ color: 'var(--blue)' }}>
-                      {pricesLoading ? '—' : formatCurrency(currentPrice)}
+                    <p className="text-xs font-bold font-mono" style={{ color: 'var(--blue)', letterSpacing: hidden ? 1 : 'normal' }}>
+                      {pricesLoading ? '—' : hidden ? MASKED : formatCurrency(currentPrice)}
                     </p>
                     {stockData && (
                       <div className="flex items-center gap-0.5">
@@ -340,8 +343,8 @@ export default function SahamPage() {
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Avg beli</p>
-                      <p className="text-[10px] font-mono font-bold" style={{ color: 'var(--text-secondary)' }}>
-                        {formatCurrency(weightedAvg)}/lbr
+                      <p className="text-[10px] font-mono font-bold" style={{ color: 'var(--text-secondary)', letterSpacing: hidden ? 1 : 'normal' }}>
+                        {hidden ? MASKED : `${formatCurrency(weightedAvg)}/lbr`}
                       </p>
                     </div>
                     {/* P/L badge */}
@@ -360,9 +363,9 @@ export default function SahamPage() {
                 {group.totalCost > 0 && (
                   <div className="px-4 py-1.5" style={{ borderBottom: '1px solid var(--border)' }}>
                     <div className="flex justify-between text-[9px] mb-1" style={{ color: 'var(--text-muted)' }}>
-                      <span>Modal: {formatCurrency(group.totalCost)}</span>
+                      <span>Modal: {hidden ? MASKED : formatCurrency(group.totalCost)}</span>
                       <span style={{ color: groupPl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
-                        {groupPl >= 0 ? '+' : ''}{formatCurrency(groupPl)}
+                        {hidden ? MASKED : <>{groupPl >= 0 ? '+' : ''}{formatCurrency(groupPl)}</>}
                       </span>
                     </div>
                     <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.08)' }}>

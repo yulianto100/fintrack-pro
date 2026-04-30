@@ -311,7 +311,7 @@ function PortfolioContent() {
                     <p className="font-bold font-mono" style={{ color: s.color }}>{hidden ? HIDDEN_TEXT : formatCurrency(s.value)}</p>
                   </div>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{s.subtitle}</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)', letterSpacing: hidden ? 1.5 : 'normal' }}>{hidden ? '••••' : s.subtitle}</p>
                     <p className="text-xs font-medium" style={{ color: (s as {metaColor?:string}).metaColor || 'var(--text-muted)' }}>
                       {hidden ? '••••' : s.meta}
                     </p>

@@ -8,6 +8,7 @@ import { formatCurrency, formatNumber, formatDate } from '@/lib/utils'
 import type { GoldHolding, GoldSource, GoldType } from '@/types'
 import { Plus, Trash2, RefreshCw, X, Wifi, WifiOff, TrendingUp, TrendingDown, DollarSign, Pencil } from 'lucide-react'
 import { EmasSellModal } from '@/components/sell-modal'
+import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import toast from 'react-hot-toast'
 
 // ─── Provider config — Emasku dihapus ──────────────────────────────────────
@@ -103,6 +104,8 @@ function PriceCard({ source, price, selected, onClick }: {
 // ─── Main page ───────────────────────────────────────────────────────────────
 export default function EmasPage() {
   const { data: holdings, loading, refetch } = useApiList<GoldHolding>('/api/portfolio/gold', { refreshMs: 10000 })
+  const { hidden } = useBalanceVisibility()
+  const MASKED = '••••••'
   const { prices, lastUpdated, isLive, refetch: refetchPrices } = useGoldPrices()
 
   const [showAdd,  setShowAdd ] = useState(false)
@@ -252,14 +255,14 @@ export default function EmasPage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-xs mb-0.5" style={{ color:'var(--text-muted)' }}>Total Kepemilikan</p>
-            <p className="text-2xl font-display font-bold" style={{ color:'#f6cc60' }}>
-              {formatNumber(totalGrams, 3)} <span className="text-base font-normal">gram</span>
+            <p className="text-2xl font-display font-bold" style={{ color:'#f6cc60', letterSpacing: hidden ? 2 : 'normal' }}>
+              {hidden ? MASKED : <>{formatNumber(totalGrams, 3)} <span className="text-base font-normal">gram</span></>}
             </p>
           </div>
           <div className="text-right">
             <p className="text-xs mb-0.5" style={{ color:'var(--text-muted)' }}>Nilai Pasar</p>
-            <p className="text-lg font-bold font-mono" style={{ color:'var(--text-primary)' }}>
-              {formatCurrency(totalValue)}
+            <p className="text-lg font-bold font-mono" style={{ color:'var(--text-primary)', letterSpacing: hidden ? 2 : 'normal' }}>
+              {hidden ? MASKED : formatCurrency(totalValue)}
             </p>
           </div>
         </div>
@@ -273,11 +276,11 @@ export default function EmasPage() {
               }}>
               {totalPnl >= 0 ? <TrendingUp size={13} color="var(--accent)"/> : <TrendingDown size={13} color="var(--red)"/>}
               <p className="text-xs font-bold" style={{ color: totalPnl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
-                {totalPnl >= 0 ? '+' : ''}{formatCurrency(totalPnl)} P&L
+                {hidden ? MASKED : <>{totalPnl >= 0 ? '+' : ''}{formatCurrency(totalPnl)} P&L</>}
               </p>
             </div>
-            <p className="text-xs" style={{ color:'var(--text-muted)' }}>
-              dari {formatCurrency(totalCost)} modal
+            <p className="text-xs" style={{ color:'var(--text-muted)', letterSpacing: hidden ? 1 : 'normal' }}>
+              {hidden ? `dari ${MASKED} modal` : `dari ${formatCurrency(totalCost)} modal`}
             </p>
           </div>
         )}
@@ -337,19 +340,19 @@ export default function EmasPage() {
                         <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium"
                           style={{ background:`${cfg.color}18`, color:cfg.color }}>{cfg.type}</span>
                       </div>
-                      <p className="text-xs font-bold" style={{ color:'#f6cc60' }}>
-                        {formatNumber(group.grams, 3)} gr
+                      <p className="text-xs font-bold" style={{ color:'#f6cc60', letterSpacing: hidden ? 1 : 'normal' }}>
+                        {hidden ? MASKED : `${formatNumber(group.grams, 3)} gr`}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold font-mono" style={{ color:'var(--text-primary)' }}>
-                      {formatCurrency(group.value)}
+                    <p className="text-sm font-bold font-mono" style={{ color:'var(--text-primary)', letterSpacing: hidden ? 1 : 'normal' }}>
+                      {hidden ? MASKED : formatCurrency(group.value)}
                     </p>
                     {group.pnl !== null && (
                       <p className="text-xs font-medium"
-                        style={{ color: group.pnl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
-                        {group.pnl >= 0 ? '+' : ''}{formatCurrency(group.pnl)}
+                        style={{ color: group.pnl >= 0 ? 'var(--accent)' : 'var(--red)', letterSpacing: hidden ? 1 : 'normal' }}>
+                        {hidden ? MASKED : <>{group.pnl >= 0 ? '+' : ''}{formatCurrency(group.pnl)}</>}
                       </p>
                     )}
                   </div>
@@ -364,9 +367,10 @@ export default function EmasPage() {
                       background: 'rgba(255,255,255,0.015)',
                     }}>
                     <div>
-                      <p className="text-xs font-mono" style={{ color:'var(--text-secondary)' }}>
-                        {formatNumber(h.grams, 3)} gr
-                        {h.buyPrice ? ` · beli ${formatCurrency(h.buyPrice)}/gr` : ''}
+                      <p className="text-xs font-mono" style={{ color:'var(--text-secondary)', letterSpacing: hidden ? 1 : 'normal' }}>
+                        {hidden
+                          ? MASKED
+                          : <>{formatNumber(h.grams, 3)} gr{h.buyPrice ? ` · beli ${formatCurrency(h.buyPrice)}/gr` : ''}</>}
                       </p>
                       {h.buyDate && (
                         <p className="text-[10px]" style={{ color:'var(--text-muted)' }}>

@@ -8,6 +8,7 @@ import { formatCurrency, formatDate, getMonthOptions } from '@/lib/utils'
 import type { Category, Transaction } from '@/types'
 import { Filter, Download, Search, ChevronDown, Trash2, Edit3 } from 'lucide-react'
 import { QuickAddFAB } from '@/components/transactions/QuickAddFAB'
+import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import { TransactionModal } from '@/components/transactions/TransactionModal'
 import toast from 'react-hot-toast'
 
@@ -18,6 +19,7 @@ export default function TransactionsPage() {
   } = useTransactions()
   const { data: categories } = useApiList<Category>('/api/categories')
 
+  const { hidden } = useBalanceVisibility()
   const [showFilters, setShowFilters] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [editTx, setEditTx] = useState<Transaction | null>(null)
@@ -115,8 +117,9 @@ export default function TransactionsPage() {
         ].map((s) => (
           <div key={s.label} className="glass-card p-3 text-center">
             <p className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>{s.label}</p>
-            <p className="text-xs font-bold font-mono" style={{ color: s.color }}>
-              {formatCurrency(s.value)}
+            <p className="text-xs font-bold font-mono"
+              style={{ color: s.color, letterSpacing: hidden ? 2 : 'normal' }}>
+              {hidden ? '••••••' : formatCurrency(s.value)}
             </p>
           </div>
         ))}
@@ -296,13 +299,13 @@ export default function TransactionsPage() {
                         <p
                           className="text-sm font-bold font-mono"
                           style={{
-                            color: t.type === 'income' ? 'var(--accent)'
+                            color: hidden ? 'var(--text-muted)' : t.type === 'income' ? 'var(--accent)'
                               : t.type === 'expense' ? 'var(--red)'
                               : 'var(--blue)',
+                            letterSpacing: hidden ? 2 : 'normal',
                           }}
                         >
-                          {t.type === 'income' ? '+' : t.type === 'expense' ? '-' : ''}
-                          {formatCurrency(t.amount)}
+                          {hidden ? '••••••' : `${t.type === 'income' ? '+' : t.type === 'expense' ? '-' : ''}${formatCurrency(t.amount)}`}
                         </p>
                         <ChevronDown
                           size={14}

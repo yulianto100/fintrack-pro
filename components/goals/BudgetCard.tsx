@@ -6,21 +6,18 @@ import type { BudgetStatus } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { calculateBudgetUsage } from '@/lib/goals-finance'
 
+const MASKED = '••••••'
+
 interface Props {
   budget: BudgetStatus
   onDelete: (id: string, name: string) => void
-  /** Staggered animation delay index */
   index?: number
+  hidden?: boolean
 }
 
-/**
- * BudgetCard — displays one budget category with color-coded usage bar.
- * Green < 70%, Orange 70–99%, Red ≥ 100%.
- */
-export function BudgetCard({ budget, onDelete, index = 0 }: Props) {
+export function BudgetCard({ budget, onDelete, index = 0, hidden = false }: Props) {
   const usage = calculateBudgetUsage(budget)
 
-  // Derive border color from status
   const borderColor =
     usage.status === 'over'    ? 'rgba(239,68,68,0.25)' :
     usage.status === 'warning' ? 'rgba(249,115,22,0.20)' :
@@ -34,9 +31,7 @@ export function BudgetCard({ budget, onDelete, index = 0 }: Props) {
       className="glass-card p-4"
       style={{ borderColor }}
     >
-      {/* ── Header row ── */}
       <div className="flex items-center justify-between mb-3">
-        {/* Left: icon + name */}
         <div className="flex items-center gap-3">
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
@@ -49,19 +44,21 @@ export function BudgetCard({ budget, onDelete, index = 0 }: Props) {
               {budget.categoryName || 'Kategori'}
             </p>
             <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-              {usage.remainingLabel}
+              {hidden ? '••••••' : usage.remainingLabel}
             </p>
           </div>
         </div>
 
-        {/* Right: % + delete */}
         <div className="flex items-center gap-2">
           <div className="text-right">
             <p className="text-sm font-bold font-mono leading-tight" style={{ color: usage.color }}>
               {usage.percentage.toFixed(0)}%
             </p>
-            <p className="text-[10px] leading-tight" style={{ color: 'var(--text-muted)' }}>
-              {formatCurrency(budget.spent)} / {formatCurrency(budget.limitAmount)}
+            <p className="text-[10px] leading-tight font-mono"
+              style={{ color: 'var(--text-muted)', letterSpacing: hidden ? 1 : 'normal' }}>
+              {hidden
+                ? `${MASKED} / ${MASKED}`
+                : `${formatCurrency(budget.spent)} / ${formatCurrency(budget.limitAmount)}`}
             </p>
           </div>
           <button
@@ -74,7 +71,6 @@ export function BudgetCard({ budget, onDelete, index = 0 }: Props) {
         </div>
       </div>
 
-      {/* ── Progress bar ── */}
       <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface-3)' }}>
         <motion.div
           initial={{ width: 0 }}
@@ -85,26 +81,16 @@ export function BudgetCard({ budget, onDelete, index = 0 }: Props) {
         />
       </div>
 
-      {/* Over-budget annotation */}
       {usage.status === 'over' && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-[10px] mt-1.5 font-medium"
-          style={{ color: 'var(--red)' }}
-        >
-          ⚠ Melebihi limit sebesar {formatCurrency(-budget.remaining)}
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          className="text-[10px] mt-1.5 font-medium" style={{ color: 'var(--red)' }}>
+          ⚠ Melebihi limit{hidden ? '' : ` sebesar ${formatCurrency(-budget.remaining)}`}
         </motion.p>
       )}
 
-      {/* Warning annotation */}
       {usage.status === 'warning' && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-[10px] mt-1.5 font-medium"
-          style={{ color: '#f97316' }}
-        >
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          className="text-[10px] mt-1.5 font-medium" style={{ color: '#f97316' }}>
           🔥 Hampir mencapai batas budget
         </motion.p>
       )}

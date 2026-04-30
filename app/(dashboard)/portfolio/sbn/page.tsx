@@ -8,6 +8,7 @@ import { calcSBN } from '@/lib/investment-calculator'
 import { addMonths } from 'date-fns'
 import type { SBNHolding, SBNType } from '@/types'
 import { Plus, Trash2, X, TrendingUp, Clock, Pencil, AlertCircle } from 'lucide-react'
+import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import toast from 'react-hot-toast'
 
 // Tax is auto-set from type — SBSN = 15%, everything else = 10%
@@ -101,6 +102,8 @@ function ProgressBar({ start, end, color = '#a855f7' }: { start: string; end: st
 // ─── Main page ───────────────────────────────────────────────────────────────
 export default function SBNPage() {
   const { data: holdings, loading, refetch } = useApiList<SBNHolding>('/api/portfolio/sbn', { refreshMs: 60000 })
+  const { hidden } = useBalanceVisibility()
+  const MASKED = '••••••'
 
   // ── Add form ──
   const [showAdd, setShowAdd] = useState(false)
@@ -416,8 +419,8 @@ export default function SBNPage() {
           <div className="flex flex-col gap-3">
             <div>
               <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>Total Nominal</p>
-              <p className="text-2xl font-display font-bold" style={{ color: '#d6aaff' }}>
-                {formatCurrency(totals.nominal)}
+              <p className="text-2xl font-display font-bold" style={{ color: '#d6aaff', letterSpacing: hidden ? 2 : 'normal' }}>
+                {hidden ? MASKED : formatCurrency(totals.nominal)}
               </p>
             </div>
             <div className="h-px" style={{ background: 'var(--border)' }} />
@@ -426,15 +429,15 @@ export default function SBNPage() {
                 <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>Bunga Bersih</p>
                 <div className="flex items-center gap-1">
                   <TrendingUp size={13} color="var(--accent)" />
-                  <p className="text-sm font-bold font-mono" style={{ color: 'var(--accent)' }}>
-                    +{formatCurrency(totals.netReturn)}
+                  <p className="text-sm font-bold font-mono" style={{ color: 'var(--accent)', letterSpacing: hidden ? 1 : 'normal' }}>
+                    {hidden ? MASKED : `+${formatCurrency(totals.netReturn)}`}
                   </p>
                 </div>
               </div>
               <div>
-                <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>Nilai Akhir</p>
-                <p className="text-sm font-bold font-mono" style={{ color: 'var(--text-primary)' }}>
-                  {formatCurrency(totals.totalFinal)}
+                <p className="text-xs mb.0.5" style={{ color: 'var(--text-muted)' }}>Nilai Akhir</p>
+                <p className="text-sm font-bold font-mono" style={{ color: 'var(--text-primary)', letterSpacing: hidden ? 1 : 'normal' }}>
+                  {hidden ? MASKED : formatCurrency(totals.totalFinal)}
                 </p>
               </div>
             </div>
@@ -485,11 +488,11 @@ export default function SBNPage() {
 
               <div className="flex flex-col gap-0 rounded-xl overflow-hidden mb-3" style={{ background: 'var(--surface-close)' }}>
                 {[
-                  { label: 'Nominal',      value: formatCurrency(h.nominal),       color: '#d6aaff' },
-                  { label: 'Bunga Kotor',  value: formatCurrency(h.grossReturn),   color: 'var(--text-secondary)' },
-                  { label: 'Pajak',        value: `-${formatCurrency(h.taxAmount)}`, color: 'var(--red)' },
-                  { label: 'Bunga Bersih', value: `+${formatCurrency(h.netReturn)}`, color: 'var(--accent)' },
-                  { label: 'Total Akhir',  value: formatCurrency(h.totalFinal),    color: '#d6aaff' },
+                  { label: 'Nominal',      value: hidden ? MASKED : formatCurrency(h.nominal),       color: '#d6aaff' },
+                  { label: 'Bunga Kotor',  value: hidden ? MASKED : formatCurrency(h.grossReturn),   color: 'var(--text-secondary)' },
+                  { label: 'Pajak',        value: hidden ? MASKED : `-${formatCurrency(h.taxAmount)}`, color: 'var(--red)' },
+                  { label: 'Bunga Bersih', value: hidden ? MASKED : `+${formatCurrency(h.netReturn)}`, color: 'var(--accent)' },
+                  { label: 'Total Akhir',  value: hidden ? MASKED : formatCurrency(h.totalFinal),    color: '#d6aaff' },
                 ].map((row, i, arr) => (
                   <div key={row.label}
                     className="flex items-center justify-between px-3 py-2"

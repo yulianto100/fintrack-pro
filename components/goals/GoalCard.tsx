@@ -6,14 +6,15 @@ import { formatCurrency } from '@/lib/utils'
 import { Trash2 } from 'lucide-react'
 import { calculateGoalProgress } from '@/lib/goals-finance'
 
+const MASKED = '••••••'
+
 interface Props {
   goal: Goal
   onDelete: (id: string) => void
   onTopUp: (goal: Goal) => void
-  /** Pass monthly net-savings so the card can show an ETA. */
   monthlyContribution?: number
-  /** Staggered animation delay index */
   index?: number
+  hidden?: boolean
 }
 
 function motivationFor(pct: number, remaining: number): string {
@@ -24,13 +25,19 @@ function motivationFor(pct: number, remaining: number): string {
   return '🚀 Perjalanan baru dimulai'
 }
 
-/**
- * GoalCard — displays a single financial goal with progress bar,
- * percentage, motivational message, ETA, and action buttons.
- */
-export function GoalCard({ goal, onDelete, onTopUp, monthlyContribution, index = 0 }: Props) {
+function motivationHidden(pct: number): string {
+  if (pct >= 100) return '🎉 Goal tercapai! Luar biasa!'
+  if (pct >= 80)  return '🔥 Hampir sampai!'
+  if (pct >= 50)  return '💪 Sudah separuh jalan!'
+  if (pct >= 25)  return '📈 Terus semangat!'
+  return '🚀 Perjalanan baru dimulai'
+}
+
+export function GoalCard({ goal, onDelete, onTopUp, monthlyContribution, index = 0, hidden = false }: Props) {
   const progress   = calculateGoalProgress(goal, monthlyContribution)
-  const motivation = motivationFor(progress.percentage, progress.remaining)
+  const motivation = hidden
+    ? motivationHidden(progress.percentage)
+    : motivationFor(progress.percentage, progress.remaining)
 
   return (
     <motion.div
@@ -40,36 +47,27 @@ export function GoalCard({ goal, onDelete, onTopUp, monthlyContribution, index =
       whileTap={{ scale: 0.99 }}
       className="glass-card p-4"
     >
-      {/* ── Header ── */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
-          {/* Icon badge */}
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
             style={{ background: `${goal.color}18`, border: `1px solid ${goal.color}25` }}
           >
             {goal.icon}
           </div>
-
-          {/* Title + amounts */}
           <div>
             <p className="font-semibold text-sm leading-tight" style={{ color: 'var(--text-primary)' }}>
               {goal.title}
             </p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-              {formatCurrency(goal.currentAmount)}{' '}
-              <span style={{ color: 'var(--text-muted)', opacity: 0.5 }}>/</span>{' '}
-              {formatCurrency(goal.targetAmount)}
+            <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--text-muted)', letterSpacing: hidden ? 2 : 'normal' }}>
+              {hidden
+                ? `${MASKED} / ${MASKED}`
+                : `${formatCurrency(goal.currentAmount)} / ${formatCurrency(goal.targetAmount)}`}
             </p>
           </div>
         </div>
-
-        {/* Right: % badge + delete */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <div
-            className="px-2 py-1 rounded-lg"
-            style={{ background: `${goal.color}18` }}
-          >
+          <div className="px-2 py-1 rounded-lg" style={{ background: `${goal.color}18` }}>
             <p className="text-xs font-bold font-mono" style={{ color: goal.color }}>
               {progress.percentage.toFixed(1)}%
             </p>
@@ -84,7 +82,6 @@ export function GoalCard({ goal, onDelete, onTopUp, monthlyContribution, index =
         </div>
       </div>
 
-      {/* ── Progress bar ── */}
       <div className="progress-bar mb-3">
         <motion.div
           className="progress-bar-fill"
@@ -95,7 +92,6 @@ export function GoalCard({ goal, onDelete, onTopUp, monthlyContribution, index =
         />
       </div>
 
-      {/* ── Bottom row: motivation + ETA ── */}
       <div className="flex items-center justify-between mb-3 gap-2">
         <p className="text-xs leading-snug flex-1" style={{ color: 'var(--text-secondary)' }}>
           {motivation}
@@ -103,27 +99,18 @@ export function GoalCard({ goal, onDelete, onTopUp, monthlyContribution, index =
         {progress.estimatedLabel && (
           <p
             className="text-[10px] font-medium flex-shrink-0 px-2 py-0.5 rounded-lg"
-            style={{
-              color: 'var(--text-muted)',
-              background: 'var(--surface-3)',
-              border: '1px solid var(--border)',
-            }}
+            style={{ color: 'var(--text-muted)', background: 'var(--surface-3)', border: '1px solid var(--border)' }}
           >
             ⏱ {progress.estimatedLabel}
           </p>
         )}
       </div>
 
-      {/* ── Action button ── */}
       {!progress.isCompleted ? (
         <button
           onClick={() => onTopUp(goal)}
           className="w-full py-2 rounded-xl text-xs font-semibold transition-all active:scale-[0.97]"
-          style={{
-            background: `${goal.color}18`,
-            color: goal.color,
-            border: `1px solid ${goal.color}35`,
-          }}
+          style={{ background: `${goal.color}18`, color: goal.color, border: `1px solid ${goal.color}35` }}
         >
           + Top Up Progress
         </button>

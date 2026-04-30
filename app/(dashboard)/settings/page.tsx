@@ -7,8 +7,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useApiList } from '@/hooks/useApiData'
-import { Bell, BellOff, Download, Upload, LogOut, Tag, Plus, Trash2, X,
-  Landmark, Wallet, Pencil, Check, Lock, ChevronDown, ChevronUp, Moon, Sun,
+import { Bell, BellOff, ChevronDown, Download, Upload, LogOut, Tag, Plus, Trash2, X,
+  Landmark, Wallet, Pencil, Check, Lock, Moon, Sun,
   Repeat, ToggleLeft, ToggleRight, Calendar,
 } from 'lucide-react'
 import type { Category, WalletAccount, WalletAccountType, RecurringTransaction, RecurringFrequency } from '@/types'
@@ -45,6 +45,10 @@ export default function SettingsPage() {
   const [bankExpanded,      setBankExpanded     ] = useState(false)
   const [ewalletExpanded,   setEwalletExpanded  ] = useState(false)
   const [recurringExpanded, setRecurringExpanded] = useState(false)
+  // ── Expand/collapse for kategori, push notif, export ──
+  const [expandKategori,  setExpandKategori ] = useState(false)
+  const [expandPushNotif, setExpandPushNotif] = useState(false)
+  const [expandExport,    setExpandExport   ] = useState(false)
 
   // ── Recurring transactions ──
   const [recurringItems,   setRecurringItems  ] = useState<RecurringTransaction[]>([])
@@ -696,88 +700,147 @@ export default function SettingsPage() {
       {/* Push notifications */}
       {supported && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="glass-card p-5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(96,165,250,0.12)' }}>
-              <Bell size={18} color="#60a5fa"/>
+          className="glass-card overflow-hidden">
+          <button
+            onClick={() => setExpandPushNotif((v) => !v)}
+            className="w-full flex items-center justify-between p-5"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(96,165,250,0.12)' }}>
+                <Bell size={18} color="#60a5fa"/>
+              </div>
+              <div className="text-left">
+                <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Push Notification</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {subscribed ? 'Aktif' : 'Nonaktif'} · Notifikasi jatuh tempo
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Push Notification</p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Notifikasi jatuh tempo deposito</p>
-            </div>
-          </div>
-          <button onClick={subscribed ? unsubscribe : subscribe} disabled={notifLoading}
-            className="w-full py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
-            style={{
-              background: subscribed ? 'var(--red-dim)'    : 'var(--accent-dim)',
-              color:      subscribed ? 'var(--red)'        : 'var(--accent)',
-              border:    `1px solid ${subscribed ? 'rgba(248,113,113,0.3)' : 'rgba(34,197,94,0.3)'}`,
-            }}>
-            {notifLoading
-              ? <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin"/>
-              : subscribed ? <><BellOff size={15}/> Nonaktifkan</> : <><Bell size={15}/> Aktifkan Notifikasi</>
-            }
+            <ChevronDown size={16} style={{ color: 'var(--text-muted)', transform: expandPushNotif ? 'rotate(180deg)' : 'none', transition: 'transform 0.25s', flexShrink: 0 }} />
           </button>
+          <AnimatePresence>
+            {expandPushNotif && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                style={{ overflow: 'hidden' }}
+              >
+                <div className="px-5 pb-5">
+                  <button onClick={subscribed ? unsubscribe : subscribe} disabled={notifLoading}
+                    className="w-full py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
+                    style={{
+                      background: subscribed ? 'var(--red-dim)'    : 'var(--accent-dim)',
+                      color:      subscribed ? 'var(--red)'        : 'var(--accent)',
+                      border:    `1px solid ${subscribed ? 'rgba(248,113,113,0.3)' : 'rgba(34,197,94,0.3)'}`,
+                    }}>
+                    {notifLoading
+                      ? <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin"/>
+                      : subscribed ? <><BellOff size={15}/> Nonaktifkan</> : <><Bell size={15}/> Aktifkan Notifikasi</>
+                    }
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
 
       {/* Categories */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.13 }}
-        className="glass-card p-5">
-        <div className="flex items-center justify-between mb-4">
+        className="glass-card overflow-hidden">
+        <button
+          onClick={() => setExpandKategori((v) => !v)}
+          className="w-full flex items-center justify-between p-5"
+        >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(192,132,252,0.12)' }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(192,132,252,0.12)' }}>
               <Tag size={18} color="#c084fc"/>
             </div>
             <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>
               Kategori <span className="text-xs font-normal ml-1" style={{ color: 'var(--text-muted)' }}>({categories.length})</span>
             </p>
           </div>
-          <button onClick={() => setShowCatModal(true)}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold"
-            style={{ background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid rgba(34,197,94,0.3)' }}>
-            <Plus size={13}/> Tambah
-          </button>
-        </div>
-        <div className="space-y-4">
-          <CatSection label="Pemasukan"   cats={incomeCategories}  />
-          <CatSection label="Pengeluaran" cats={expenseCategories} />
-        </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowCatModal(true) }}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid rgba(34,197,94,0.3)' }}
+            >
+              <Plus size={13}/> Tambah
+            </button>
+            <ChevronDown size={16} style={{ color: 'var(--text-muted)', transform: expandKategori ? 'rotate(180deg)' : 'none', transition: 'transform 0.25s', flexShrink: 0 }} />
+          </div>
+        </button>
+        <AnimatePresence>
+          {expandKategori && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              style={{ overflow: 'hidden' }}
+            >
+              <div className="px-5 pb-5 space-y-4">
+                <CatSection label="Pemasukan"   cats={incomeCategories}  />
+                <CatSection label="Pengeluaran" cats={expenseCategories} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* Export / Import */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}
-        className="glass-card p-5">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--accent-dim)' }}>
-            <Download size={18} color="var(--accent)"/>
-          </div>
-          <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Export & Import</p>
-        </div>
-        <div className="space-y-2">
-          {[
-            { label: 'Export ke Excel (.xlsx)', onClick: handleExport,     color: 'var(--accent)',         bg: 'var(--accent-dim)' },
-            { label: 'Backup JSON',             onClick: handleExportJSON, color: 'var(--text-secondary)', bg: 'var(--surface-3)' },
-          ].map((b) => (
-            <button key={b.label} onClick={b.onClick}
-              className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
-              style={{ background: b.bg, color: b.color, border: '1px solid var(--border)' }}>
-              <Download size={15}/> {b.label}
-            </button>
-          ))}
-          <label className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 cursor-pointer"
-            style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
-            <Upload size={15}/> Import dari JSON
-            <input type="file" accept=".json" className="hidden" onChange={handleImport}/>
-          </label>
-          {/* CSV import shortcut */}
-          <Link href="/import">
-            <div className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 cursor-pointer"
-              style={{ background: 'rgba(99,179,237,0.08)', color: '#63b3ed', border: '1px solid rgba(99,179,237,0.2)' }}>
-              <Upload size={15}/> Import Mutasi Bank (CSV)
+        className="glass-card overflow-hidden">
+        <button
+          onClick={() => setExpandExport((v) => !v)}
+          className="w-full flex items-center justify-between p-5"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--accent-dim)' }}>
+              <Download size={18} color="var(--accent)"/>
             </div>
-          </Link>
-        </div>
+            <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Export & Import</p>
+          </div>
+          <ChevronDown size={16} style={{ color: 'var(--text-muted)', transform: expandExport ? 'rotate(180deg)' : 'none', transition: 'transform 0.25s', flexShrink: 0 }} />
+        </button>
+        <AnimatePresence>
+          {expandExport && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              style={{ overflow: 'hidden' }}
+            >
+              <div className="px-5 pb-5 space-y-2">
+                {[
+                  { label: 'Export ke Excel (.xlsx)', onClick: handleExport,     color: 'var(--accent)',         bg: 'var(--accent-dim)' },
+                  { label: 'Backup JSON',             onClick: handleExportJSON, color: 'var(--text-secondary)', bg: 'var(--surface-3)' },
+                ].map((b) => (
+                  <button key={b.label} onClick={b.onClick}
+                    className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
+                    style={{ background: b.bg, color: b.color, border: '1px solid var(--border)' }}>
+                    <Download size={15}/> {b.label}
+                  </button>
+                ))}
+                <label className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 cursor-pointer"
+                  style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                  <Upload size={15}/> Import dari JSON
+                  <input type="file" accept=".json" className="hidden" onChange={handleImport}/>
+                </label>
+                <Link href="/import">
+                  <div className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 cursor-pointer"
+                    style={{ background: 'rgba(99,179,237,0.08)', color: '#63b3ed', border: '1px solid rgba(99,179,237,0.2)' }}>
+                    <Upload size={15}/> Import Mutasi Bank (CSV)
+                  </div>
+                </Link>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* Dark Mode Toggle */}

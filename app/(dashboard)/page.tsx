@@ -212,7 +212,7 @@ export default function DashboardPage() {
 
       {/* Weekly Summary */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}>
-        <WeeklySummary transactions={allTx} />
+        <WeeklySummary transactions={allTx} hidden={hidden} />
       </motion.div>
 
       {/* Net Worth Breakdown */}

@@ -7,6 +7,7 @@ import { formatCurrency, formatNumber, formatPercent, formatDate } from '@/lib/u
 import { calcReksadana } from '@/lib/investment-calculator'
 import type { ReksadanaHolding, ReksadanaType } from '@/types'
 import { Plus, Trash2, X, TrendingUp, TrendingDown, RefreshCw, Pencil, AlertCircle, Zap } from 'lucide-react'
+import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import toast from 'react-hot-toast'
 
 const RD_TYPES: { value: ReksadanaType; label: string; icon: string; color: string }[] = [
@@ -90,6 +91,8 @@ const EMPTY_FORM = {
 // ─── Main page ───────────────────────────────────────────────────────────────
 export default function ReksadanaPage() {
   const { data: holdings, loading, refetch } = useApiList<ReksadanaHolding>('/api/portfolio/reksadana', { refreshMs: 60000 })
+  const { hidden } = useBalanceVisibility()
+  const MASKED = '••••••'
 
   // ── Add modal ──
   const [showAdd, setShowAdd] = useState(false)
@@ -303,28 +306,28 @@ export default function ReksadanaPage() {
           <div className="flex flex-col gap-3">
             <div>
               <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>Nilai Pasar</p>
-              <p className="text-2xl font-display font-bold" style={{ color: 'var(--blue)' }}>
-                {formatCurrency(totals.totalValue)}
+              <p className="text-2xl font-display font-bold" style={{ color: 'var(--blue)', letterSpacing: hidden ? 2 : 'normal' }}>
+                {hidden ? MASKED : formatCurrency(totals.totalValue)}
               </p>
             </div>
             <div className="h-px" style={{ background: 'var(--border)' }} />
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>Total Modal</p>
-                <p className="text-sm font-bold font-mono" style={{ color: 'var(--text-secondary)' }}>
-                  {formatCurrency(totals.totalCost)}
+                <p className="text-sm font-bold font-mono" style={{ color: 'var(--text-secondary)', letterSpacing: hidden ? 1 : 'normal' }}>
+                  {hidden ? MASKED : formatCurrency(totals.totalCost)}
                 </p>
               </div>
               <div>
                 <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>Total P&L</p>
                 <div className="flex items-center gap-1">
                   {totals.pnl >= 0 ? <TrendingUp size={13} color="var(--accent)" /> : <TrendingDown size={13} color="var(--red)" />}
-                  <p className="text-sm font-bold" style={{ color: totals.pnl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
-                    {totals.pnl >= 0 ? '+' : ''}{formatCurrency(totals.pnl)}
+                  <p className="text-sm font-bold" style={{ color: totals.pnl >= 0 ? 'var(--accent)' : 'var(--red)', letterSpacing: hidden ? 1 : 'normal' }}>
+                    {hidden ? MASKED : <>{totals.pnl >= 0 ? '+' : ''}{formatCurrency(totals.pnl)}</>}
                   </p>
                 </div>
-                <p className="text-xs" style={{ color: totals.pnl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
-                  {formatPercent(totals.pnlPct)}
+                <p className="text-xs" style={{ color: totals.pnl >= 0 ? 'var(--accent)' : 'var(--red)', letterSpacing: hidden ? 1 : 'normal' }}>
+                  {hidden ? '' : formatPercent(totals.pnlPct)}
                 </p>
               </div>
             </div>
@@ -401,25 +404,25 @@ export default function ReksadanaPage() {
 
                 <div className="flex flex-col gap-0 rounded-xl overflow-hidden mb-3" style={{ background: 'var(--surface-close)' }}>
                   {[
-                    { label: 'Unit',         value: `${formatNumber(h.unit, 4)} unit`,  color: 'var(--text-secondary)' },
-                    { label: 'NAB Beli',     value: `${formatCurrency(h.buyNAV)}/unit`, color: 'var(--text-secondary)' },
-                    { label: `NAB Kini${isSimulated ? ' (sim)' : ''}`, value: `${formatCurrency(nav)}/unit`, color: 'var(--blue)' },
-                    { label: 'Nilai Pasar',  value: formatCurrency(currentValue),        color: 'var(--blue)'           },
-                    { label: 'Modal',        value: formatCurrency(costBasis),            color: 'var(--text-secondary)' },
+                    { label: 'Unit',         value: hidden ? MASKED : `${formatNumber(h.unit, 4)} unit`,  color: 'var(--text-secondary)' },
+                    { label: 'NAB Beli',     value: hidden ? MASKED : `${formatCurrency(h.buyNAV)}/unit`, color: 'var(--text-secondary)' },
+                    { label: `NAB Kini${isSimulated ? ' (sim)' : ''}`, value: hidden ? MASKED : `${formatCurrency(nav)}/unit`, color: 'var(--blue)' },
+                    { label: 'Nilai Pasar',  value: hidden ? MASKED : formatCurrency(currentValue),        color: 'var(--blue)'           },
+                    { label: 'Modal',        value: hidden ? MASKED : formatCurrency(costBasis),            color: 'var(--text-secondary)' },
                   ].map((row, i, arr) => (
                     <div key={row.label}
                       className="flex items-center justify-between px-3 py-2"
                       style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
                       <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{row.label}</p>
-                      <p className="text-xs font-bold font-mono" style={{ color: row.color }}>{row.value}</p>
+                      <p className="text-xs font-bold font-mono" style={{ color: row.color, letterSpacing: hidden ? 1 : 'normal' }}>{row.value}</p>
                     </div>
                   ))}
                   <div className="flex items-center justify-between px-3 py-2">
                     <p className="text-xs" style={{ color: 'var(--text-muted)' }}>P&L</p>
                     <div className="flex items-center gap-1.5">
                       {pl >= 0 ? <TrendingUp size={11} color="var(--accent)" /> : <TrendingDown size={11} color="var(--red)" />}
-                      <p className="text-xs font-bold" style={{ color: pl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
-                        {pl >= 0 ? '+' : ''}{formatCurrency(pl)} ({formatPercent(plPct)})
+                      <p className="text-xs font-bold" style={{ color: pl >= 0 ? 'var(--accent)' : 'var(--red)', letterSpacing: hidden ? 1 : 'normal' }}>
+                        {hidden ? MASKED : <>{pl >= 0 ? '+' : ''}{formatCurrency(pl)} ({formatPercent(plPct)})</>}
                       </p>
                     </div>
                   </div>
