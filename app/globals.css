@@ -550,3 +550,156 @@ input[type="date"]::-webkit-date-and-time-value {
 .dark .min-h-dvh[style*="linear-gradient(170deg"] {
   background: linear-gradient(170deg, #060F09 0%, #0A1A0F 100%) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ENHANCED UI/UX — MICRO INTERACTIONS & VISUAL POLISH
+   All rules are additive — no existing tokens or classes are modified.
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────
+   CARD HOVER LIFT — desktop pointer devices
+───────────────────────────────────────── */
+@media (hover: hover) and (pointer: fine) {
+  .glass-card {
+    transition:
+      transform      0.20s cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow     0.20s ease,
+      border-color   0.20s ease;
+    will-change: transform;
+  }
+  .glass-card:hover {
+    transform:     translateY(-2px);
+    border-color:  rgba(34, 197, 94, 0.26) !important;
+    box-shadow:    0 8px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06) !important;
+  }
+  .glass-card:active {
+    transform: translateY(0) scale(0.995);
+  }
+}
+
+/* ─────────────────────────────────────────
+   IMPROVED SHADOWS — replace flat shadows
+───────────────────────────────────────── */
+.glass-card {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+}
+.glass-hero {
+  box-shadow:
+    0 8px 30px rgba(0,0,0,0.10),
+    0 2px 8px  rgba(0,0,0,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.90);
+}
+/* Dark overrides */
+.dark .glass-card {
+  box-shadow: 0 4px 24px rgba(0,0,0,0.30), 0 1px 6px rgba(0,0,0,0.20) !important;
+}
+.dark .glass-card:hover {
+  box-shadow: 0 8px 30px rgba(0,0,0,0.40), 0 0 0 1px rgba(34,197,94,0.14) !important;
+}
+.dark .glass-hero {
+  box-shadow:
+    0 8px 30px rgba(0,0,0,0.35),
+    0 2px 8px  rgba(0,0,0,0.25) !important;
+}
+
+/* ─────────────────────────────────────────
+   BORDER REFINEMENTS
+───────────────────────────────────────── */
+.glass-card {
+  border-color: rgba(34, 197, 94, 0.12);
+}
+.glass-hero {
+  border-color: rgba(34, 197, 94, 0.16);
+}
+
+/* ─────────────────────────────────────────
+   BUTTON PRESS SCALE
+───────────────────────────────────────── */
+.btn-primary {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.97) translateY(0) !important;
+}
+
+.btn-ghost {
+  transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+}
+.btn-ghost:active {
+  transform: scale(0.97) !important;
+}
+
+/* ─────────────────────────────────────────
+   CHART TOOLTIP ANIMATION
+───────────────────────────────────────── */
+@keyframes tooltipAppear {
+  from { opacity: 0; transform: scale(0.90) translateY(4px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);   }
+}
+
+/* ─────────────────────────────────────────
+   SECTION SPACING — consistent vertical rhythm
+───────────────────────────────────────── */
+.dashboard-section + .dashboard-section {
+  margin-top: 20px;
+}
+
+/* ─────────────────────────────────────────
+   ICON CONTRAST — slightly boost for dark mode
+───────────────────────────────────────── */
+.dark svg[stroke] {
+  filter: drop-shadow(0 0 1px rgba(0,0,0,0.1));
+}
+
+/* ─────────────────────────────────────────
+   ACCESSIBILITY — focus-visible rings
+───────────────────────────────────────── */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* ─────────────────────────────────────────
+   NAV TAB TRANSITIONS
+───────────────────────────────────────── */
+nav a {
+  transition: color 0.15s ease;
+}
+nav a:active {
+  transform: scale(0.95);
+}
+
+/* ─────────────────────────────────────────
+   HERO BALANCE — smooth opacity transition
+───────────────────────────────────────── */
+.hero-balance-value {
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}
+.hero-balance-value.hidden {
+  filter: blur(6px);
+  opacity: 0.5;
+  user-select: none;
+}
+
+/* ─────────────────────────────────────────
+   RANGE TAB (chart) active state
+───────────────────────────────────────── */
+.range-tab {
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.range-tab:active {
+  transform: scale(0.94);
+}
+
+/* ─────────────────────────────────────────
+   DARK — enhanced glass-hero glow
+───────────────────────────────────────── */
+.dark .glass-hero {
+  background: linear-gradient(135deg,
+    rgba(14, 28, 18, 0.94) 0%,
+    rgba(10, 22, 14, 0.97) 100%
+  ) !important;
+  border-color: rgba(34, 197, 94, 0.24) !important;
+}

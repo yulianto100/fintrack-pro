@@ -1,7 +1,7 @@
 'use client'
 import { useSession } from 'next-auth/react'
 import { useRouter, usePathname } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -28,6 +28,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router   = useRouter()
   const pathname = usePathname()
   useDarkMode()
+
+  // ── Scroll-aware sticky header ─────────────────────────────────────────
+  const [scrolled, setScrolled] = useState(false)
+  const mainRef = useRef<HTMLElement>(null)
+
+  const handleScroll = useCallback(() => {
+    setScrolled((mainRef.current?.scrollTop ?? 0) > 16)
+  }, [])
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login')
@@ -85,16 +93,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-dvh flex flex-col" style={{ background: 'transparent' }}>
-      {/* ── Top header ── */}
+      {/* ── Top header — becomes more opaque + shadowed on scroll ── */}
       <header
         className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4"
         style={{
-          height: 'calc(var(--nav-height) + env(safe-area-inset-top, 0px))',
-          paddingTop: 'env(safe-area-inset-top, 0px)',
-          background: 'var(--surface-header)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderBottom: '1px solid var(--border)',
+          height:              'calc(var(--nav-height) + env(safe-area-inset-top, 0px))',
+          paddingTop:          'env(safe-area-inset-top, 0px)',
+          background:          scrolled ? 'var(--surface-header)' : 'var(--surface-header)',
+          backdropFilter:      scrolled ? 'blur(24px) saturate(1.8)' : 'blur(20px)',
+          WebkitBackdropFilter:scrolled ? 'blur(24px) saturate(1.8)' : 'blur(20px)',
+          borderBottom:        `1px solid ${scrolled ? 'var(--border-hover)' : 'var(--border)'}`,
+          boxShadow:           scrolled ? '0 4px 24px rgba(0,0,0,0.08)' : 'none',
+          transition:          'border-color 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease',
         }}
       >
         {/* Logo */}
@@ -123,7 +133,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex items-center gap-2">
           <NotificationBell />
           <Link href="/settings">
-            <div className="w-9 h-9 rounded-full overflow-hidden" style={{ boxShadow: '0 0 0 2px var(--accent)' }}>
+            <div
+              className="w-9 h-9 rounded-full overflow-hidden transition-transform duration-150 active:scale-95"
+              style={{ boxShadow: '0 0 0 2px var(--accent)' }}
+            >
               {session.user?.image ? (
                 <Image src={session.user.image} alt="avatar" width={36} height={36} className="object-cover" />
               ) : (
@@ -141,6 +154,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* ── Main content ── */}
       <main
+        ref={mainRef}
+        onScroll={handleScroll}
         className="flex-1 overflow-y-auto"
         style={{
           paddingTop:    'calc(var(--nav-height) + env(safe-area-inset-top, 0px))',
@@ -164,16 +179,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <nav
         className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around"
         style={{
-          height: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          background: 'var(--surface-nav)',
-          backdropFilter: 'blur(24px)',
+          height:               'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))',
+          paddingBottom:        'env(safe-area-inset-bottom, 0px)',
+          background:           'var(--surface-nav)',
+          backdropFilter:       'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
-          borderTop: '1px solid var(--border)',
+          borderTop:            '1px solid var(--border)',
         }}
       >
         {NAV_TABS.map(({ href, icon: Icon, label }) => {
-          // /goals is active for both /goals and /budget routes
           const active =
             href === '/'
               ? pathname === '/'
@@ -182,7 +196,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Link
               key={href}
               href={href}
-              className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl relative transition-all"
+              className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl relative transition-all active:scale-95"
               style={{ color: active ? 'var(--accent)' : 'var(--text-muted)' }}
             >
               {active && (
