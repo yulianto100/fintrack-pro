@@ -8,7 +8,7 @@ import { useGoldPrices, useStockPrices } from '@/hooks/usePrices'
 import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import { formatCurrency, getCurrentMonth } from '@/lib/utils'
 import type { Transaction, GoldHolding, StockHolding, Deposit, BudgetStatus, SBNHolding, ReksadanaHolding } from '@/types'
-import { TrendingUp, TrendingDown, ArrowRight, Upload, Eye, EyeOff } from 'lucide-react'
+import { TrendingUp, TrendingDown, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { WalletCard } from '@/components/dashboard/WalletCard'
 import { QuickAddFAB } from '@/components/transactions/QuickAddFAB'
@@ -110,11 +110,7 @@ export default function DashboardPage() {
               {firstName} 👋
             </h1>
           </div>
-          <Link href="/import"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium"
-            style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
-            <Upload size={13}/> Import CSV
-          </Link>
+
         </div>
       </motion.div>
 

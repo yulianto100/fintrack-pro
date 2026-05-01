@@ -395,6 +395,23 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
               </div>
             </div>
 
+            {/* Description — moved below amount */}
+            <div>
+              <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
+                Keterangan
+                <span className="ml-1 text-[9px] font-normal px-1.5 py-0.5 rounded-full"
+                  style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)' }}>opsional</span>
+                {autoSuggestedCat && !categoryId && (
+                  <span className="ml-1 text-[9px] font-normal px-1.5 py-0.5 rounded-full"
+                    style={{ background: 'rgba(34,197,94,0.15)', color: 'var(--accent)' }}>
+                    🤖 Auto: {autoSuggestedCat}
+                  </span>
+                )}
+              </label>
+              <input type="text" className="input-glass text-sm" placeholder="Catatan transaksi"
+                value={description} onChange={(e) => handleDescriptionChange(e.target.value)} />
+            </div>
+
             {/* Category — skip for transfer */}
             {type !== 'transfer' && (
               <div>
@@ -609,28 +626,11 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
               </div>
             )}
 
-            {/* Date + Description */}
-            <div className="flex flex-col gap-3">
-              <div>
-                <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>Tanggal</label>
-                <input type="date" className="input-glass text-sm" value={date}
-                  onChange={(e) => setDate(e.target.value)} />
-              </div>
-              <div>
-                <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
-                  Keterangan
-                  <span className="ml-1 text-[9px] font-normal px-1.5 py-0.5 rounded-full"
-                    style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)' }}>opsional</span>
-                  {autoSuggestedCat && !categoryId && (
-                    <span className="ml-1 text-[9px] font-normal px-1.5 py-0.5 rounded-full"
-                      style={{ background: 'rgba(34,197,94,0.15)', color: 'var(--accent)' }}>
-                      🤖 Auto: {autoSuggestedCat}
-                    </span>
-                  )}
-                </label>
-                <input type="text" className="input-glass text-sm" placeholder="Catatan transaksi"
-                  value={description} onChange={(e) => handleDescriptionChange(e.target.value)} />
-              </div>
+            {/* Date */}
+            <div>
+              <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>Tanggal</label>
+              <input type="date" className="input-glass text-sm" value={date}
+                onChange={(e) => setDate(e.target.value)} />
             </div>
 
             {/* Recurring toggle — only for income/expense, not edit mode */}
