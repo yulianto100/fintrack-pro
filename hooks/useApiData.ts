@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 
-// Generic API polling hook — replaces useFirebaseList for all data reads.
-// Much more reliable than Firebase client SDK reads which require Firebase Auth.
 async function apiFetch<T>(url: string): Promise<T> {
   const res = await fetch(url, { cache: 'no-store' })
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`)
@@ -20,35 +18,45 @@ export function useApiData<T>(
   const [loading, setLoading] = useState(!!url)
   const [error, setError] = useState<string | null>(null)
   const timer = useRef<NodeJS.Timeout>()
-  const mounted = useRef(true)
+  const mountedRef = useRef(true)
+  // Keep a stable ref to the latest url so refetch() always uses current url
+  const urlRef = useRef(url)
+  urlRef.current = url
 
   const fetch_ = useCallback(async () => {
-    if (!url) return
+    const currentUrl = urlRef.current
+    if (!currentUrl) return
     try {
-      const result = await apiFetch<T>(url)
-      if (mounted.current) { setData(result); setError(null) }
+      const result = await apiFetch<T>(currentUrl)
+      if (mountedRef.current) { setData(result); setError(null) }
     } catch (err) {
-      if (mounted.current) setError(String(err))
+      if (mountedRef.current) setError(String(err))
     } finally {
-      if (mounted.current) setLoading(false)
+      if (mountedRef.current) setLoading(false)
     }
-  }, [url])
+  }, []) // stable — never recreated
 
   useEffect(() => {
-    mounted.current = true
-    if (!url) { setLoading(false); return }
+    mountedRef.current = true
+
+    if (!url) {
+      setLoading(false)
+      return () => { mountedRef.current = false }
+    }
+
     setLoading(true)
     fetch_()
+
     if (refreshMs > 0) {
       timer.current = setInterval(fetch_, refreshMs)
     }
+
     return () => {
-      mounted.current = false
+      mountedRef.current = false
       clearInterval(timer.current)
     }
-  }, [url, fetch_, refreshMs])
+  }, [url, refreshMs]) // fetch_ intentionally omitted — it's stable
 
-  // Expose refetch so callers can force a refresh after mutations
   const refetch = useCallback(() => { fetch_() }, [fetch_])
 
   return { data, loading, error, refetch }
