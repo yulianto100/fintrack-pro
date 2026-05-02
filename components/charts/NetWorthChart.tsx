@@ -146,7 +146,8 @@ export function NetWorthChart({
   return (
     <div>
       {/* Header row */}
-      <div className="flex justify-between items-center mb-3 px-1">
+      <div className="flex justify-between items-center mb-3 px-1"
+        style={{ position: 'relative', zIndex: 2 }}>
         <p className="text-[11px] font-semibold tracking-wider"
           style={{ color: 'var(--text-muted)' }}>
           KEKAYAAN BERSIH
@@ -156,14 +157,17 @@ export function NetWorthChart({
           {RANGES.map(r => (
             <button
               key={r}
-              onClick={() => setRange(r)}
+              onClick={(e) => { e.stopPropagation(); setRange(r) }}
               className="px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all duration-150 active:scale-95"
               style={{
-                background: range === r ? 'rgba(34,197,94,0.15)' : 'transparent',
-                color:      range === r ? '#22C55E' : 'var(--text-muted)',
-                border:     range === r
+                background:    range === r ? 'rgba(34,197,94,0.15)' : 'transparent',
+                color:         range === r ? '#22C55E' : 'var(--text-muted)',
+                border:        range === r
                   ? '1px solid rgba(34,197,94,0.30)'
                   : '1px solid transparent',
+                position:      'relative',
+                zIndex:        3,
+                pointerEvents: 'auto',
               }}
             >
               {r}
@@ -182,8 +186,9 @@ export function NetWorthChart({
         </div>
       </div>
 
-      {/* Chart area */}
-      <div className="glass-card p-4" style={{ height: 180 }}>
+      {/* Chart area — overflow:hidden prevents Recharts SVG overlay from escaping into button zone */}
+      <div className="glass-card p-4"
+        style={{ height: 180, overflow: 'hidden', isolation: 'isolate', position: 'relative' }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 18, right: 12, left: 0, bottom: 0 }}>
             <defs>

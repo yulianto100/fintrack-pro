@@ -66,7 +66,8 @@ export async function GET(request: Request) {
     const snap = await db.ref(`users/${userId}/transactions`).get()
     if (!snap.exists()) return NextResponse.json({ success: true, data: [] })
 
-    let list: Transaction[] = Object.values(snap.val() as Record<string, Transaction>)
+    let list: Transaction[] = Object.entries(snap.val() as Record<string, Transaction>)
+      .map(([key, tx]) => ({ ...tx, id: tx.id || key }))  // always ensure id is set
 
     if (month)           list = list.filter((t) => t.date?.startsWith(month))
     if (categoryId)      list = list.filter((t) => t.categoryId === categoryId)
