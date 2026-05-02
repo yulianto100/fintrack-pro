@@ -107,11 +107,13 @@ export function WalletSelectorStep({
       } catch {
         // If API fails entirely, fall back to aggregate balances
         if (walletBalances) {
-          const fallback: WalletOption[] = [
-            { type: 'cash',    accountId: null, name: 'Cash',     balance: walletBalances.cash,    icon: '💵' },
-            { type: 'bank',    accountId: null, name: 'Bank',     balance: walletBalances.bank,    icon: '🏦' },
-            { type: 'ewallet', accountId: null, name: 'E-Wallet', balance: walletBalances.ewallet, icon: '📱' },
-          ].filter(o => o.balance > 0)
+          const fallback: WalletOption[] = (
+            [
+              { type: 'cash'    as WalletType, accountId: null, name: 'Cash',     balance: walletBalances.cash,    icon: '💵' },
+              { type: 'bank'    as WalletType, accountId: null, name: 'Bank',     balance: walletBalances.bank,    icon: '🏦' },
+              { type: 'ewallet' as WalletType, accountId: null, name: 'E-Wallet', balance: walletBalances.ewallet, icon: '📱' },
+            ] as WalletOption[]
+          ).filter(o => o.balance > 0)
           setOptions(fallback)
         }
       } finally {
