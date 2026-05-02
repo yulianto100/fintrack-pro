@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useEffect, useState, useCallback, useRef, Suspense } from 'react'
-import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useApiList } from '@/hooks/useApiData'
@@ -256,23 +256,34 @@ function AllocationHealth({ sections }: { sections: { title: string; pct: number
 
 function CountUpNumber({ value, hidden, hiddenText = '••••••', formatter = formatCurrency }:
   { value: number; hidden: boolean; hiddenText?: string; formatter?: (v: number) => string }) {
-  const motionVal = useMotionValue(0)
-  const spring    = useSpring(motionVal, { stiffness: 60, damping: 18 })
   const [display, setDisplay] = useState(0)
+  const rafRef    = useRef<number>()
+  const startRef  = useRef<number>()
+  const fromRef   = useRef(0)
   const hasRun    = useRef(false)
 
   useEffect(() => {
-    if (hasRun.current || value === 0) return
+    if (value === 0 || hasRun.current) return
     hasRun.current = true
-    motionVal.set(0)
-    const to = setTimeout(() => { motionVal.set(value) }, 150)
-    return () => clearTimeout(to)
-  }, [value, motionVal])
 
-  useEffect(() => {
-    const unsub = spring.on('change', v => setDisplay(v))
-    return unsub
-  }, [spring])
+    const duration = 900 // ms
+    const from     = 0
+    const to       = value
+    fromRef.current = from
+
+    const animate = (ts: number) => {
+      if (!startRef.current) startRef.current = ts
+      const elapsed = ts - startRef.current
+      const progress = Math.min(elapsed / duration, 1)
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setDisplay(Math.round(from + (to - from) * eased))
+      if (progress < 1) rafRef.current = requestAnimationFrame(animate)
+    }
+
+    rafRef.current = requestAnimationFrame(animate)
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
+  }, [value])
 
   if (hidden) return <span>{hiddenText}</span>
   return <span>{formatter(display)}</span>
