@@ -257,33 +257,32 @@ function AllocationHealth({ sections }: { sections: { title: string; pct: number
 function CountUpNumber({ value, hidden, hiddenText = '••••••', formatter = formatCurrency }:
   { value: number; hidden: boolean; hiddenText?: string; formatter?: (v: number) => string }) {
   const [display, setDisplay] = useState(0)
-  const rafRef    = useRef<number>()
-  const startRef  = useRef<number>()
-  const fromRef   = useRef(0)
-  const hasRun    = useRef(false)
+  const rafRef   = useRef<number>()
+  const startRef = useRef<number | null>(null)
 
   useEffect(() => {
-    if (value === 0 || hasRun.current) return
-    hasRun.current = true
+    // Cancel any running animation
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    startRef.current = null
 
-    const duration = 900 // ms
+    if (value === 0) { setDisplay(0); return }
+
     const from     = 0
     const to       = value
-    fromRef.current = from
+    const duration = 850
 
     const animate = (ts: number) => {
-      if (!startRef.current) startRef.current = ts
-      const elapsed = ts - startRef.current
+      if (startRef.current === null) startRef.current = ts
+      const elapsed  = ts - startRef.current
       const progress = Math.min(elapsed / duration, 1)
-      // ease-out cubic
-      const eased = 1 - Math.pow(1 - progress, 3)
+      const eased    = 1 - Math.pow(1 - progress, 3) // ease-out cubic
       setDisplay(Math.round(from + (to - from) * eased))
       if (progress < 1) rafRef.current = requestAnimationFrame(animate)
     }
 
     rafRef.current = requestAnimationFrame(animate)
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
-  }, [value])
+  }, [value]) // re-run every time value changes (including 0 → actual after fetch)
 
   if (hidden) return <span>{hiddenText}</span>
   return <span>{formatter(display)}</span>
