@@ -106,7 +106,14 @@ export function InvestmentFlow({
 
   const investLabel = INVEST_TYPES.find(t => t.type === investType)?.label ?? ''
 
-  const activeWallet = enableWalletSelection
+  const nextStep = (s: 0 | 1 | 2 | 3): 0 | 1 | 2 | 3 => {
+    const map: Record<0 | 1 | 2 | 3, 0 | 1 | 2 | 3> = { 0: 1, 1: 2, 2: 3, 3: 3 }
+    return map[s]
+  }
+  const prevStep = (s: 0 | 1 | 2 | 3): 0 | 1 | 2 | 3 => {
+    const map: Record<0 | 1 | 2 | 3, 0 | 1 | 2 | 3> = { 0: 0, 1: 0, 2: 1, 3: 2 }
+    return map[s]
+  }
     ? selectedWallet
     : defaultWallet
       ? { type: defaultWallet.type, accountId: defaultWallet.accountId ?? null, name: '', balance: 0, icon: '' }
@@ -137,32 +144,6 @@ export function InvestmentFlow({
     return parsedAmount > selectedWallet.balance
   }, [enableWalletSelection, selectedWallet, parsedAmount])
 
-  // ── Build investment payload per type ─────────────────────────────────────
-
-  function buildPayload() {
-    const qtyNum = parseFloat(qty) || 1
-    const wType  = activeWallet?.type ?? 'bank'
-    const wAccId = activeWallet?.accountId ?? undefined
-
-    const base = { wallet: wType, walletAccountId: wAccId }
-
-    switch (investType) {
-      case 'saham':
-        return { ...base, symbol: name.trim().toUpperCase(), lots: parseInt(qty) || 1, buyPrice: parsedAmount / ((parseInt(qty) || 1) * 100) }
-      case 'emas':
-        return { ...base, source: name.trim() || 'Antam', grams: qtyNum, buyPrice: parsedAmount / qtyNum }
-      case 'reksadana':
-        return { ...base, name: name.trim(), unit: qtyNum, buyNAV: parsedAmount / qtyNum, currentNAV: parsedAmount / qtyNum }
-      case 'sbn':
-        return { ...base, seriesCode: name.trim(), nominal: parsedAmount, couponRate: 6.25,
-          maturityDate: new Date(Date.now() + 3 * 365 * 86400000).toISOString().split('T')[0] }
-      case 'deposito':
-        return { ...base, bankName: name.trim(), nominal: parsedAmount, interestRate: 5.5,
-          tenor: parseInt(qty) || 12, startDate: new Date().toISOString().split('T')[0] }
-      default: return base
-    }
-  }
-
   // ── Confirm & save ─────────────────────────────────────────────────────────
 
   const handleConfirm = useCallback(async () => {
@@ -172,10 +153,24 @@ export function InvestmentFlow({
       return
     }
 
+    const qtyNum = parseFloat(qty) || 1
+    const wType  = activeWallet?.type ?? 'bank'
+    const wAccId = activeWallet?.accountId ?? undefined
+    const base   = { wallet: wType, walletAccountId: wAccId }
+
+    const payloadMap: Record<string, Record<string, unknown>> = {
+      saham:     { ...base, symbol: name.trim().toUpperCase(), lots: parseInt(qty) || 1, buyPrice: parsedAmount / ((parseInt(qty) || 1) * 100) },
+      emas:      { ...base, source: name.trim() || 'Antam', grams: qtyNum, buyPrice: parsedAmount / qtyNum },
+      reksadana: { ...base, name: name.trim(), unit: qtyNum, buyNAV: parsedAmount / qtyNum, currentNAV: parsedAmount / qtyNum },
+      sbn:       { ...base, seriesCode: name.trim(), nominal: parsedAmount, couponRate: 6.25,
+                   maturityDate: new Date(Date.now() + 3 * 365 * 86400000).toISOString().split('T')[0] },
+      deposito:  { ...base, bankName: name.trim(), nominal: parsedAmount, interestRate: 5.5,
+                   tenor: parseInt(qty) || 12, startDate: new Date().toISOString().split('T')[0] },
+    }
+    const payload = payloadMap[investType] ?? base
+
     setSaving(true)
     try {
-      const payload = buildPayload()
-
       // 1. Create investment record (same endpoint as Portfolio)
       const investRes  = await fetch(ENDPOINT[investType], {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -444,7 +439,7 @@ export function InvestmentFlow({
 
                 <div className="rounded-2xl overflow-hidden"
                   style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
-                  {([
+                  {(([
                     enableWalletSelection && selectedWallet
                       ? ['Sumber Dana', `${selectedWallet.icon} ${selectedWallet.name}`]
                       : null,
@@ -452,10 +447,10 @@ export function InvestmentFlow({
                     ['Produk / Kode',   name || '-'],
                     ['Jumlah',          qty  || '-'],
                     ['Total Dana',      `Rp ${amount || '0'}`],
-                  ] as ([string, string] | null)[])
-                    .filter(Boolean)
+                  ]) as ([string, string] | null)[])
+                    .filter((row): row is [string, string] => row !== null)
                     .map(([lbl, val], i, arr) => (
-                      <div key={lbl as string}
+                      <div key={lbl}
                         className="flex justify-between items-center px-4 py-3"
                         style={i < arr.length - 1 ? { borderBottom: '1px solid var(--border)' } : undefined}>
                         <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{lbl}</span>
@@ -491,7 +486,7 @@ export function InvestmentFlow({
             <motion.button
               whileTap={{ scale: 0.97 }}
               disabled={!canProceed}
-              onClick={() => setStep(s => (s + 1) as 0 | 1 | 2 | 3)}
+              onClick={() => setStep(s => nextStep(s))}
               className="w-full py-4 rounded-2xl text-base font-bold flex items-center justify-center gap-2"
               style={{
                 background: canProceed ? 'var(--surface-2)' : 'var(--surface-3)',
@@ -523,7 +518,7 @@ export function InvestmentFlow({
 
           {step > startStep && (
             <button
-              onClick={() => setStep(s => (s - 1) as 0 | 1 | 2 | 3)}
+              onClick={() => setStep(s => prevStep(s))}
               className="w-full text-center text-sm mt-3 py-1 hover:opacity-70 transition-opacity"
               style={{ color: 'var(--text-muted)' }}
             >
