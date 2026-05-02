@@ -10,7 +10,7 @@ import { formatCurrency } from '@/lib/utils'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Range = '1M' | '3M' | '6M' | '1Y'
+type Range = 'YTD' | '3M' | '6M' | '1Y'
 
 interface DataPoint {
   month:     string
@@ -80,22 +80,33 @@ export function NetWorthChart({
   stockValue   = 0,
   depositValue = 0,
 }: Props) {
-  const [range, setRange] = useState<Range>('6M')
+  const [range, setRange] = useState<Range>('YTD')
 
   // ── Build dataset ──────────────────────────────────────────────────────────
   const data = useMemo((): DataPoint[] => {
-    const monthCount =
-      range === '1M' ?  1 :
-      range === '3M' ?  3 :
-      range === '6M' ?  6 : 12
+    const now = new Date()
 
+    // Build month list based on range
     const months: string[] = []
-    for (let i = monthCount - 1; i >= 0; i--) {
-      const d = new Date()
-      d.setMonth(d.getMonth() - i)
-      months.push(
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-      )
+
+    if (range === 'YTD') {
+      // January of current year → current month
+      const currentYear  = now.getFullYear()
+      const currentMonth = now.getMonth() // 0-indexed
+      for (let m = 0; m <= currentMonth; m++) {
+        months.push(`${currentYear}-${String(m + 1).padStart(2, '0')}`)
+      }
+    } else {
+      const monthCount =
+        range === '3M' ?  3 :
+        range === '6M' ?  6 : 12
+      for (let i = monthCount - 1; i >= 0; i--) {
+        const d = new Date()
+        d.setMonth(d.getMonth() - i)
+        months.push(
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+        )
+      }
     }
 
     let running = 0
@@ -141,7 +152,7 @@ export function NetWorthChart({
 
   if (data.every(d => d.worth === 0)) return null
 
-  const RANGES: Range[] = ['1M', '3M', '6M', '1Y']
+  const RANGES: Range[] = ['YTD', '3M', '6M', '1Y']
 
   return (
     <div>
