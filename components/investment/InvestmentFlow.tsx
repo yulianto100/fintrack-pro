@@ -114,6 +114,8 @@ export function InvestmentFlow({
     const map: Record<0 | 1 | 2 | 3, 0 | 1 | 2 | 3> = { 0: 0, 1: 0, 2: 1, 3: 2 }
     return map[s]
   }
+
+  const activeWallet = enableWalletSelection
     ? selectedWallet
     : defaultWallet
       ? { type: defaultWallet.type, accountId: defaultWallet.accountId ?? null, name: '', balance: 0, icon: '' }
