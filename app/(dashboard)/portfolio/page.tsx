@@ -362,7 +362,7 @@ function PortfolioContent() {
   const goldSummary = useMemo(() => ({
     totalGrams: goldHoldings.reduce((s, h) => s + h.grams, 0),
     totalValue: goldHoldings.reduce((s, h) => s + h.grams * (goldPrices?.[h.source]?.sellPrice || 0), 0),
-    totalCost:  goldHoldings.reduce((s, h) => s + h.grams * h.buyPrice, 0),
+    totalCost:  goldHoldings.reduce((s, h) => s + h.grams * (h.buyPrice || 0), 0),
   }), [goldHoldings, goldPrices])
 
   const stockSummary = useMemo(() => {
@@ -387,8 +387,8 @@ function PortfolioContent() {
   const sbnSummary = useMemo(() => {
     const active = sbnList.filter((h) => h.status === 'active')
     return {
-      totalNominal:   active.reduce((s, h) => s + h.nominal, 0),
-      totalNetReturn: active.reduce((s, h) => s + h.netReturn, 0),
+      totalNominal:   active.reduce((s, h) => s + (h.nominal || 0), 0),
+      totalNetReturn: active.reduce((s, h) => s + (h.netReturn || 0), 0),
       count: active.length,
     }
   }, [sbnList])
@@ -396,8 +396,8 @@ function PortfolioContent() {
   const reksadanaSummary = useMemo(() => {
     let totalValue = 0, totalCost = 0
     reksadanaList.forEach((h) => {
-      totalValue += h.unit * h.currentNAV
-      totalCost  += h.unit * h.buyNAV
+      totalValue += (h.unit || 0) * (h.currentNAV || 0)
+      totalCost  += (h.unit || 0) * (h.buyNAV || 0)
     })
     return { totalValue, totalCost, pnl: totalValue - totalCost, count: reksadanaList.length }
   }, [reksadanaList])
