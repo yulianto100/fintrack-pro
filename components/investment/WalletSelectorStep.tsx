@@ -1,49 +1,55 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion }              from 'framer-motion'
 import { Wallet, AlertCircle, Loader2 } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency }      from '@/lib/utils'
 
 export type WalletType = 'cash' | 'bank' | 'ewallet'
 
 export interface WalletOption {
   type:      WalletType
-  accountId: string | null  // null = generic (cash)
+  accountId: string | null
   name:      string
   balance:   number
   icon:      string
 }
 
 interface Props {
-  selected:         WalletOption | null
-  onSelect:         (w: WalletOption) => void
-  requiredAmount?:  number  // used for insufficient balance highlight
+  selected:        WalletOption | null
+  onSelect:        (w: WalletOption) => void
+  requiredAmount?: number
+  /** Aggregate balances from dashboard (cash / bank total / ewallet total) */
+  walletBalances?: { cash: number; bank: number; ewallet: number }
 }
 
-const TYPE_META: Record<WalletType, { icon: string; fallbackName: string }> = {
-  cash:    { icon: '💵', fallbackName: 'Cash'    },
-  bank:    { icon: '🏦', fallbackName: 'Bank'    },
-  ewallet: { icon: '📱', fallbackName: 'E-Wallet'},
-}
-
-export function WalletSelectorStep({ selected, onSelect, requiredAmount = 0 }: Props) {
+export function WalletSelectorStep({
+  selected,
+  onSelect,
+  requiredAmount = 0,
+  walletBalances,
+}: Props) {
   const [options, setOptions] = useState<WalletOption[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
       try {
-        // Fetch wallet balances
-        const [balRes, accRes] = await Promise.all([
-          fetch('/api/wallet-balances').then(r => r.json()),
-          fetch('/api/wallet-accounts').then(r => r.json()),
-        ])
+        // Same endpoint used by TransactionModal — proven to work
+        const res  = await fetch('/api/wallet-accounts')
+        const json = await res.json()
+        const accounts: {
+          id: string
+          name: string
+          type: WalletType
+          balance?: number
+          currentBalance?: number
+        }[] = json.data || json.accounts || []
 
         const list: WalletOption[] = []
 
-        // Cash — always one entry
-        const cashBal = balRes?.data?.cash ?? balRes?.cash ?? 0
+        // ── Cash (always show, use aggregate balance from prop) ──────────────
+        const cashBal = walletBalances?.cash ?? 0
         list.push({
           type:      'cash',
           accountId: null,
@@ -52,57 +58,68 @@ export function WalletSelectorStep({ selected, onSelect, requiredAmount = 0 }: P
           icon:      '💵',
         })
 
-        // Bank accounts
-        const accounts: { id: string; name: string; type: WalletType; balance?: number }[] =
-          accRes?.data || []
-
-        for (const acc of accounts.filter(a => a.type === 'bank')) {
+        // ── Bank accounts ────────────────────────────────────────────────────
+        const bankAccounts = accounts.filter(a => a.type === 'bank')
+        if (bankAccounts.length > 0) {
+          for (const acc of bankAccounts) {
+            list.push({
+              type:      'bank',
+              accountId: acc.id,
+              name:      acc.name,
+              balance:   acc.balance ?? acc.currentBalance ?? (walletBalances?.bank ?? 0),
+              icon:      '🏦',
+            })
+          }
+        } else if ((walletBalances?.bank ?? 0) > 0) {
+          // Fallback: aggregate bank balance if no individual accounts
           list.push({
             type:      'bank',
-            accountId: acc.id,
-            name:      acc.name,
-            balance:   acc.balance ?? (balRes?.data?.bank ?? 0),
+            accountId: null,
+            name:      'Bank',
+            balance:   walletBalances?.bank ?? 0,
             icon:      '🏦',
           })
         }
 
-        // If no bank accounts, add generic bank entry
-        if (!accounts.some(a => a.type === 'bank')) {
-          const bankBal = balRes?.data?.bank ?? balRes?.bank ?? 0
-          if (bankBal > 0) {
-            list.push({ type: 'bank', accountId: null, name: 'Bank', balance: bankBal, icon: '🏦' })
+        // ── E-Wallet accounts ─────────────────────────────────────────────────
+        const ewalletAccounts = accounts.filter(a => a.type === 'ewallet')
+        if (ewalletAccounts.length > 0) {
+          for (const acc of ewalletAccounts) {
+            list.push({
+              type:      'ewallet',
+              accountId: acc.id,
+              name:      acc.name,
+              balance:   acc.balance ?? acc.currentBalance ?? (walletBalances?.ewallet ?? 0),
+              icon:      '📱',
+            })
           }
-        }
-
-        // E-Wallet accounts
-        for (const acc of accounts.filter(a => a.type === 'ewallet')) {
+        } else if ((walletBalances?.ewallet ?? 0) > 0) {
           list.push({
             type:      'ewallet',
-            accountId: acc.id,
-            name:      acc.name,
-            balance:   acc.balance ?? (balRes?.data?.ewallet ?? 0),
+            accountId: null,
+            name:      'E-Wallet',
+            balance:   walletBalances?.ewallet ?? 0,
             icon:      '📱',
           })
         }
 
-        // If no ewallet accounts, add generic ewallet entry
-        if (!accounts.some(a => a.type === 'ewallet')) {
-          const ewBal = balRes?.data?.ewallet ?? balRes?.ewallet ?? 0
-          if (ewBal > 0) {
-            list.push({ type: 'ewallet', accountId: null, name: 'E-Wallet', balance: ewBal, icon: '📱' })
-          }
-        }
-
         setOptions(list)
       } catch {
-        // Fallback: use balances from walletBalances prop if API fails
-        setOptions([])
+        // If API fails entirely, fall back to aggregate balances
+        if (walletBalances) {
+          const fallback: WalletOption[] = [
+            { type: 'cash',    accountId: null, name: 'Cash',     balance: walletBalances.cash,    icon: '💵' },
+            { type: 'bank',    accountId: null, name: 'Bank',     balance: walletBalances.bank,    icon: '🏦' },
+            { type: 'ewallet', accountId: null, name: 'E-Wallet', balance: walletBalances.ewallet, icon: '📱' },
+          ].filter(o => o.balance > 0)
+          setOptions(fallback)
+        }
       } finally {
         setLoading(false)
       }
     }
     load()
-  }, [])
+  }, [walletBalances])
 
   if (loading) {
     return (
@@ -126,7 +143,7 @@ export function WalletSelectorStep({ selected, onSelect, requiredAmount = 0 }: P
 
       <div className="flex flex-col gap-2 mt-1">
         {options.map((opt, i) => {
-          const isSelected    = selected?.type === opt.type && selected?.accountId === opt.accountId
+          const isSelected     = selected?.type === opt.type && selected?.accountId === opt.accountId
           const isInsufficient = requiredAmount > 0 && opt.balance < requiredAmount
 
           return (
@@ -148,19 +165,15 @@ export function WalletSelectorStep({ selected, onSelect, requiredAmount = 0 }: P
                     ? 'rgba(239,68,68,0.20)'
                     : 'var(--border)'
                 }`,
-                boxShadow: isSelected ? '0 4px 16px rgba(34,197,94,0.15)' : 'none',
-                opacity:   isInsufficient ? 0.55 : 1,
-                cursor:    isInsufficient ? 'not-allowed' : 'pointer',
+                boxShadow:  isSelected ? '0 4px 16px rgba(34,197,94,0.15)' : 'none',
+                opacity:    isInsufficient ? 0.55 : 1,
+                cursor:     isInsufficient ? 'not-allowed' : 'pointer',
                 transition: 'all 0.15s ease',
               }}
             >
               {/* Icon */}
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                style={{
-                  background: isSelected ? 'rgba(34,197,94,0.18)' : 'var(--surface-3)',
-                }}
-              >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                style={{ background: isSelected ? 'rgba(34,197,94,0.18)' : 'var(--surface-3)' }}>
                 {opt.icon}
               </div>
 
@@ -169,15 +182,13 @@ export function WalletSelectorStep({ selected, onSelect, requiredAmount = 0 }: P
                 <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
                   {opt.name}
                 </p>
-                <p
-                  className="text-xs font-mono font-semibold mt-0.5"
-                  style={{ color: isInsufficient ? 'var(--red)' : isSelected ? 'var(--accent)' : 'var(--text-muted)' }}
-                >
+                <p className="text-xs font-mono font-semibold mt-0.5"
+                  style={{ color: isInsufficient ? 'var(--red)' : isSelected ? 'var(--accent)' : 'var(--text-muted)' }}>
                   {formatCurrency(opt.balance)}
                 </p>
               </div>
 
-              {/* Status */}
+              {/* Status indicator */}
               {isInsufficient ? (
                 <div className="flex items-center gap-1 text-[10px] font-semibold flex-shrink-0"
                   style={{ color: 'var(--red)' }}>
@@ -185,19 +196,15 @@ export function WalletSelectorStep({ selected, onSelect, requiredAmount = 0 }: P
                   Tidak cukup
                 </div>
               ) : isSelected ? (
-                <div
-                  className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'var(--accent)' }}
-                >
+                <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'var(--accent)' }}>
                   <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
                     <path d="M1 4L3.5 6.5L9 1" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
               ) : (
-                <div
-                  className="w-5 h-5 rounded-full border-2 flex-shrink-0"
-                  style={{ borderColor: 'var(--border)' }}
-                />
+                <div className="w-5 h-5 rounded-full border-2 flex-shrink-0"
+                  style={{ borderColor: 'var(--border)' }} />
               )}
             </motion.button>
           )

@@ -50,6 +50,7 @@ export function QuickAddFAB({ walletBalances }: Props) {
           <InvestmentFlow
             source="dashboard"
             enableWalletSelection={true}
+            walletBalances={walletBalances}
             onClose={() => setInvestOpen(false)}
             onSuccess={() => {
               window.dispatchEvent(new CustomEvent('fintrack:wallet-updated'))

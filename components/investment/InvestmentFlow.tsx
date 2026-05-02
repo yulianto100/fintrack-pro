@@ -18,6 +18,8 @@ export interface InvestmentFlowProps {
   enableWalletSelection: boolean
   /** Pre-selected wallet when source='portfolio' */
   defaultWallet?:        { type: 'cash' | 'bank' | 'ewallet'; accountId?: string | null }
+  /** Aggregate balances from dashboard — passed to WalletSelectorStep */
+  walletBalances?:       { cash: number; bank: number; ewallet: number }
   onClose:               () => void
   onSuccess?:            () => void
 }
@@ -75,6 +77,7 @@ export function InvestmentFlow({
   source,
   enableWalletSelection,
   defaultWallet,
+  walletBalances,
   onClose,
   onSuccess,
 }: InvestmentFlowProps) {
@@ -316,6 +319,7 @@ export function InvestmentFlow({
                   selected={selectedWallet}
                   onSelect={setSelectedWallet}
                   requiredAmount={parsedAmount}
+                  walletBalances={walletBalances}
                 />
               </motion.div>
             )}
