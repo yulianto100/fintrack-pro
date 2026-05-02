@@ -201,7 +201,7 @@ export function NetWorthChart({
       <div className="glass-card p-4"
         style={{ height: 180, overflow: 'hidden', isolation: 'isolate', position: 'relative' }}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 18, right: 12, left: 0, bottom: 0 }}>
+          <AreaChart data={data} margin={{ top: 18, right: 12, left: 12, bottom: 0 }}>
             <defs>
               <linearGradient id="gwGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%"   stopColor={isUp ? '#22C55E' : '#ef4444'} stopOpacity={0.32} />
