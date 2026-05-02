@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useCallback }   from 'react'
-import { AnimatePresence }          from 'framer-motion'
-import { PlusCircle, TrendingUp }   from 'lucide-react'
-import { FloatingActionButton }     from '@/components/transactions/FloatingActionButton'
-import { TransactionModal }         from '@/components/transactions/TransactionModal'
-import { InvestmentFlow }           from '@/components/investment/InvestmentFlow'
+import { useState }               from 'react'
+import { AnimatePresence }         from 'framer-motion'
+import { PlusCircle, TrendingUp }  from 'lucide-react'
+import { FloatingActionButton }    from '@/components/transactions/FloatingActionButton'
+import { TransactionModal }        from '@/components/transactions/TransactionModal'
+import { InvestasiModal }          from '@/components/investment/InvestasiModal'
 
 interface Props {
   walletBalances: { cash: number; bank: number; ewallet: number }
@@ -47,9 +47,7 @@ export function QuickAddFAB({ walletBalances }: Props) {
 
       <AnimatePresence>
         {investOpen && (
-          <InvestmentFlow
-            source="dashboard"
-            enableWalletSelection={true}
+          <InvestasiModal
             walletBalances={walletBalances}
             onClose={() => setInvestOpen(false)}
             onSuccess={() => {
