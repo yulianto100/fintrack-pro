@@ -1,56 +1,40 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useRouter }               from 'next/navigation'
 import { AnimatePresence }         from 'framer-motion'
-import { TrendingDown, TrendingUp, Coins } from 'lucide-react'
+import { PlusCircle, TrendingUp }  from 'lucide-react'
 import { FloatingActionButton }    from '@/components/transactions/FloatingActionButton'
 import { TransactionModal }        from '@/components/transactions/TransactionModal'
-import type { WalletType }         from '@/types'
 
 interface Props {
   walletBalances: { cash: number; bank: number; ewallet: number }
 }
 
 export function QuickAddFAB({ walletBalances }: Props) {
-  const [modalOpen,   setModalOpen  ] = useState(false)
-  const [defaultType, setDefaultType] = useState<'income' | 'expense'>('expense')
-  const [investOpen,  setInvestOpen ] = useState(false)
+  const router = useRouter()
+  const [modalOpen, setModalOpen] = useState(false)
 
-  const openExpense = useCallback(() => {
-    setDefaultType('expense')
+  const openTransaction = useCallback(() => {
     setModalOpen(true)
   }, [])
 
-  const openIncome = useCallback(() => {
-    setDefaultType('income')
-    setModalOpen(true)
-  }, [])
-
+  // Navigate to portofolio tab — same as tapping the bottom nav "Portofolio"
   const openInvest = useCallback(() => {
-    // Keep existing invest behavior — dispatch custom event so portfolio
-    // components can pick it up, same as before.
-    window.dispatchEvent(new CustomEvent('fintrack:open-invest'))
-    setInvestOpen(true)
-  }, [])
+    router.push('/portofolio')
+  }, [router])
 
   const dashboardActions = [
     {
-      label:   'Pengeluaran',
-      icon:    <TrendingDown size={18} strokeWidth={2.2} />,
-      color:   '#fff',
-      bg:      'var(--red)',
-      onClick: openExpense,
-    },
-    {
-      label:   'Pemasukan',
-      icon:    <TrendingUp size={18} strokeWidth={2.2} />,
+      label:   'Tambah Transaksi',
+      icon:    <PlusCircle size={18} strokeWidth={2.2} />,
       color:   '#000',
       bg:      'var(--accent)',
-      onClick: openIncome,
+      onClick: openTransaction,
     },
     {
       label:   'Investasi',
-      icon:    <Coins size={18} strokeWidth={2.2} />,
+      icon:    <TrendingUp size={18} strokeWidth={2.2} />,
       color:   '#fff',
       bg:      'var(--blue, #3b82f6)',
       onClick: openInvest,
@@ -67,7 +51,7 @@ export function QuickAddFAB({ walletBalances }: Props) {
       <AnimatePresence>
         {modalOpen && (
           <TransactionModal
-            defaultType={defaultType}
+            defaultType="expense"
             onClose={() => setModalOpen(false)}
           />
         )}
