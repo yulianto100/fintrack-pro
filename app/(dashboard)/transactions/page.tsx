@@ -1,390 +1,403 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useTransactions } from '@/hooks/useTransactions'
-import { useApiList } from '@/hooks/useApiData'
-import { formatCurrency, formatDate, getMonthOptions } from '@/lib/utils'
-import type { Category, Transaction } from '@/types'
-import { Filter, Download, Search, ChevronDown, Trash2, Edit3 } from 'lucide-react'
-import { QuickAddFAB } from '@/components/transactions/QuickAddFAB'
+import { Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react'
+import { useTransactions }    from '@/hooks/useTransactions'
 import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
-import { TransactionModal } from '@/components/transactions/TransactionModal'
-import toast from 'react-hot-toast'
+import { useApiList }          from '@/hooks/useApiData'
+import { TransactionModal }    from '@/components/transactions/TransactionModal'
+import { TransactionGroup }    from '@/components/transactions/TransactionGroup'
+import { SummaryCards }        from '@/components/transactions/SummaryCards'
+import { SmartInsight }        from '@/components/transactions/SmartInsight'
+import { EmptyState }          from '@/components/transactions/EmptyState'
+import { FloatingActionButton } from '@/components/transactions/FloatingActionButton'
+import { getCurrentMonth }     from '@/lib/utils'
+import type { Transaction, Category, TransactionType } from '@/types'
+
+// ─── Month picker helper ──────────────────────────────────────────────────────
+
+function buildMonthOptions() {
+  const opts: { value: string; label: string }[] = []
+  const now = new Date()
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const val   = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const label = d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+    opts.push({ value: val, label })
+  }
+  return opts
+}
+
+// ─── Filter chip ─────────────────────────────────────────────────────────────
+
+function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.85 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.85 }}
+      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
+      style={{
+        background: 'rgba(34,197,94,0.12)',
+        border:     '1px solid rgba(34,197,94,0.25)',
+        color:      'var(--accent)',
+      }}
+    >
+      {label}
+      <button onClick={onRemove} className="opacity-70 hover:opacity-100">
+        <X size={10} strokeWidth={2.5} />
+      </button>
+    </motion.div>
+  )
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function TransactionsPage() {
+  const { hidden }   = useBalanceVisibility()
   const {
-    transactions, loading, filters, setFilters, clearFilters,
-    hasActiveFilter, stats, deleteTransaction,
+    transactions,
+    allTransactions,
+    loading,
+    filters,
+    setFilters,
+    clearFilters,
+    hasActiveFilter,
+    searchQuery,
+    setSearchQuery,
+    addTransaction,
+    deleteTransaction,
+    updateTransaction,
   } = useTransactions()
+
   const { data: categories } = useApiList<Category>('/api/categories')
 
-  const { hidden } = useBalanceVisibility()
-  const [showFilters, setShowFilters] = useState(false)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [editTx, setEditTx] = useState<Transaction | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
+  // Modal state
+  const [modalOpen,    setModalOpen   ] = useState(false)
+  const [editTx,       setEditTx      ] = useState<Transaction | undefined>()
+  const [defaultType,  setDefaultType ] = useState<TransactionType>('expense')
 
-  const monthOptions = getMonthOptions(24)
+  // Filter panel
+  const [filterOpen,   setFilterOpen  ] = useState(false)
+  const monthOptions = useMemo(buildMonthOptions, [])
 
-  const displayedTransactions = useMemo(() => {
-    if (!searchQuery) return transactions
-    const q = searchQuery.toLowerCase()
-    return transactions.filter(
-      (t) =>
-        t.description?.toLowerCase().includes(q) ||
-        t.categoryName?.toLowerCase().includes(q)
-    )
-  }, [transactions, searchQuery])
+  // ── FAB handlers ─────────────────────────────────────────────────────────────
 
-  const handleExport = async () => {
-    const url = `/api/export?month=${filters.month || ''}`
-    const a = document.createElement('a')
-    a.href = url
-    a.click()
-    toast.success('Export berhasil!')
-  }
+  const openAdd = useCallback((type: TransactionType) => {
+    setEditTx(undefined)
+    setDefaultType(type)
+    setModalOpen(true)
+  }, [])
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Hapus transaksi ini?')) return
+  const openEdit = useCallback((t: Transaction) => {
+    setEditTx(t)
+    setDefaultType(t.type)
+    setModalOpen(true)
+  }, [])
+
+  const handleModalClose = useCallback((updated?: Transaction) => {
+    setModalOpen(false)
+    setEditTx(undefined)
+  }, [])
+
+  const handleDelete = useCallback(async (id: string) => {
     await deleteTransaction(id)
-    setExpandedId(null)
-  }
+  }, [deleteTransaction])
 
-  // Group by date
-  const grouped = useMemo(() => {
-    const groups: Record<string, Transaction[]> = {}
-    displayedTransactions.forEach((t) => {
-      const key = t.date.split('T')[0]
-      if (!groups[key]) groups[key] = []
-      groups[key].push(t)
-    })
-    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a))
-  }, [displayedTransactions])
+  // ── Active filter chips ───────────────────────────────────────────────────────
+
+  const activeChips = useMemo(() => {
+    const chips: { key: string; label: string; remove: () => void }[] = []
+    if (filters.month) {
+      const opt = monthOptions.find(o => o.value === filters.month)
+      chips.push({ key: 'month', label: opt?.label ?? filters.month, remove: () => setFilters({ ...filters, month: undefined }) })
+    }
+    if (filters.type) {
+      const label = filters.type === 'income' ? 'Pemasukan' : filters.type === 'expense' ? 'Pengeluaran' : 'Transfer'
+      chips.push({ key: 'type', label, remove: () => setFilters({ ...filters, type: undefined }) })
+    }
+    if (filters.categoryId) {
+      const cat = categories?.find(c => c.id === filters.categoryId)
+      chips.push({ key: 'cat', label: cat?.name ?? 'Kategori', remove: () => setFilters({ ...filters, categoryId: undefined }) })
+    }
+    if (filters.wallet) {
+      const walletLabel = filters.wallet === 'cash' ? 'Cash' : filters.wallet === 'bank' ? 'Bank' : 'E-Wallet'
+      chips.push({ key: 'wallet', label: walletLabel, remove: () => setFilters({ ...filters, wallet: undefined }) })
+    }
+    return chips
+  }, [filters, monthOptions, categories, setFilters])
+
+  // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="px-4 py-6 max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-xl font-display font-bold" style={{ color: 'var(--text-primary)' }}>
-            Transaksi
-          </h1>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            {displayedTransactions.length} transaksi
-          </p>
+    <div className="flex flex-col min-h-screen pb-32" style={{ background: 'var(--background)' }}>
+
+      {/* ── Header ── */}
+      <div
+        className="sticky top-0 z-30 px-4 pt-12 pb-3"
+        style={{
+          background:         'var(--background)',
+          backdropFilter:     'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderBottom:       '1px solid var(--border)',
+        }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest mb-0.5"
+              style={{ color: 'var(--text-muted)' }}>
+              Riwayat
+            </p>
+            <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+              Transaksi
+            </h1>
+          </div>
+
+          {/* Filter toggle */}
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setFilterOpen(o => !o)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
+            style={{
+              background: filterOpen ? 'rgba(34,197,94,0.12)' : 'var(--surface-2)',
+              color:      filterOpen ? 'var(--accent)'        : 'var(--text-secondary)',
+              border:     `1px solid ${filterOpen ? 'rgba(34,197,94,0.25)' : 'var(--border)'}`,
+              transition: 'all 0.15s',
+            }}
+          >
+            <SlidersHorizontal size={13} />
+            Filter
+            {hasActiveFilter && (
+              <span
+                className="w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
+                style={{ background: 'var(--accent)', color: '#000' }}
+              >
+                {activeChips.length}
+              </span>
+            )}
+          </motion.button>
         </div>
-        <div className="flex items-center gap-2">
-          {hasActiveFilter && (
+
+        {/* Search bar */}
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2"
+            style={{ color: 'var(--text-muted)' }} />
+          <input
+            type="text"
+            placeholder="Cari transaksi..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm"
+            style={{
+              background: 'var(--surface-2)',
+              border:     '1px solid var(--border)',
+              color:      'var(--text-primary)',
+              outline:    'none',
+            }}
+          />
+          {searchQuery && (
             <button
-              onClick={clearFilters}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all"
-              style={{ background:'var(--red-dim)', color:'var(--red)', border:'1px solid rgba(252,129,129,0.25)' }}>
-              ✕ Reset
+              className="absolute right-3 top-1/2 -translate-y-1/2"
+              onClick={() => setSearchQuery('')}
+              style={{ color: 'var(--text-muted)' }}
+            >
+              <X size={13} />
             </button>
           )}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
-            style={{
-              background: showFilters ? 'var(--accent-dim)' : 'var(--surface-3)',
-              border: `1px solid ${showFilters ? 'rgba(34,197,94,0.30)' : 'var(--border)'}`,
-              color: showFilters ? 'var(--accent)' : 'var(--text-secondary)',
-            }}
-          >
-            <Filter size={16} />
-          </button>
-          <button
-            onClick={handleExport}
-            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
-            style={{
-              background: 'var(--surface-3)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            <Download size={16} />
-          </button>
         </div>
-      </div>
 
-      {/* Monthly Summary */}
-      <div className="grid grid-cols-3 gap-2 mb-4">
-        {[
-          { label: 'Pemasukan', value: stats.income, color: 'var(--accent)' },
-          { label: 'Pengeluaran', value: stats.expense, color: 'var(--red)' },
-          { label: 'Saldo', value: stats.balance, color: stats.balance >= 0 ? 'var(--accent)' : 'var(--red)' },
-        ].map((s) => (
-          <div key={s.label} className="glass-card p-3 text-center">
-            <p className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>{s.label}</p>
-            <p className="text-xs font-bold font-mono"
-              style={{ color: s.color, letterSpacing: hidden ? 2 : 'normal' }}>
-              {hidden ? '••••••' : formatCurrency(s.value)}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* Filters */}
-      <AnimatePresence>
-        {showFilters && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="overflow-hidden mb-4"
-          >
-            <div className="glass-card p-4 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                {/* Month filter */}
+        {/* Filter panel */}
+        <AnimatePresence>
+          {filterOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, y: -4 }}
+              animate={{ opacity: 1, height: 'auto', y: 0 }}
+              exit={{    opacity: 0, height: 0,      y: -4 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="overflow-hidden"
+            >
+              <div className="flex flex-col gap-2.5 pt-3">
+                {/* Month */}
                 <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Bulan</label>
-                  <select
-                    className="input-glass text-sm"
-                    value={filters.month || ''}
-                    onChange={(e) => setFilters({ ...filters, month: e.target.value || undefined })}
-                  >
-                    <option value="">Semua bulan</option>
-                    {monthOptions.map((m) => (
-                      <option key={m.value} value={m.value}>{m.label}</option>
-                    ))}
-                  </select>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
+                    style={{ color: 'var(--text-muted)' }}>
+                    Periode
+                  </p>
+                  <div className="relative">
+                    <select
+                      value={filters.month ?? ''}
+                      onChange={e => setFilters({ ...filters, month: e.target.value || undefined })}
+                      className="w-full appearance-none px-3 py-2 pr-8 rounded-xl text-sm"
+                      style={{
+                        background: 'var(--surface-2)',
+                        border:     '1px solid var(--border)',
+                        color:      'var(--text-primary)',
+                        outline:    'none',
+                      }}
+                    >
+                      <option value="">Semua bulan</option>
+                      {monthOptions.map(o => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                      style={{ color: 'var(--text-muted)' }} />
+                  </div>
                 </div>
 
-                {/* Type filter */}
+                {/* Type */}
                 <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Tipe</label>
-                  <select
-                    className="input-glass text-sm"
-                    value={filters.type || ''}
-                    onChange={(e) => setFilters({ ...filters, type: (e.target.value as 'income' | 'expense' | 'transfer') || undefined })}
-                  >
-                    <option value="">Semua tipe</option>
-                    <option value="income">Pemasukan</option>
-                    <option value="expense">Pengeluaran</option>
-                    <option value="transfer">Transfer</option>
-                  </select>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
+                    style={{ color: 'var(--text-muted)' }}>
+                    Jenis
+                  </p>
+                  <div className="flex gap-2">
+                    {(['income', 'expense', 'transfer'] as TransactionType[]).map(t => {
+                      const labels: Record<TransactionType, string> = {
+                        income: 'Pemasukan', expense: 'Pengeluaran', transfer: 'Transfer'
+                      }
+                      const active = filters.type === t
+                      return (
+                        <motion.button
+                          key={t}
+                          whileTap={{ scale: 0.94 }}
+                          onClick={() => setFilters({ ...filters, type: active ? undefined : t })}
+                          className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
+                          style={{
+                            background: active ? 'rgba(34,197,94,0.15)' : 'var(--surface-2)',
+                            border:     `1px solid ${active ? 'rgba(34,197,94,0.30)' : 'var(--border)'}`,
+                            color:      active ? 'var(--accent)' : 'var(--text-secondary)',
+                          }}
+                        >
+                          {labels[t]}
+                        </motion.button>
+                      )
+                    })}
+                  </div>
                 </div>
 
-                {/* Category filter */}
-                <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Kategori</label>
-                  <select
-                    className="input-glass text-sm"
-                    value={filters.categoryId || ''}
-                    onChange={(e) => setFilters({ ...filters, categoryId: e.target.value || undefined })}
-                  >
-                    <option value="">Semua kategori</option>
-                    {(categories || []).map((c) => (
-                      <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Category */}
+                {categories && categories.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
+                      style={{ color: 'var(--text-muted)' }}>
+                      Kategori
+                    </p>
+                    <div className="relative">
+                      <select
+                        value={filters.categoryId ?? ''}
+                        onChange={e => setFilters({ ...filters, categoryId: e.target.value || undefined })}
+                        className="w-full appearance-none px-3 py-2 pr-8 rounded-xl text-sm"
+                        style={{
+                          background: 'var(--surface-2)',
+                          border:     '1px solid var(--border)',
+                          color:      'var(--text-primary)',
+                          outline:    'none',
+                        }}
+                      >
+                        <option value="">Semua kategori</option>
+                        {categories.map(c => (
+                          <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                        style={{ color: 'var(--text-muted)' }} />
+                    </div>
+                  </div>
+                )}
 
-                {/* Wallet filter */}
-                <div>
-                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-muted)' }}>Wallet</label>
-                  <select
-                    className="input-glass text-sm"
-                    value={filters.wallet || ''}
-                    onChange={(e) => setFilters({ ...filters, wallet: (e.target.value as 'cash' | 'bank' | 'ewallet') || undefined })}
+                {/* Clear filters */}
+                {hasActiveFilter && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-xs font-semibold py-1.5 rounded-xl transition-opacity hover:opacity-70"
+                    style={{ color: 'var(--red)' }}
                   >
-                    <option value="">Semua wallet</option>
-                    <option value="cash">💵 Cash</option>
-                    <option value="bank">🏦 Bank</option>
-                    <option value="ewallet">📱 E-Wallet</option>
-                  </select>
-                </div>
+                    Reset semua filter
+                  </button>
+                )}
               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-              <button
-                onClick={() => setFilters({ month: undefined })}
-                className="text-xs w-full py-2 rounded-lg transition-all"
-                style={{ color: 'var(--text-muted)', background: 'var(--surface-3)', border: '1px solid var(--border)' }}
-              >
-                Reset filter
-              </button>
-            </div>
-          </motion.div>
+        {/* Active filter chips */}
+        <AnimatePresence>
+          {activeChips.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{    opacity: 0, height: 0      }}
+              className="flex flex-wrap gap-1.5 pt-2 overflow-hidden"
+            >
+              {activeChips.map(chip => (
+                <FilterChip key={chip.key} label={chip.label} onRemove={chip.remove} />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* ── Body ── */}
+      <div className="flex flex-col gap-4 px-4 pt-4">
+
+        {/* Summary cards */}
+        <SummaryCards
+          transactions={transactions}
+          allTransactions={allTransactions}
+          filters={filters}
+          setFilters={setFilters}
+        />
+
+        {/* Smart insight */}
+        <SmartInsight transactions={allTransactions} />
+
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="flex flex-col gap-3">
+            {[...Array(4)].map((_, i) => (
+              <div
+                key={i}
+                className="h-16 rounded-2xl animate-pulse"
+                style={{ background: 'var(--surface-2)', animationDelay: `${i * 80}ms` }}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!loading && transactions.length === 0 && (
+          <EmptyState onAddTransaction={() => openAdd('expense')} />
+        )}
+
+        {/* Transaction groups */}
+        {!loading && transactions.length > 0 && (
+          <TransactionGroup
+            transactions={transactions}
+            hidden={hidden}
+            onEdit={openEdit}
+            onDelete={handleDelete}
+          />
+        )}
+      </div>
+
+      {/* ── Transaction Modal ── */}
+      <AnimatePresence>
+        {modalOpen && (
+          <TransactionModal
+            transaction={editTx}
+            defaultType={defaultType}
+            onClose={handleModalClose}
+          />
         )}
       </AnimatePresence>
 
-      {/* Search */}
-      <div className="relative mb-4">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-          style={{ color: 'var(--text-muted)' }} />
-        <input
-          type="text"
-          placeholder="Cari transaksi..."
-          className="input-glass text-sm"
-          style={{ paddingLeft: '2.25rem' }}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
-
-      {/* Transaction list grouped by date */}
-      {loading ? (
-        <div className="space-y-3">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="skeleton h-16 rounded-2xl" />
-          ))}
-        </div>
-      ) : grouped.length === 0 ? (
-        <div className="text-center py-16 glass-card px-6">
-          <p className="text-4xl mb-4">📭</p>
-          <p className="font-display font-bold text-lg mb-2" style={{ color:'var(--text-primary)' }}>
-            {hasActiveFilter ? 'Tidak ada transaksi' : 'Belum ada transaksi'}
-          </p>
-          <p className="text-sm mb-6" style={{ color:'var(--text-muted)' }}>
-            {hasActiveFilter
-              ? 'Coba ubah atau reset filter Anda'
-              : 'Mulai catat keuanganmu sekarang'
-            }
-          </p>
-          {hasActiveFilter ? (
-            <button onClick={clearFilters} className="btn-ghost px-6 py-2.5 text-sm">
-              Reset Filter
-            </button>
-          ) : (
-            <button onClick={() => {/* QuickAddFAB handles this */}}
-              className="btn-primary px-6 py-2.5 text-sm">
-              + Tambah Transaksi Pertama
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {grouped.map(([date, txList]) => (
-            <div key={date}>
-              <p className="text-xs font-semibold mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
-                {formatDate(date, 'EEEE, dd MMMM yyyy')}
-              </p>
-              <div className="glass-card overflow-hidden">
-                {txList.map((t, i) => (
-                  <div key={t.id}>
-                    {/* Transaction row */}
-                    <button
-                      className="w-full flex items-center gap-3 p-3 transition-all text-left"
-                      style={{
-                        background: expandedId === t.id ? 'rgba(255,255,255,0.03)' : 'transparent',
-                        borderBottom: i < txList.length - 1 ? '1px solid var(--border)' : 'none',
-                      }}
-                      onClick={() => setExpandedId(expandedId === t.id ? null : t.id)}
-                    >
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-                        style={{
-                          background:
-                            t.type === 'income' ? 'var(--accent-dim)'
-                            : t.type === 'expense' ? 'var(--red-dim)'
-                            : 'var(--blue-dim)',
-                        }}
-                      >
-                        {t.categoryIcon || '💰'}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                          {t.description || t.categoryName}
-                        </p>
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                          {t.categoryName}
-                          {t.type === 'transfer' && t.toWallet
-                            ? ` · ${t.wallet}${t.walletAccountId ? '' : ''} → ${t.toWallet}`
-                            : ` · ${t.wallet}`}
-                        </p>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p
-                          className="text-sm font-bold font-mono"
-                          style={{
-                            color: hidden ? 'var(--text-muted)' : t.type === 'income' ? 'var(--accent)'
-                              : t.type === 'expense' ? 'var(--red)'
-                              : 'var(--blue)',
-                            letterSpacing: hidden ? 2 : 'normal',
-                          }}
-                        >
-                          {hidden ? '••••••' : `${t.type === 'income' ? '+' : t.type === 'expense' ? '-' : ''}${formatCurrency(t.amount)}`}
-                        </p>
-                        <ChevronDown
-                          size={14}
-                          style={{
-                            color: 'var(--text-muted)',
-                            transform: expandedId === t.id ? 'rotate(180deg)' : 'none',
-                            transition: 'transform 0.2s',
-                            marginLeft: 'auto',
-                          }}
-                        />
-                      </div>
-                    </button>
-
-                    {/* Expanded detail */}
-                    <AnimatePresence>
-                      {expandedId === t.id && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
-                          <div
-                            className="px-4 pb-3 pt-1 flex items-center justify-between"
-                            style={{ background: 'rgba(255,255,255,0.02)' }}
-                          >
-                            <div className="space-y-1">
-                              {t.tags && t.tags.length > 0 && (
-                                <div className="flex gap-1 flex-wrap">
-                                  {t.tags.map((tag) => (
-                                    <span key={tag} className="badge" style={{ background: 'var(--surface-3)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
-                                      #{tag}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                                Dibuat: {formatDate(t.createdAt, 'dd MMM yyyy HH:mm')}
-                              </p>
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => setEditTx(t)}
-                                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
-                                style={{ background: 'var(--blue-dim)', color: 'var(--blue)' }}
-                              >
-                                <Edit3 size={14} />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(t.id)}
-                                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
-                                style={{ background: 'var(--red-dim)', color: 'var(--red)' }}
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="h-8" />
-      <QuickAddFAB />
-
-      {/* Edit modal */}
-      {editTx && (
-        <TransactionModal
-          transaction={editTx}
-          onClose={() => setEditTx(null)}
-        />
-      )}
+      {/* ── FAB — transaction variant ── */}
+      <FloatingActionButton
+        variant="transaction"
+        onSelect={openAdd}
+      />
     </div>
   )
 }
