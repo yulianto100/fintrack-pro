@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { useRouter }               from 'next/navigation'
 import { AnimatePresence }         from 'framer-motion'
 import { PlusCircle, TrendingUp }  from 'lucide-react'
 import { FloatingActionButton }    from '@/components/transactions/FloatingActionButton'
@@ -12,17 +11,17 @@ interface Props {
 }
 
 export function QuickAddFAB({ walletBalances }: Props) {
-  const router = useRouter()
   const [modalOpen, setModalOpen] = useState(false)
 
   const openTransaction = useCallback(() => {
     setModalOpen(true)
   }, [])
 
-  // Navigate to portofolio tab — same as tapping the bottom nav "Portofolio"
+  // Dispatch custom event — same as original pre-update behavior.
+  // Dashboard page / InvestModal listens for this event to open Beli Investasi modal.
   const openInvest = useCallback(() => {
-    router.push('/portofolio')
-  }, [router])
+    window.dispatchEvent(new CustomEvent('fintrack:open-invest'))
+  }, [])
 
   const dashboardActions = [
     {
