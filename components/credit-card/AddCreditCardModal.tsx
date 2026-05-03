@@ -198,10 +198,9 @@ export function AddCreditCardModal({ onClose, onSuccess }: Props) {
                         color:            'var(--text-primary)',
                         caretColor:       'var(--accent)',
                         letterSpacing:    '0.18em',
-                        /* override input-glass padding since we're inside the wrapper */
                         padding:          0,
-                        width:            '4ch',
-                        maxWidth:         '4ch',
+                        width:            '6ch',
+                        maxWidth:         '6ch',
                       }}
                     />
                   </div>
