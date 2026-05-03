@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getAdminDatabase } from '@/lib/firebase-admin'
+import { isExpenseForSummary, isExpenseForWalletBalance } from '@/lib/transaction-rules'
 import type { Transaction } from '@/types'
 
 async function getUserId(): Promise<string | null> {
@@ -20,8 +21,8 @@ async function getAccountBalance(db: ReturnType<typeof import('@/lib/firebase-ad
   const txs: Transaction[] = Object.values(snap.val())
   let balance = 0
   txs.forEach((tx) => {
-    if (tx.type === 'income'   && tx.walletAccountId   === walletAccountId) balance += tx.amount
-    if (tx.type === 'expense'  && tx.walletAccountId   === walletAccountId) balance -= tx.amount
+    if (tx.type === 'income' && tx.walletAccountId === walletAccountId) balance += tx.amount
+    if (isExpenseForWalletBalance(tx) && tx.walletAccountId === walletAccountId) balance -= tx.amount
     if (tx.type === 'transfer') {
       if (tx.walletAccountId   === walletAccountId) balance -= tx.amount
       if (tx.toWalletAccountId === walletAccountId) balance += tx.amount
@@ -38,8 +39,8 @@ async function getWalletTypeBalance(db: ReturnType<typeof import('@/lib/firebase
   let balance = 0
   txs.forEach((tx) => {
     // Only count transactions that DON'T have a walletAccountId (generic wallet-level)
-    if (tx.type === 'income'  && tx.wallet   === walletType && !tx.walletAccountId)   balance += tx.amount
-    if (tx.type === 'expense' && tx.wallet   === walletType && !tx.walletAccountId)   balance -= tx.amount
+    if (tx.type === 'income' && tx.wallet === walletType && !tx.walletAccountId) balance += tx.amount
+    if (isExpenseForWalletBalance(tx) && tx.wallet === walletType && !tx.walletAccountId) balance -= tx.amount
     if (tx.type === 'transfer') {
       if (tx.wallet   === walletType && !tx.walletAccountId)   balance -= tx.amount
       if (tx.toWallet === walletType && !tx.toWalletAccountId) balance += tx.amount
@@ -71,7 +72,7 @@ export async function GET(request: Request) {
 
     if (month)           list = list.filter((t) => t.date?.startsWith(month))
     if (categoryId)      list = list.filter((t) => t.categoryId === categoryId)
-    if (type)            list = list.filter((t) => t.type === type)
+    if (type)            list = list.filter((t) => type === 'expense' ? isExpenseForSummary(t) : t.type === type)
     if (wallet)          list = list.filter((t) => t.wallet === wallet || t.toWallet === wallet)
     if (walletAccountId) list = list.filter(
       (t) => t.walletAccountId === walletAccountId || t.toWalletAccountId === walletAccountId
@@ -97,13 +98,18 @@ export async function POST(request: Request) {
       walletAccountId, toWalletAccountId, tags,
     } = body
 
+    const paymentMethod = body.paymentMethod === 'credit_card' ? 'credit_card' : 'wallet'
+    const isCreditCardExpense = type === 'expense' && paymentMethod === 'credit_card'
+
     // System-generated transactions (sell proceeds, maturity payouts) bypass categoryId
     const isSystemTransaction = body.isSystemTransaction === true
 
     if (!type)                           return NextResponse.json({ success: false, error: 'Tipe wajib diisi' },         { status: 400 })
     if (!amount || Number(amount) <= 0)  return NextResponse.json({ success: false, error: 'Jumlah tidak valid' },       { status: 400 })
     if (!date)                           return NextResponse.json({ success: false, error: 'Tanggal wajib diisi' },      { status: 400 })
-    if (!wallet)                         return NextResponse.json({ success: false, error: 'Wallet wajib dipilih' },     { status: 400 })
+    if (!wallet && !isCreditCardExpense) return NextResponse.json({ success: false, error: 'Wallet wajib dipilih' },     { status: 400 })
+    if (isCreditCardExpense && !body.creditCardId)
+      return NextResponse.json({ success: false, error: 'Kartu kredit wajib dipilih' }, { status: 400 })
     if (!categoryId && type !== 'transfer' && !isSystemTransaction)
       return NextResponse.json({ success: false, error: 'Kategori wajib dipilih' }, { status: 400 })
 
@@ -115,9 +121,6 @@ export async function POST(request: Request) {
 
     // Wallet validation is skipped for credit card expenses —
     // they do not deduct from wallet balance.
-    const isCreditCardExpense =
-      type === 'expense' && body.paymentMethod === 'credit_card' && body.creditCardId
-
     // ── BALANCE VALIDATION ────────────────────────────────────────────────────
     // Block expense or transfer (debit side) if balance would go negative
     const needsBalanceCheck = (type === 'expense' || type === 'transfer') && !isCreditCardExpense
@@ -143,13 +146,15 @@ export async function POST(request: Request) {
     // ─────────────────────────────────────────────────────────────────────────
 
     // ── CREDIT CARD VALIDATION ────────────────────────────────────────────
+    let creditCardForUpdate: { used?: number; limit?: number } | null = null
     if (isCreditCardExpense) {
       const ccSnap = await db.ref(`users/${userId}/creditCards/${body.creditCardId}`).get()
       if (!ccSnap.exists()) {
         return NextResponse.json({ success: false, error: 'Kartu kredit tidak ditemukan' }, { status: 400 })
       }
       const cc = ccSnap.val()
-      const remaining = cc.limit - cc.used
+      creditCardForUpdate = cc
+      const remaining = Number(cc.limit || 0) - Number(cc.used || 0)
       if (amt > remaining) {
         return NextResponse.json({
           success: false,
@@ -170,7 +175,8 @@ export async function POST(request: Request) {
     }
 
     // Credit card purchases are stored as 'credit_expense' — they don't reduce wallet
-    const txType = isCreditCardExpense ? 'credit_expense' : type
+    const now = new Date().toISOString()
+    const txType: Transaction['type'] = isCreditCardExpense ? 'credit_expense' : type
 
     const tx: Transaction = {
       id:          newRef.key!,
@@ -182,33 +188,31 @@ export async function POST(request: Request) {
       categoryIcon,
       description: description || '',
       date,
-      wallet,
+      ...(wallet && !isCreditCardExpense && { wallet }),
       ...(toWallet          && { toWallet }),
       ...(walletAccountId   && !isCreditCardExpense && { walletAccountId }),
       ...(toWalletAccountId && type === 'transfer' && { toWalletAccountId }),
       tags:        Array.isArray(tags) ? tags : [],
       // ── Credit card fields ───────────────────────────────────────────────
-      paymentMethod:  body.paymentMethod  || 'wallet',
+      paymentMethod,
       ...(body.creditCardId   && { creditCardId:   body.creditCardId }),
       ...(body.creditCardName && { creditCardName: body.creditCardName }),
-      createdAt:   new Date().toISOString(),
-      updatedAt:   new Date().toISOString(),
+      createdAt:   now,
+      updatedAt:   now,
     }
 
-    await newRef.set(tx)
+    const updates: Record<string, unknown> = {
+      [`users/${userId}/transactions/${newRef.key}`]: tx,
+    }
 
     // ── UPDATE CREDIT CARD USED AMOUNT ──────────────────────────────────────
     if (isCreditCardExpense) {
-      const ccRef  = db.ref(`users/${userId}/creditCards/${body.creditCardId}`)
-      const ccSnap = await ccRef.get()
-      if (ccSnap.exists()) {
-        const cc = ccSnap.val()
-        await ccRef.update({
-          used:      (cc.used || 0) + amt,
-          updatedAt: new Date().toISOString(),
-        })
-      }
+      updates[`users/${userId}/creditCards/${body.creditCardId}/used`] =
+        Number(creditCardForUpdate?.used || 0) + amt
+      updates[`users/${userId}/creditCards/${body.creditCardId}/updatedAt`] = now
     }
+
+    await db.ref().update(updates)
 
     return NextResponse.json({ success: true, data: tx }, { status: 201 })
   } catch (err) {

@@ -11,6 +11,7 @@
  */
 import type { Transaction, BudgetStatus } from '@/types'
 import { formatCurrency } from '@/lib/utils'
+import { isExpenseForSummary } from '@/lib/transaction-rules'
 
 // ── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -27,7 +28,7 @@ function prevYM(): string {
 
 function sumBy(txs: Transaction[], type: string, month?: string): number {
   return txs
-    .filter((t) => t.type === type && (!month || t.date.startsWith(month)))
+    .filter((t) => (type === 'expense' ? isExpenseForSummary(t) : t.type === type) && (!month || t.date.startsWith(month)))
     .reduce((s, t) => s + t.amount, 0)
 }
 
@@ -86,8 +87,8 @@ export function getTopCategories(
   const thisM = ym()
   const lastM = prevYM()
 
-  const thisExpenses = transactions.filter((t) => t.type === 'expense' && t.date.startsWith(thisM))
-  const lastExpenses = transactions.filter((t) => t.type === 'expense' && t.date.startsWith(lastM))
+  const thisExpenses = transactions.filter((t) => isExpenseForSummary(t) && t.date.startsWith(thisM))
+  const lastExpenses = transactions.filter((t) => isExpenseForSummary(t) && t.date.startsWith(lastM))
 
   const thisTotal = thisExpenses.reduce((s, t) => s + t.amount, 0)
 

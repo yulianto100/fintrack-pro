@@ -5,6 +5,7 @@
  */
 import type { Transaction, BudgetStatus } from '@/types'
 import { formatCurrency } from './utils'
+import { isExpenseForSummary } from '@/lib/transaction-rules'
 
 export interface AppNotification {
   id: string
@@ -112,10 +113,10 @@ export function generateNotifications(
 
   // ── 2. Spending spike detection ─────────────────────────────────────────────
   const thisExpense = transactions
-    .filter((t) => t.type === 'expense' && t.date.startsWith(thisM))
+    .filter((t) => isExpenseForSummary(t) && t.date.startsWith(thisM))
     .reduce((s, t) => s + t.amount, 0)
   const lastExpense = transactions
-    .filter((t) => t.type === 'expense' && t.date.startsWith(lastM))
+    .filter((t) => isExpenseForSummary(t) && t.date.startsWith(lastM))
     .reduce((s, t) => s + t.amount, 0)
 
   if (lastExpense > 0 && thisExpense > lastExpense * 1.35 && thisExpense > 500_000) {

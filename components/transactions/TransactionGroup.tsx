@@ -4,6 +4,7 @@ import { useMemo, useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence, useMotionValue, useTransform, useAnimation } from 'framer-motion'
 import { Trash2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { getTransactionMethodLabel } from '@/lib/transaction-rules'
 import type { Transaction } from '@/types'
 
 // ─── Delete Confirmation Dialog ───────────────────────────────────────────────
@@ -18,6 +19,7 @@ function DeleteConfirmDialog({ transaction, onConfirm, onCancel }: ConfirmDialog
   const isExpense  = transaction.type === 'expense' || transaction.type === 'credit_expense'
   const isTransfer = transaction.type === 'transfer'
   const color      = isTransfer ? 'var(--blue)' : isExpense ? 'var(--red)' : 'var(--accent)'
+  const displayLabel = getTransactionMethodLabel(transaction) || transaction.categoryName || (isTransfer ? 'Transfer' : 'Transaksi')
   const sign       = isExpense ? '-' : isTransfer ? '⇄' : '+'
 
   return (
@@ -61,7 +63,7 @@ function DeleteConfirmDialog({ transaction, onConfirm, onCancel }: ConfirmDialog
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                {transaction.categoryName || 'Transaksi'}
+                {displayLabel}
               </p>
               {transaction.description && (
                 <p className="text-[10px] truncate" style={{ color: 'var(--text-muted)' }}>
@@ -118,6 +120,8 @@ function SwipeableRow({ transaction: t, hidden, onEdit, onDeleteStart, isLast }:
   const isTransfer = t.type === 'transfer'
   const color      = isTransfer ? 'var(--blue)' : isExpense ? 'var(--red)' : 'var(--accent)'
   const sign       = isExpense ? '-' : isTransfer ? '⇄' : '+'
+
+  const displayLabel = getTransactionMethodLabel(t) || t.categoryName || (isTransfer ? 'Transfer' : 'Transaksi')
 
   const deleteOpacity = useTransform(x, [-DELETE_BTN_WIDTH, -20], [1, 0])
   const deleteScale   = useTransform(x, [-DELETE_BTN_WIDTH, -20], [1, 0.7])
@@ -183,7 +187,7 @@ function SwipeableRow({ transaction: t, hidden, onEdit, onDeleteStart, isLast }:
         {/* Info */}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-            {t.categoryName || (isTransfer ? 'Transfer' : 'Transaksi')}
+            {displayLabel}
           </p>
           {t.description && (
             <p className="text-[11px] truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>

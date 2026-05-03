@@ -3,6 +3,7 @@
  * Monthly spending prediction + weekly summary generator
  */
 import type { Transaction } from '@/types'
+import { isExpenseForSummary } from '@/lib/transaction-rules'
 
 function ym(d: Date = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
@@ -28,7 +29,7 @@ export function predictMonthlySpend(transactions: Transaction[]): MonthlyPredict
   const daysLeft   = daysInMonth - dayElapsed
 
   const monthTx = transactions.filter((t) => t.date.startsWith(thisM))
-  const currentSpend  = monthTx.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const currentSpend  = monthTx.filter(isExpenseForSummary).reduce((s, t) => s + t.amount, 0)
   const currentIncome = monthTx.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
 
   const dailyRate = dayElapsed > 0 ? currentSpend / dayElapsed : 0
@@ -83,11 +84,11 @@ export function generateWeeklySummary(transactions: Transaction[]): WeeklySummar
   const prevWeekTx = transactions.filter((t) => inRange(t, prevStart, prevEnd))
 
   const income  = thisWeekTx.filter((t) => t.type === 'income') .reduce((s, t) => s + t.amount, 0)
-  const expense = thisWeekTx.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
-  const prevExp = prevWeekTx.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const expense = thisWeekTx.filter(isExpenseForSummary).reduce((s, t) => s + t.amount, 0)
+  const prevExp = prevWeekTx.filter(isExpenseForSummary).reduce((s, t) => s + t.amount, 0)
 
   const catMap: Record<string, number> = {}
-  thisWeekTx.filter((t) => t.type === 'expense').forEach((t) => {
+  thisWeekTx.filter(isExpenseForSummary).forEach((t) => {
     const k = t.categoryName || 'Lainnya'
     catMap[k] = (catMap[k] || 0) + t.amount
   })

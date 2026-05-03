@@ -8,6 +8,7 @@ import { useGoldPrices, useStockPrices } from '@/hooks/usePrices'
 import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import { useCountUp } from '@/hooks/useCountUp'
 import { formatCurrency, getCurrentMonth } from '@/lib/utils'
+import { isExpenseForSummary, isExpenseForWalletBalance } from '@/lib/transaction-rules'
 import type {
   Transaction, GoldHolding, StockHolding,
   Deposit, BudgetStatus, SBNHolding, ReksadanaHolding,
@@ -45,16 +46,16 @@ export default function DashboardPage() {
   const monthStats = useMemo(() => {
     const currentMonth = getCurrentMonth()
     const income  = allTx.filter(t => t.type === 'income'  && t.date.startsWith(currentMonth)).reduce((s, t) => s + t.amount, 0)
-    const expense = allTx.filter(t => t.type === 'expense' && t.date.startsWith(currentMonth)).reduce((s, t) => s + t.amount, 0)
+    const expense = allTx.filter(t => isExpenseForSummary(t) && t.date.startsWith(currentMonth)).reduce((s, t) => s + t.amount, 0)
     return { income, expense, balance: income - expense }
   }, [allTx])
 
   const walletBalances = useMemo(() => {
     const b = { cash: 0, bank: 0, ewallet: 0 }
     allTx.forEach(t => {
-      if      (t.type === 'income')   b[t.wallet as keyof typeof b] += t.amount
-      else if (t.type === 'expense')  b[t.wallet as keyof typeof b] -= t.amount
-      else {
+      if (t.type === 'income' && t.wallet) b[t.wallet as keyof typeof b] += t.amount
+      else if (isExpenseForWalletBalance(t) && t.wallet) b[t.wallet as keyof typeof b] -= t.amount
+      else if (t.type === 'transfer' && t.wallet) {
         b[t.wallet as keyof typeof b] -= t.amount
         if (t.toWallet) b[t.toWallet as keyof typeof b] += t.amount
       }

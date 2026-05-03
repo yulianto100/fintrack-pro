@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Lightbulb, X, TrendingUp, TrendingDown } from 'lucide-react'
 import type { Transaction } from '@/types'
+import { isExpenseForSummary } from '@/lib/transaction-rules'
 
 interface Props {
   transactions: Transaction[]
@@ -37,10 +38,10 @@ export function SmartInsight({ transactions }: Props) {
     const lastWeek = getWeekRange(1)
 
     const thisWeekTx = transactions.filter(
-      t => t.type === 'expense' && isInRange(t.date, thisWeek)
+      t => isExpenseForSummary(t) && isInRange(t.date, thisWeek)
     )
     const lastWeekTx = transactions.filter(
-      t => t.type === 'expense' && isInRange(t.date, lastWeek)
+      t => isExpenseForSummary(t) && isInRange(t.date, lastWeek)
     )
 
     if (thisWeekTx.length === 0) return null

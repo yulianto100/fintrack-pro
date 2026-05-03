@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getAdminDatabase } from '@/lib/firebase-admin'
+import { isExpenseForSummary } from '@/lib/transaction-rules'
 import type { BudgetCategory, BudgetStatus, Transaction } from '@/types'
 
 async function getUserId(): Promise<string | null> {
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
     const spentMap: Record<string, number> = {}
     if (txSnap.exists()) {
       const txs: Transaction[] = Object.values(txSnap.val())
-      txs.filter((t) => t.type === 'expense' && t.date.startsWith(month)).forEach((t) => {
+      txs.filter((t) => isExpenseForSummary(t) && t.date.startsWith(month)).forEach((t) => {
         spentMap[t.categoryId] = (spentMap[t.categoryId] || 0) + t.amount
       })
     }

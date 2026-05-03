@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import type { Transaction } from '@/types'
 import { formatCurrency } from '@/lib/utils'
+import { isExpenseForSummary } from '@/lib/transaction-rules'
 
 const COLORS = ['#22C55E','#3B82F6','#F59E0B','#EF4444','#A855F7','#14B8A6','#F97316']
 
@@ -11,7 +12,7 @@ interface Props { transactions: Transaction[]; month: string }
 export function ExpensePieChart({ transactions, month }: Props) {
   const { data, total } = useMemo(() => {
     const map: Record<string,{ name:string; value:number }> = {}
-    transactions.filter(t=>t.type==='expense' && t.date.startsWith(month)).forEach(t=>{
+    transactions.filter(t=>isExpenseForSummary(t) && t.date.startsWith(month)).forEach(t=>{
       const k = t.categoryName||'Lainnya'
       map[k] = { name:k, value:(map[k]?.value||0)+t.amount }
     })

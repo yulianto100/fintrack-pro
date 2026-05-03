@@ -7,6 +7,7 @@ import {
 } from 'recharts'
 import type { Transaction } from '@/types'
 import { formatCurrency } from '@/lib/utils'
+import { isExpenseForSummary } from '@/lib/transaction-rules'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -115,7 +116,7 @@ export function NetWorthChart({
         .filter(t => t.type === 'income'  && t.date.startsWith(m))
         .reduce((s, t) => s + t.amount, 0)
       const exp = transactions
-        .filter(t => t.type === 'expense' && t.date.startsWith(m))
+        .filter(t => isExpenseForSummary(t) && t.date.startsWith(m))
         .reduce((s, t) => s + t.amount, 0)
       running += inc - exp
       const label = new Date(m + '-01').toLocaleDateString('id-ID', { month: 'short' })

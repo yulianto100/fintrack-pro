@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { TrendingUp, TrendingDown, Wallet } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { isExpenseForSummary } from '@/lib/transaction-rules'
 import type { Transaction, TransactionFilters } from '@/types'
 
 interface Props {
@@ -37,14 +38,14 @@ export function SummaryCards({ transactions, allTransactions, filters, setFilter
   const curr = useMemo(() => {
     const txs = allTransactions.filter(t => t.date?.startsWith(activeMonth))
     const income  = txs.filter(t => t.type === 'income') .reduce((s, t) => s + t.amount, 0)
-    const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+    const expense = txs.filter(isExpenseForSummary).reduce((s, t) => s + t.amount, 0)
     return { income, expense, balance: income - expense }
   }, [allTransactions, activeMonth])
 
   const prev = useMemo(() => {
     const txs = allTransactions.filter(t => t.date?.startsWith(prevMonth))
     const income  = txs.filter(t => t.type === 'income') .reduce((s, t) => s + t.amount, 0)
-    const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+    const expense = txs.filter(isExpenseForSummary).reduce((s, t) => s + t.amount, 0)
     return { income, expense, balance: income - expense }
   }, [allTransactions, prevMonth])
 

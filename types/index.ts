@@ -32,7 +32,7 @@ export type TransactionType = 'income' | 'expense' | 'credit_expense' | 'transfe
 export interface Transaction {
   id: string; userId: string; type: TransactionType
   amount: number; categoryId: string; categoryName?: string; categoryIcon?: string
-  description: string; date: string; wallet: WalletType; toWallet?: WalletType
+  description: string; date: string; wallet?: WalletType; toWallet?: WalletType
   walletAccountId?: string
   toWalletAccountId?: string
   tags?: string[]; createdAt: string; updatedAt: string

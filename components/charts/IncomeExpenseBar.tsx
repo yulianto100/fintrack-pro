@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import type { Transaction } from '@/types'
 import { formatCurrency } from '@/lib/utils'
+import { isExpenseForSummary } from '@/lib/transaction-rules'
 
 interface Props { transactions: Transaction[] }
 
@@ -16,7 +17,7 @@ export function IncomeExpenseBar({ transactions }: Props) {
     return months.map(m => {
       const label = new Date(m+'-01').toLocaleDateString('id-ID',{month:'short'})
       const inc = transactions.filter(t=>t.type==='income'  && t.date.startsWith(m)).reduce((s,t)=>s+t.amount,0)
-      const exp = transactions.filter(t=>t.type==='expense' && t.date.startsWith(m)).reduce((s,t)=>s+t.amount,0)
+      const exp = transactions.filter(t=>isExpenseForSummary(t) && t.date.startsWith(m)).reduce((s,t)=>s+t.amount,0)
       return { month:label, Pemasukan:inc, Pengeluaran:exp }
     })
   }, [transactions])

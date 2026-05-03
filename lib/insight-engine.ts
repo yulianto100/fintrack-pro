@@ -4,6 +4,7 @@
  */
 import type { Transaction, GoldHolding, StockHolding, Deposit, Insight, BudgetStatus } from '@/types'
 import { formatCurrency } from '@/lib/utils'
+import { isExpenseForSummary } from '@/lib/transaction-rules'
 
 function ym(d: Date = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
@@ -18,13 +19,13 @@ function prevYM(): string {
 // ── helpers ──────────────────────────────────────────────────────────────────
 function sumByType(txs: Transaction[], type: string, month?: string): number {
   return txs
-    .filter((t) => t.type === type && (!month || t.date.startsWith(month)))
+    .filter((t) => (type === 'expense' ? isExpenseForSummary(t) : t.type === type) && (!month || t.date.startsWith(month)))
     .reduce((s, t) => s + t.amount, 0)
 }
 
 function catMap(txs: Transaction[], month: string): Record<string, number> {
   const m: Record<string, number> = {}
-  txs.filter((t) => t.type === 'expense' && t.date.startsWith(month)).forEach((t) => {
+  txs.filter((t) => isExpenseForSummary(t) && t.date.startsWith(month)).forEach((t) => {
     const k = t.categoryName || 'Lainnya'
     m[k] = (m[k] || 0) + t.amount
   })

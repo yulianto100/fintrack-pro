@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from 'react'
 import { useApiList } from './useApiData'
 import type { Transaction, TransactionFilters } from '@/types'
 import toast from 'react-hot-toast'
+import { isExpenseForSummary } from '@/lib/transaction-rules'
 
 export function useTransactions() {
   // Fix #1: default = NO filter (was: { month: getCurrentMonth() })
@@ -43,12 +44,8 @@ export function useTransactions() {
       .reduce((s, t) => s + t.amount, 0)
 
     const expense = transactions
-      .filter(t =>
-        // credit_expense = CC purchase (real spending, no wallet deduction)
-        t.type === 'credit_expense' ||
+      .filter(isExpenseForSummary)
         // regular expense — but EXCLUDE CC bill payments (transfer type) and legacy CC payment expenses
-        (t.type === 'expense' && !t.tags?.includes('credit_card_payment'))
-      )
       .reduce((s, t) => s + t.amount, 0)
 
     return { income, expense, balance: income - expense }

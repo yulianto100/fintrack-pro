@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getAdminDatabase } from '@/lib/firebase-admin'
+import { isExpenseForWalletBalance } from '@/lib/transaction-rules'
 import type { Transaction } from '@/types'
 
 async function getUserId(): Promise<string | null> {
@@ -60,8 +61,8 @@ export async function POST(request: Request) {
       if (fromWalletAccountId) {
         // Specific account balance
         allTx.forEach((tx) => {
-          if (tx.type === 'income'   && tx.walletAccountId   === fromWalletAccountId) currentBalance += tx.amount
-          if (tx.type === 'expense'  && tx.walletAccountId   === fromWalletAccountId) currentBalance -= tx.amount
+          if (tx.type === 'income' && tx.walletAccountId === fromWalletAccountId) currentBalance += tx.amount
+          if (isExpenseForWalletBalance(tx) && tx.walletAccountId === fromWalletAccountId) currentBalance -= tx.amount
           if (tx.type === 'transfer') {
             if (tx.walletAccountId   === fromWalletAccountId) currentBalance -= tx.amount
             if (tx.toWalletAccountId === fromWalletAccountId) currentBalance += tx.amount
@@ -70,8 +71,8 @@ export async function POST(request: Request) {
       } else {
         // Generic wallet type balance
         allTx.forEach((tx) => {
-          if (tx.type === 'income'   && tx.wallet   === fromWallet) currentBalance += tx.amount
-          if (tx.type === 'expense'  && tx.wallet   === fromWallet) currentBalance -= tx.amount
+          if (tx.type === 'income' && tx.wallet === fromWallet) currentBalance += tx.amount
+          if (isExpenseForWalletBalance(tx) && tx.wallet === fromWallet) currentBalance -= tx.amount
           if (tx.type === 'transfer') {
             if (tx.wallet   === fromWallet && !tx.walletAccountId)   currentBalance -= tx.amount
             if (tx.toWallet === fromWallet && !tx.toWalletAccountId) currentBalance += tx.amount
