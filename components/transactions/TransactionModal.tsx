@@ -8,6 +8,7 @@ import { useApiList } from '@/hooks/useApiData'
 import type { Category, Transaction, TransactionType, WalletType, WalletAccount, CreditCard } from '@/types'
 import { capitalizeWords, formatCurrency } from '@/lib/utils'
 import { autoCategorize, learnCategoryMapping } from '@/lib/categorization'
+import { isCreditCardPayment } from '@/lib/transaction-rules'
 import toast from 'react-hot-toast'
 import type { RecurringFrequency } from '@/types'
 
@@ -66,13 +67,14 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
   const [toWalletAccountId, setToWalletAccountId] = useState<string>(transaction?.toWalletAccountId || '')
 
   // ── Credit card state ──────────────────────────────────────────────────────
-  // Initialize from existing transaction so edit mode shows correct payment method & card
+  // Initialize from existing transaction so edit mode shows correct payment method & card.
+  // Also used for CC payment edits: creditCardId = the card being paid.
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'credit_card'>(
     transaction?.paymentMethod === 'credit_card' || transaction?.type === 'credit_expense'
       ? 'credit_card'
       : 'wallet'
   )
-  const [creditCardId,  setCreditCardId ] = useState<string>(transaction?.creditCardId || '')
+  const [creditCardId, setCreditCardId] = useState<string>(transaction?.creditCardId || '')
 
   const { data: creditCards } = useApiList<CreditCard>('/api/credit-cards')
 
@@ -124,6 +126,9 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
     (c) => c.type === type || (type === 'transfer' && c.type === 'expense')
   )
   const isEdit      = !!transaction
+  // Detect if we're editing a credit card payment (type=transfer + credit_card_payment tag)
+  // So we can show a dedicated "Dari Wallet → Kartu Kredit" UI instead of the generic transfer form
+  const isCCPaymentEdit = isEdit && !!transaction && isCreditCardPayment(transaction)
   const activeColor = TABS.find((t) => t.type === type)?.color || 'var(--accent)'
 
   const handleAmountChange = (val: string) => {
@@ -261,10 +266,15 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
     }
 
     const raw = getRawAmount()
-    if (!raw || raw <= 0)         { toast.error('Masukkan jumlah yang valid'); return }
+    if (!raw || raw <= 0) { toast.error('Masukkan jumlah yang valid'); return }
     if (!categoryId && type !== 'transfer') { toast.error('Pilih kategori'); return }
 
-    if (type === 'transfer') {
+    // CC payment edit: validate target card is selected
+    if (isCCPaymentEdit) {
+      if (!creditCardId) { toast.error('Pilih kartu kredit tujuan'); return }
+    }
+
+    if (type === 'transfer' && !isCCPaymentEdit) {
       const sameAccountId = walletAccountId && toWalletAccountId && walletAccountId === toWalletAccountId
       if (wallet === toWallet && !walletAccountId && !toWalletAccountId) {
         toast.error('Pilih akun yang berbeda untuk transfer'); return
@@ -293,21 +303,37 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
     setSaving(true)
     try {
       const isCreditCard = type === 'expense' && paymentMethod === 'credit_card'
-      const data = {
-        type, amount: raw,
-        categoryId:        categoryId || 'transfer',
-        description:       description ? capitalizeWords(description) : '',
-        date, wallet,
-        toWallet:          type === 'transfer' ? toWallet           : undefined,
-        walletAccountId:   isCreditCard ? undefined : (walletAccountId || undefined),
-        toWalletAccountId: type === 'transfer' ? (toWalletAccountId || undefined) : undefined,
-        // ── Credit card fields ──────────────────────────────────────────────
-        paymentMethod:     (isCreditCard ? 'credit_card' : 'wallet') as 'wallet' | 'credit_card',
-        creditCardId:      isCreditCard ? creditCardId  : undefined,
-        creditCardName:    isCreditCard
-          ? creditCards.find((c) => c.id === creditCardId)?.name
-          : undefined,
-      }
+      const targetCard   = creditCards.find((c) => c.id === creditCardId)
+
+      const data = isCCPaymentEdit
+        // ── CC payment edit: preserve transfer type + update source wallet & target card ──
+        ? {
+            type:            'transfer' as const,
+            amount:          raw,
+            categoryId:      'credit_card_payment',
+            description:     description ? capitalizeWords(description) : `Bayar ${targetCard?.name || 'Kartu Kredit'}`,
+            date,
+            wallet,
+            walletAccountId: walletAccountId || undefined,
+            creditCardId,
+            creditCardName:  targetCard?.name,
+            tags:            ['credit_card_payment', `cc_${creditCardId}`],
+            paymentMethod:   'wallet' as const,
+          }
+        // ── Regular expense / income / transfer ────────────────────────────────
+        : {
+            type, amount: raw,
+            categoryId:        categoryId || 'transfer',
+            description:       description ? capitalizeWords(description) : '',
+            date, wallet,
+            toWallet:          type === 'transfer' ? toWallet           : undefined,
+            walletAccountId:   isCreditCard ? undefined : (walletAccountId || undefined),
+            toWalletAccountId: type === 'transfer' ? (toWalletAccountId || undefined) : undefined,
+            // ── Credit card fields ────────────────────────────────────────────
+            paymentMethod:     (isCreditCard ? 'credit_card' : 'wallet') as 'wallet' | 'credit_card',
+            creditCardId:      isCreditCard ? creditCardId  : undefined,
+            creditCardName:    isCreditCard ? targetCard?.name : undefined,
+          }
       let result
       if (isEdit) result = await updateTransaction(transaction.id, data)
       else        result = await addTransaction(data)
@@ -393,7 +419,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4">
             <h2 className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
-              {isEdit ? 'Edit Transaksi' : 'Tambah Transaksi'}
+              {isCCPaymentEdit ? 'Edit Bayar Kartu Kredit' : isEdit ? 'Edit Transaksi' : 'Tambah Transaksi'}
             </h2>
             <button onClick={() => onClose()}
               className="w-9 h-9 rounded-full flex items-center justify-center"
@@ -402,21 +428,38 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
             </button>
           </div>
 
-          {/* Type tabs */}
-          <div className="flex gap-2 px-5 mb-5">
-            {TABS.map((tab) => (
-              <button key={tab.type}
-                onClick={() => { setType(tab.type); setCategoryId(''); setTransferMode('internal') }}
+          {/* Type tabs — hidden for CC payment edits (type is locked to Transfer) */}
+          {isCCPaymentEdit ? (
+            /* Locked type badge for CC payment — type cannot be changed */
+            <div className="flex gap-2 px-5 mb-5">
+              <div
                 className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium"
                 style={{
-                  background: type === tab.type ? `${tab.color}20` : 'var(--surface-btn-sm)',
-                  color:      type === tab.type ? tab.color         : 'var(--text-muted)',
-                  border:    `1px solid ${type === tab.type ? tab.color + '50' : 'var(--border)'}`,
-                }}>
-                {tab.icon}<span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
+                  background: 'rgba(34,197,94,0.12)',
+                  border: '1px solid rgba(34,197,94,0.35)',
+                  color: 'var(--accent)',
+                }}
+              >
+                <ArrowLeftRight size={16} />
+                <span>Bayar Kartu Kredit</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-2 px-5 mb-5">
+              {TABS.map((tab) => (
+                <button key={tab.type}
+                  onClick={() => { setType(tab.type); setCategoryId(''); setTransferMode('internal') }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium"
+                  style={{
+                    background: type === tab.type ? `${tab.color}20` : 'var(--surface-btn-sm)',
+                    color:      type === tab.type ? tab.color         : 'var(--text-muted)',
+                    border:    `1px solid ${type === tab.type ? tab.color + '50' : 'var(--border)'}`,
+                  }}>
+                  {tab.icon}<span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="px-5 pb-7 space-y-5">
             {/* Amount */}
@@ -451,8 +494,8 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
                 value={description} onChange={(e) => handleDescriptionChange(e.target.value)} />
             </div>
 
-            {/* Category — skip for transfer */}
-            {type !== 'transfer' && (
+            {/* Category — skip for transfer and CC payment edits */}
+            {type !== 'transfer' && !isCCPaymentEdit && (
               <div>
                 <label className="text-xs mb-2 block font-semibold" style={{ color: 'var(--text-muted)' }}>
                   Kategori {filteredCategories.length === 0 && !catsLoading && (
@@ -495,8 +538,8 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
               </div>
             )}
 
-            {/* ── TRANSFER MODE TOGGLE ─────────────────────────────────────── */}
-            {type === 'transfer' && !isEdit && (
+            {/* ── TRANSFER MODE TOGGLE — hidden for CC payment edits ────────── */}
+            {type === 'transfer' && !isEdit && !isCCPaymentEdit && (
               <div>
                 <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
                   Jenis Transfer
@@ -526,8 +569,8 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
               </div>
             )}
 
-            {/* ── PAYMENT METHOD (expenses only) ─────────────────────────────── */}
-            {type === 'expense' && (
+            {/* ── PAYMENT METHOD (expenses only, not CC payment edits) ────────── */}
+            {type === 'expense' && !isCCPaymentEdit && (
               <div>
                 <label className="text-xs mb-2 block font-semibold" style={{ color: 'var(--text-muted)' }}>
                   METODE BAYAR
@@ -605,8 +648,81 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
               </div>
             )}
 
-            {/* ── INTERNAL TRANSFER WALLETS ─────────────────────────────────── */}
-            {type !== 'transfer' ? (
+            {/* ── WALLET / TRANSFER SECTION ────────────────────────────────── */}
+            {isCCPaymentEdit ? (
+              /* ── CC PAYMENT EDIT: Dari Wallet → Kartu Kredit ─────────────── */
+              <div className="space-y-4">
+                {/* Source wallet (editable) */}
+                <WalletPicker
+                  label="Dari Wallet"
+                  selected={wallet}
+                  onSelect={handleSetWallet}
+                  selectedAccount={walletAccountId}
+                  onSelectAccount={setWalletAccountId}
+                  accentColor="var(--red)"
+                />
+
+                {/* Arrow */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                    style={{ background: 'rgba(34,197,94,0.12)', color: 'var(--accent)' }}>
+                    ↓ bayar ke
+                  </span>
+                  <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+                </div>
+
+                {/* Destination: locked to credit card */}
+                <div>
+                  <label className="text-xs mb-2 block font-semibold" style={{ color: 'var(--text-muted)' }}>
+                    KE KARTU KREDIT
+                  </label>
+                  {creditCards.length === 0 ? (
+                    <p className="text-xs py-2" style={{ color: 'var(--text-muted)' }}>
+                      Tidak ada kartu kredit
+                    </p>
+                  ) : (
+                    <div className="flex flex-col gap-1.5">
+                      {creditCards.map((card) => {
+                        const pct      = card.limit > 0 ? (card.used / card.limit) * 100 : 0
+                        const barColor = pct >= 80 ? '#ef4444' : pct >= 50 ? '#f59e0b' : '#22c55e'
+                        const selected = creditCardId === card.id
+                        return (
+                          <button
+                            key={card.id}
+                            onClick={() => setCreditCardId(card.id)}
+                            className="p-3 rounded-xl text-left transition-all"
+                            style={{
+                              background: selected ? 'rgba(34,197,94,0.10)' : 'var(--surface-btn)',
+                              border: `1px solid ${selected ? 'rgba(34,197,94,0.30)' : 'var(--border)'}`,
+                            }}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-base">💳</span>
+                                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                                  {card.name}
+                                </p>
+                              </div>
+                              {selected && (
+                                <span className="text-xs font-bold" style={{ color: 'var(--accent)' }}>✓</span>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-between text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                              <span>Tagihan: <b style={{ color: barColor }}>Rp {card.used.toLocaleString('id-ID')}</b></span>
+                              <span>{pct.toFixed(0)}% terpakai</span>
+                            </div>
+                            <div className="mt-1.5 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                              <div className="h-full rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: barColor }} />
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : type !== 'transfer' ? (
               !(type === 'expense' && paymentMethod === 'credit_card') && <WalletPicker
                 label="Wallet"
                 selected={wallet}

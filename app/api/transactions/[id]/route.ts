@@ -65,18 +65,40 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
 
     if (isCreditCardEdit) {
-      const creditCardId = body.creditCardId || original.creditCardId
-      const newAmount    = body.amount !== undefined ? Number(body.amount) : original.amount
-      const oldAmount    = original.amount
-      const amountDelta  = newAmount - oldAmount  // positive = more debt, negative = less debt
+      const newCreditCardId = body.creditCardId || original.creditCardId
+      const oldCreditCardId = original.creditCardId
+      const newAmount       = body.amount !== undefined ? Number(body.amount) : original.amount
+      const oldAmount       = original.amount
 
-      if (creditCardId && amountDelta !== 0) {
-        const ccSnap = await db.ref(`users/${userId}/creditCards/${creditCardId}`).get()
-        if (ccSnap.exists()) {
-          const cc = ccSnap.val()
-          const newUsed = Math.max(0, Number(cc.used || 0) + amountDelta)
-          dbUpdates[`users/${userId}/creditCards/${creditCardId}/used`]      = newUsed
-          dbUpdates[`users/${userId}/creditCards/${creditCardId}/updatedAt`] = new Date().toISOString()
+      if (newCreditCardId && (newCreditCardId !== oldCreditCardId || newAmount !== oldAmount)) {
+        // If target card changed, refund old card and charge new card
+        if (oldCreditCardId && oldCreditCardId !== newCreditCardId) {
+          const oldCcSnap = await db.ref(`users/${userId}/creditCards/${oldCreditCardId}`).get()
+          if (oldCcSnap.exists()) {
+            const oldCc   = oldCcSnap.val()
+            const refunded = Math.max(0, Number(oldCc.used || 0) - oldAmount)
+            dbUpdates[`users/${userId}/creditCards/${oldCreditCardId}/used`]      = refunded
+            dbUpdates[`users/${userId}/creditCards/${oldCreditCardId}/updatedAt`] = new Date().toISOString()
+          }
+          const newCcSnap = await db.ref(`users/${userId}/creditCards/${newCreditCardId}`).get()
+          if (newCcSnap.exists()) {
+            const newCc    = newCcSnap.val()
+            const charged  = Number(newCc.used || 0) + newAmount
+            dbUpdates[`users/${userId}/creditCards/${newCreditCardId}/used`]      = charged
+            dbUpdates[`users/${userId}/creditCards/${newCreditCardId}/updatedAt`] = new Date().toISOString()
+          }
+        } else {
+          // Same card, only amount changed
+          const amountDelta = newAmount - oldAmount
+          if (amountDelta !== 0) {
+            const ccSnap = await db.ref(`users/${userId}/creditCards/${newCreditCardId}`).get()
+            if (ccSnap.exists()) {
+              const cc      = ccSnap.val()
+              const newUsed = Math.max(0, Number(cc.used || 0) + amountDelta)
+              dbUpdates[`users/${userId}/creditCards/${newCreditCardId}/used`]      = newUsed
+              dbUpdates[`users/${userId}/creditCards/${newCreditCardId}/updatedAt`] = new Date().toISOString()
+            }
+          }
         }
       }
 
@@ -87,6 +109,48 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       }
       // Ensure paymentMethod is correct
       updatePayload.paymentMethod = 'credit_card'
+    }
+
+    // ── Handle credit card payment (transfer) edits ───────────────────────────
+    // When a CC bill payment is edited, the target card may change — update tags accordingly
+    const isCCPaymentEdit =
+      original.type === 'transfer' &&
+      (original.categoryId === 'credit_card_payment' || original.tags?.includes('credit_card_payment'))
+
+    if (isCCPaymentEdit && body.creditCardId) {
+      // Rebuild tags to reference the new target card
+      updatePayload.tags = ['credit_card_payment', `cc_${body.creditCardId}`]
+      // Update creditCard used: refund old card, charge new card
+      const newCreditCardId = body.creditCardId
+      const oldCreditCardId = original.creditCardId
+      const newAmount       = body.amount !== undefined ? Number(body.amount) : original.amount
+      const oldAmount       = original.amount
+
+      if (oldCreditCardId && oldCreditCardId !== newCreditCardId) {
+        // Card changed: refund old, charge new
+        const oldCcSnap = await db.ref(`users/${userId}/creditCards/${oldCreditCardId}`).get()
+        if (oldCcSnap.exists()) {
+          const oldCc = oldCcSnap.val()
+          dbUpdates[`users/${userId}/creditCards/${oldCreditCardId}/used`]      = Math.max(0, Number(oldCc.used || 0) - oldAmount)
+          dbUpdates[`users/${userId}/creditCards/${oldCreditCardId}/updatedAt`] = new Date().toISOString()
+        }
+        const newCcSnap = await db.ref(`users/${userId}/creditCards/${newCreditCardId}`).get()
+        if (newCcSnap.exists()) {
+          const newCc = newCcSnap.val()
+          dbUpdates[`users/${userId}/creditCards/${newCreditCardId}/used`]      = Math.max(0, Number(newCc.used || 0) - newAmount)
+          dbUpdates[`users/${userId}/creditCards/${newCreditCardId}/updatedAt`] = new Date().toISOString()
+        }
+      } else if (oldCreditCardId && newAmount !== oldAmount) {
+        // Same card, amount changed: adjust used by delta
+        const ccSnap = await db.ref(`users/${userId}/creditCards/${oldCreditCardId}`).get()
+        if (ccSnap.exists()) {
+          const cc = ccSnap.val()
+          // Payment = reduces used. More payment = reduce more; less payment = reduce less.
+          const newUsed = Math.max(0, Number(cc.used || 0) + (oldAmount - newAmount))
+          dbUpdates[`users/${userId}/creditCards/${oldCreditCardId}/used`]      = newUsed
+          dbUpdates[`users/${userId}/creditCards/${oldCreditCardId}/updatedAt`] = new Date().toISOString()
+        }
+      }
     }
 
     // Commit atomically
