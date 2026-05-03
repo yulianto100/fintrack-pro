@@ -2,7 +2,7 @@
 
 import { useState, useMemo }        from 'react'
 import { motion, AnimatePresence }  from 'framer-motion'
-import { ChevronLeft, ChevronRight, Trash2, Plus, CreditCard as CreditCardIcon, ScanLine } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Trash2, Plus, CreditCard as CreditCardIcon } from 'lucide-react'
 import { useCreditCards }               from '@/hooks/useCreditCards'
 import { CreditCardHero }               from '@/components/credit-card/CreditCardHero'
 import { CreditCardSummary }            from '@/components/credit-card/CreditCardSummary'
@@ -10,6 +10,7 @@ import { CreditCardInsights }           from '@/components/credit-card/CreditCar
 import { CreditCardTransactionList }    from '@/components/credit-card/CreditCardTransactionList'
 import { PayCreditCardModal }           from '@/components/credit-card/PayCreditCardModal'
 import { AddCreditCardModal }           from '@/components/credit-card/AddCreditCardModal'
+import { TransactionModal }             from '@/components/transactions/TransactionModal'
 import type { CreditCard }              from '@/types'
 
 /* ── Smart Due Date Alert ─────────────────────────────────── */
@@ -68,9 +69,8 @@ function CreditCardFAB({ onAddCard, onAddTransaction }: { onAddCard: () => void;
   const [open, setOpen] = useState(false)
 
   const items = [
-    { icon: <CreditCardIcon size={16} />, label: 'Tambah Kartu', onClick: () => { setOpen(false); onAddCard() } },
-    { icon: <Plus size={16} />,           label: 'Tambah Transaksi', onClick: () => { setOpen(false); onAddTransaction?.() } },
-    { icon: <ScanLine size={16} />,       label: 'Scan Struk', onClick: () => { setOpen(false) } },
+    { icon: <CreditCardIcon size={16} />, label: 'Tambah Kartu',      onClick: () => { setOpen(false); onAddCard() } },
+    { icon: <Plus size={16} />,           label: 'Tambah Transaksi',  onClick: () => { setOpen(false); onAddTransaction?.() } },
   ]
 
   return (
@@ -146,6 +146,7 @@ export default function CreditCardPage() {
   const [payModal,      setPayModal     ] = useState<{ open: boolean; mode?: 'full' | 'minimum' }>({ open: false })
   const [addModal,      setAddModal     ] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [txModal,       setTxModal      ] = useState<{ open: boolean; defaultType?: 'expense' | 'income' | 'transfer' }>({ open: false })
 
   const activeCard: CreditCard | undefined = cards[activeIdx]
 
@@ -309,7 +310,24 @@ export default function CreditCardPage() {
       )}
 
       {/* ── FAB ── */}
-      <CreditCardFAB onAddCard={() => setAddModal(true)} />
+      <CreditCardFAB
+        onAddCard={() => setAddModal(true)}
+        onAddTransaction={() => setTxModal({ open: true, defaultType: 'expense' })}
+      />
+
+      {/* ── Add Transaction modal (same as dashboard) ── */}
+      <AnimatePresence>
+        {txModal.open && (
+          <TransactionModal
+            defaultType={txModal.defaultType ?? 'expense'}
+            onClose={() => {
+              setTxModal({ open: false })
+              window.dispatchEvent(new CustomEvent('fintrack:wallet-updated'))
+              window.dispatchEvent(new CustomEvent('fintrack:transactions-updated'))
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ── Pay modal ── */}
       {payModal.open && activeCard && (
