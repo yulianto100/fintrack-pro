@@ -15,7 +15,7 @@ interface ConfirmDialogProps {
 }
 
 function DeleteConfirmDialog({ transaction, onConfirm, onCancel }: ConfirmDialogProps) {
-  const isExpense  = transaction.type === 'expense'
+  const isExpense  = transaction.type === 'expense' || transaction.type === 'credit_expense'
   const isTransfer = transaction.type === 'transfer'
   const color      = isTransfer ? 'var(--blue)' : isExpense ? 'var(--red)' : 'var(--accent)'
   const sign       = isExpense ? '-' : isTransfer ? '⇄' : '+'
@@ -114,7 +114,7 @@ function SwipeableRow({ transaction: t, hidden, onEdit, onDeleteStart, isLast }:
   const controls   = useAnimation()
   const isDragging = useRef(false)
 
-  const isExpense  = t.type === 'expense'
+  const isExpense  = t.type === 'expense' || t.type === 'credit_expense'
   const isTransfer = t.type === 'transfer'
   const color      = isTransfer ? 'var(--blue)' : isExpense ? 'var(--red)' : 'var(--accent)'
   const sign       = isExpense ? '-' : isTransfer ? '⇄' : '+'
@@ -243,8 +243,8 @@ export function TransactionGroup({ transactions, hidden, onEdit, onDelete }: Pro
       .sort(([a], [b]) => b.localeCompare(a))
       .map(([dateKey, items]) => {
         const total = items.reduce((sum, t) => {
-          if (t.type === 'income')  return sum + t.amount
-          if (t.type === 'expense') return sum - t.amount
+          if (t.type === 'income')   return sum + t.amount
+          if (t.type === 'expense' || t.type === 'credit_expense') return sum - t.amount
           return sum
         }, 0)
         return { dateKey, label: getDateLabel(dateKey), items, total }
