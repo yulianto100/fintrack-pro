@@ -19,7 +19,7 @@ function DeleteConfirmDialog({ transaction, onConfirm, onCancel }: ConfirmDialog
   const isExpense  = transaction.type === 'expense' || transaction.type === 'credit_expense'
   const isTransfer = transaction.type === 'transfer'
   const color      = isTransfer ? 'var(--blue)' : isExpense ? 'var(--red)' : 'var(--accent)'
-  const displayLabel = getTransactionMethodLabel(transaction) || transaction.categoryName || (isTransfer ? 'Transfer' : 'Transaksi')
+  const displayLabel = transaction.categoryName || getTransactionMethodLabel(transaction) || (isTransfer ? 'Transfer' : 'Transaksi')
   const sign       = isExpense ? '-' : isTransfer ? '⇄' : '+'
 
   return (
@@ -121,7 +121,9 @@ function SwipeableRow({ transaction: t, hidden, onEdit, onDeleteStart, isLast }:
   const color      = isTransfer ? 'var(--blue)' : isExpense ? 'var(--red)' : 'var(--accent)'
   const sign       = isExpense ? '-' : isTransfer ? '⇄' : '+'
 
-  const displayLabel = getTransactionMethodLabel(t) || t.categoryName || (isTransfer ? 'Transfer' : 'Transaksi')
+  // For credit_expense: show actual category name first (e.g. "Kesehatan"), fall back to method label.
+  // isCreditCardPayment transactions also have categoryName = 'Bayar Kartu Kredit' so this still works.
+  const displayLabel = t.categoryName || getTransactionMethodLabel(t) || (isTransfer ? 'Transfer' : 'Transaksi')
 
   const deleteOpacity = useTransform(x, [-DELETE_BTN_WIDTH, -20], [1, 0])
   const deleteScale   = useTransform(x, [-DELETE_BTN_WIDTH, -20], [1, 0.7])

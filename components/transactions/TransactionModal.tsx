@@ -47,8 +47,13 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
   const { addTransaction, updateTransaction } = useTransactions()
   const { data: categories, loading: catsLoading } = useApiList<Category>('/api/categories')
 
-  const [type,        setType       ] = useState<TransactionType>(transaction?.type     || defaultType)
-  const [amount,      setAmount     ] = useState(transaction?.amount?.toString() || '')
+  // When editing a credit_expense, treat it as 'expense' type so tabs & category filter work correctly
+  const [type,        setType       ] = useState<TransactionType>(
+    transaction?.type === 'credit_expense' ? 'expense' : (transaction?.type || defaultType)
+  )
+  const [amount,      setAmount     ] = useState(
+    transaction?.amount ? parseInt(transaction.amount.toString(), 10).toLocaleString('id-ID') : ''
+  )
   const [categoryId,  setCategoryId ] = useState(transaction?.categoryId || '')
   const [description, setDescription] = useState(transaction?.description || '')
   const [date,        setDate       ] = useState(transaction?.date || new Date().toISOString().split('T')[0])
@@ -61,8 +66,13 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
   const [toWalletAccountId, setToWalletAccountId] = useState<string>(transaction?.toWalletAccountId || '')
 
   // ── Credit card state ──────────────────────────────────────────────────────
-  const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'credit_card'>('wallet')
-  const [creditCardId,  setCreditCardId ] = useState<string>('')
+  // Initialize from existing transaction so edit mode shows correct payment method & card
+  const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'credit_card'>(
+    transaction?.paymentMethod === 'credit_card' || transaction?.type === 'credit_expense'
+      ? 'credit_card'
+      : 'wallet'
+  )
+  const [creditCardId,  setCreditCardId ] = useState<string>(transaction?.creditCardId || '')
 
   const { data: creditCards } = useApiList<CreditCard>('/api/credit-cards')
 
@@ -265,14 +275,18 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
     }
 
     // Validate credit card selection
+    // On edit, skip limit check — the original purchase already consumed the limit.
+    // The PATCH API handles limit delta correctly.
     if (type === 'expense' && paymentMethod === 'credit_card') {
       if (!creditCardId) { toast.error('Pilih kartu kredit'); return }
       const card = creditCards.find((c) => c.id === creditCardId)
       if (!card) { toast.error('Kartu kredit tidak ditemukan'); return }
-      const remaining = card.limit - card.used
-      if (raw > remaining) {
-        toast.error(`Melebihi sisa limit. Sisa: Rp ${remaining.toLocaleString('id-ID')}`)
-        return
+      if (!isEdit) {
+        const remaining = card.limit - card.used
+        if (raw > remaining) {
+          toast.error(`Melebihi sisa limit. Sisa: Rp ${remaining.toLocaleString('id-ID')}`)
+          return
+        }
       }
     }
 
