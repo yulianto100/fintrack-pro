@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LayoutDashboard, ArrowLeftRight, TrendingUp, Settings, Target } from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, TrendingUp, Settings, Target, CreditCard } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { useDarkMode } from '@/hooks/useDarkMode'
 
@@ -20,6 +20,7 @@ const NAV_TABS = [
   { href: '/transactions', icon: ArrowLeftRight,  label: 'Transaksi'  },
   { href: '/portfolio',    icon: TrendingUp,      label: 'Portofolio' },
   { href: '/goals',        icon: Target,          label: 'Goals'      },
+  { href: '/credit-card',  icon: CreditCard,      label: 'Kartu'      },
   { href: '/settings',     icon: Settings,        label: 'Pengaturan' },
 ]
 

@@ -16,6 +16,7 @@ import { TrendingUp, TrendingDown, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { WalletCard }           from '@/components/dashboard/WalletCard'
 import { QuickAddFAB }          from '@/components/transactions/QuickAddFAB'
+import { CreditCardDashboardSection } from '@/components/credit-card/CreditCardDashboardSection'
 import { RecentTransactions }   from '@/components/dashboard/RecentTransactions'
 import { SmartInsights }        from '@/components/dashboard/SmartInsights'
 import { StreakBanner }         from '@/components/dashboard/StreakBanner'
@@ -362,6 +363,15 @@ export default function DashboardPage() {
           walletTotal={walletTotal}
           budgets={budgets}
         />
+      </motion.div>
+
+      {/* ── Credit Card Summary ──────────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.24 }}
+      >
+        <CreditCardDashboardSection hidden={hidden} />
       </motion.div>
 
       {/* ── Recent transactions ──────────────────────────────────────────── */}

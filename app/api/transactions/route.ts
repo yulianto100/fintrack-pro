@@ -113,9 +113,14 @@ export async function POST(request: Request) {
     const db  = getAdminDatabase()
     const amt = Number(amount)
 
+    // Wallet validation is skipped for credit card expenses —
+    // they do not deduct from wallet balance.
+    const isCreditCardExpense =
+      type === 'expense' && body.paymentMethod === 'credit_card' && body.creditCardId
+
     // ── BALANCE VALIDATION ────────────────────────────────────────────────────
     // Block expense or transfer (debit side) if balance would go negative
-    const needsBalanceCheck = type === 'expense' || type === 'transfer'
+    const needsBalanceCheck = (type === 'expense' || type === 'transfer') && !isCreditCardExpense
     if (needsBalanceCheck) {
       let currentBalance: number
 
@@ -136,6 +141,22 @@ export async function POST(request: Request) {
       }
     }
     // ─────────────────────────────────────────────────────────────────────────
+
+    // ── CREDIT CARD VALIDATION ────────────────────────────────────────────
+    if (isCreditCardExpense) {
+      const ccSnap = await db.ref(`users/${userId}/creditCards/${body.creditCardId}`).get()
+      if (!ccSnap.exists()) {
+        return NextResponse.json({ success: false, error: 'Kartu kredit tidak ditemukan' }, { status: 400 })
+      }
+      const cc = ccSnap.val()
+      const remaining = cc.limit - cc.used
+      if (amt > remaining) {
+        return NextResponse.json({
+          success: false,
+          error: `Melebihi sisa limit kartu. Sisa limit: Rp ${remaining.toLocaleString('id-ID')}`,
+        }, { status: 400 })
+      }
+    }
 
     const txRef  = db.ref(`users/${userId}/transactions`)
     const newRef = txRef.push()
@@ -160,14 +181,32 @@ export async function POST(request: Request) {
       date,
       wallet,
       ...(toWallet          && { toWallet }),
-      ...(walletAccountId   && { walletAccountId }),
+      ...(walletAccountId   && !isCreditCardExpense && { walletAccountId }),
       ...(toWalletAccountId && type === 'transfer' && { toWalletAccountId }),
       tags:        Array.isArray(tags) ? tags : [],
+      // ── Credit card fields ───────────────────────────────────────────────
+      paymentMethod:  body.paymentMethod  || 'wallet',
+      ...(body.creditCardId   && { creditCardId:   body.creditCardId }),
+      ...(body.creditCardName && { creditCardName: body.creditCardName }),
       createdAt:   new Date().toISOString(),
       updatedAt:   new Date().toISOString(),
     }
 
     await newRef.set(tx)
+
+    // ── UPDATE CREDIT CARD USED AMOUNT ──────────────────────────────────────
+    if (isCreditCardExpense) {
+      const ccRef  = db.ref(`users/${userId}/creditCards/${body.creditCardId}`)
+      const ccSnap = await ccRef.get()
+      if (ccSnap.exists()) {
+        const cc = ccSnap.val()
+        await ccRef.update({
+          used:      (cc.used || 0) + amt,
+          updatedAt: new Date().toISOString(),
+        })
+      }
+    }
+
     return NextResponse.json({ success: true, data: tx }, { status: 201 })
   } catch (err) {
     console.error('[POST /api/transactions]', String(err))
