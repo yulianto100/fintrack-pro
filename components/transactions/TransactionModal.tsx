@@ -288,7 +288,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
         walletAccountId:   isCreditCard ? undefined : (walletAccountId || undefined),
         toWalletAccountId: type === 'transfer' ? (toWalletAccountId || undefined) : undefined,
         // ── Credit card fields ──────────────────────────────────────────────
-        paymentMethod:     isCreditCard ? 'credit_card' : 'wallet',
+        paymentMethod:     (isCreditCard ? 'credit_card' : 'wallet') as 'wallet' | 'credit_card',
         creditCardId:      isCreditCard ? creditCardId  : undefined,
         creditCardName:    isCreditCard
           ? creditCards.find((c) => c.id === creditCardId)?.name
