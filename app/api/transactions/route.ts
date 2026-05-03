@@ -169,10 +169,13 @@ export async function POST(request: Request) {
       } catch { /* ignore */ }
     }
 
+    // Credit card purchases are stored as 'credit_expense' — they don't reduce wallet
+    const txType = isCreditCardExpense ? 'credit_expense' : type
+
     const tx: Transaction = {
       id:          newRef.key!,
       userId,
-      type,
+      type:        txType,
       amount:      amt,
       categoryId:  categoryId || 'transfer',
       categoryName,

@@ -34,8 +34,10 @@ async function getWalletBalance(
       ? tx.toWalletAccountId === walletAccountId
       : tx.toWallet === walletType && !tx.toWalletAccountId
 
-    if (tx.type === 'income'   && matchAccount)   balance += tx.amount
-    if (tx.type === 'expense'  && matchAccount)   balance -= tx.amount
+    if (tx.type === 'income'  && matchAccount) balance += tx.amount
+    // expense: skip CC payment transfers (tagged) and credit_expense (never touched wallet)
+    if (tx.type === 'expense' && matchAccount && !tx.tags?.includes('credit_card_payment')) balance -= tx.amount
+    // credit_expense: does NOT reduce wallet — intentionally excluded
     if (tx.type === 'transfer') {
       if (matchAccount)   balance -= tx.amount
       if (matchToAccount) balance += tx.amount
@@ -98,13 +100,14 @@ export async function POST(
       updatedAt: new Date().toISOString(),
     })
 
-    // 2. Record as an expense transaction (reduces wallet balance)
+    // 2. Record as a transfer transaction (reduces wallet balance, NOT counted as expense)
+    //    type='transfer' without toWallet → real cash outflow to credit card company
     const txRef  = db.ref(`users/${userId}/transactions`)
     const newRef = txRef.push()
     const payTx: Transaction = {
       id:          newRef.key!,
       userId,
-      type:        'expense',
+      type:        'transfer',
       amount:      amt,
       categoryId:  'credit_card_payment',
       categoryName: 'Bayar Kartu Kredit',
@@ -113,9 +116,11 @@ export async function POST(
       date:        date || new Date().toISOString().split('T')[0],
       wallet:      walletType,
       ...(walletAccountId && { walletAccountId }),
-      // Tag so the CC transactions list can filter it out
+      // Tag so expense stats & CC list can identify this
       tags:        ['credit_card_payment', `cc_${params.id}`],
       paymentMethod: 'wallet',
+      creditCardId: params.id,
+      creditCardName: card.name,
       createdAt:   new Date().toISOString(),
       updatedAt:   new Date().toISOString(),
     } as Transaction

@@ -23,11 +23,11 @@ export interface WalletAccount {
 // ---- TRANSACTIONS ----
 export interface Category {
   id: string; name: string; icon: string
-  type: 'income' | 'expense' | 'transfer'
+  type: 'income' | 'expense' | 'credit_expense' | 'transfer'
   color: string; userId: string; createdAt: string
 }
 
-export type TransactionType = 'income' | 'expense' | 'transfer'
+export type TransactionType = 'income' | 'expense' | 'credit_expense' | 'transfer'
 
 export interface Transaction {
   id: string; userId: string; type: TransactionType

@@ -4,7 +4,8 @@ import { useState }   from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, CreditCard } from 'lucide-react'
 import { useCreditCards } from '@/hooks/useCreditCards'
-import type { CreditCard as CreditCardType } from '@/types'
+import { useApiList }     from '@/hooks/useApiData'
+import type { CreditCard as CreditCardType, WalletAccount } from '@/types'
 
 const WALLET_OPTIONS = [
   { value: 'cash'    as const, icon: '💵', label: 'Cash'     },
@@ -32,7 +33,13 @@ export function PayCreditCardModal({ card, defaultAmount, onClose, onSuccess }: 
   })
   const [date,   setDate  ] = useState(new Date().toISOString().split('T')[0])
   const [notes,  setNotes ] = useState('')
-  const [saving, setSaving] = useState(false)
+  const [saving,          setSaving         ] = useState(false)
+  const [walletAccountId, setWalletAccountId] = useState<string>('')
+
+  // Fetch bank/ewallet accounts for source-of-funds selection
+  const { data: walletAccounts } = useApiList<WalletAccount>('/api/wallet-accounts')
+  const bankAccounts   = walletAccounts.filter(a => a.type === 'bank')
+  const ewalletAccounts = walletAccounts.filter(a => a.type === 'ewallet')
 
   const displayAmount = rawAmount
     ? `Rp ${parseInt(rawAmount, 10).toLocaleString('id-ID')}`
@@ -54,9 +61,10 @@ export function PayCreditCardModal({ card, defaultAmount, onClose, onSuccess }: 
     setSaving(true)
     try {
       await payBill({
-        creditCardId: card.id,
+        creditCardId:   card.id,
         walletType,
-        amount:       amt,
+        walletAccountId: walletAccountId || undefined,
+        amount:          amt,
         date,
         notes: notes || undefined,
       })
@@ -69,21 +77,22 @@ export function PayCreditCardModal({ card, defaultAmount, onClose, onSuccess }: 
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="absolute inset-0"
-          style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
-          onClick={onClose}
-        />
+      {/* Backdrop — z-40, separate from content */}
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="fixed inset-0 z-40"
+        style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
+        onClick={onClose}
+      />
 
+      {/* Modal container — z-50, pointer-events-none so clicks pass to content */}
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none">
         <motion.div
           initial={{ y: '100%', opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: '100%', opacity: 0 }}
           transition={{ type: 'spring', damping: 30, stiffness: 350 }}
-          className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl"
+          className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl pointer-events-auto"
           style={{
             background:  'var(--surface-modal)',
             border:      '1px solid var(--border)',
@@ -199,11 +208,12 @@ export function PayCreditCardModal({ card, defaultAmount, onClose, onSuccess }: 
               <label className="text-xs mb-2 block font-semibold" style={{ color: 'var(--text-muted)' }}>
                 SUMBER DANA
               </label>
-              <div className="flex gap-2">
+              {/* Wallet type tabs */}
+              <div className="flex gap-2 mb-3">
                 {WALLET_OPTIONS.map((w) => (
                   <button
                     key={w.value}
-                    onClick={() => setWalletType(w.value)}
+                    onClick={() => { setWalletType(w.value); setWalletAccountId('') }}
                     className="flex-1 flex flex-col items-center py-3 rounded-xl text-xs transition-all"
                     style={{
                       background: walletType === w.value ? 'rgba(34,197,94,0.12)' : 'var(--surface-btn)',
@@ -216,6 +226,76 @@ export function PayCreditCardModal({ card, defaultAmount, onClose, onSuccess }: 
                   </button>
                 ))}
               </div>
+
+              {/* Bank account picker */}
+              {walletType === 'bank' && (
+                <div className="flex flex-col gap-1.5">
+                  {bankAccounts.length === 0 ? (
+                    <p className="text-xs text-center py-2" style={{ color: 'var(--text-muted)' }}>
+                      Belum ada rekening bank
+                    </p>
+                  ) : (
+                    bankAccounts.map((acc) => (
+                      <button
+                        key={acc.id}
+                        onClick={() => setWalletAccountId(acc.id)}
+                        className="p-3 rounded-xl text-left transition-all"
+                        style={{
+                          background: walletAccountId === acc.id ? 'rgba(34,197,94,0.10)' : 'var(--surface-btn)',
+                          border: `1px solid ${walletAccountId === acc.id ? 'rgba(34,197,94,0.30)' : 'var(--border)'}`,
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{acc.name}</p>
+                            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                              Rp {(acc.balance ?? 0).toLocaleString('id-ID')}
+                            </p>
+                          </div>
+                          {walletAccountId === acc.id && (
+                            <span className="text-xs font-bold" style={{ color: 'var(--accent)' }}>✓</span>
+                          )}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* E-Wallet account picker */}
+              {walletType === 'ewallet' && (
+                <div className="flex flex-col gap-1.5">
+                  {ewalletAccounts.length === 0 ? (
+                    <p className="text-xs text-center py-2" style={{ color: 'var(--text-muted)' }}>
+                      Belum ada akun e-wallet
+                    </p>
+                  ) : (
+                    ewalletAccounts.map((acc) => (
+                      <button
+                        key={acc.id}
+                        onClick={() => setWalletAccountId(acc.id)}
+                        className="p-3 rounded-xl text-left transition-all"
+                        style={{
+                          background: walletAccountId === acc.id ? 'rgba(34,197,94,0.10)' : 'var(--surface-btn)',
+                          border: `1px solid ${walletAccountId === acc.id ? 'rgba(34,197,94,0.30)' : 'var(--border)'}`,
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{acc.name}</p>
+                            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                              Rp {(acc.balance ?? 0).toLocaleString('id-ID')}
+                            </p>
+                          </div>
+                          {walletAccountId === acc.id && (
+                            <span className="text-xs font-bold" style={{ color: 'var(--accent)' }}>✓</span>
+                          )}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Date */}

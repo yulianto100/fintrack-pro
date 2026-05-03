@@ -38,8 +38,19 @@ export function useTransactions() {
   }, [transactions, searchQuery])
 
   const stats = useMemo(() => {
-    const income  = transactions.filter(t => t.type === 'income') .reduce((s, t) => s + t.amount, 0)
-    const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+    const income = transactions
+      .filter(t => t.type === 'income')
+      .reduce((s, t) => s + t.amount, 0)
+
+    const expense = transactions
+      .filter(t =>
+        // credit_expense = CC purchase (real spending, no wallet deduction)
+        t.type === 'credit_expense' ||
+        // regular expense — but EXCLUDE CC bill payments (transfer type) and legacy CC payment expenses
+        (t.type === 'expense' && !t.tags?.includes('credit_card_payment'))
+      )
+      .reduce((s, t) => s + t.amount, 0)
+
     return { income, expense, balance: income - expense }
   }, [transactions])
 
