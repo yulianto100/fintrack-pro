@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'framer-motion'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, CreditCard } from 'lucide-react'
 import { useCreditCards } from '@/hooks/useCreditCards'
