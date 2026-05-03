@@ -210,78 +210,86 @@ export default function CreditCardPage() {
       )}
 
       {/* ── Pay modal ─────────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {payModal.open && activeCard && (
-          <PayCreditCardModal
-            card={activeCard}
-            defaultAmount={payModal.mode}
-            onClose={() => setPayModal({ open: false })}
-            onSuccess={() => {
-              window.dispatchEvent(new CustomEvent('fintrack:wallet-updated'))
-              window.dispatchEvent(new CustomEvent('fintrack:transactions-updated'))
-            }}
-          />
-        )}
-      </AnimatePresence>
+      {/* No outer AnimatePresence needed — PayCreditCardModal self-manages its own animation */}
+      {payModal.open && activeCard && (
+        <PayCreditCardModal
+          card={activeCard}
+          defaultAmount={payModal.mode}
+          onClose={() => setPayModal({ open: false })}
+          onSuccess={() => {
+            window.dispatchEvent(new CustomEvent('fintrack:wallet-updated'))
+            window.dispatchEvent(new CustomEvent('fintrack:transactions-updated'))
+          }}
+        />
+      )}
 
       {/* ── Add card modal ────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {addModal && (
-          <AddCreditCardModal
-            onClose={() => setAddModal(false)}
-            onSuccess={() => setActiveIdx(0)}
-          />
-        )}
-      </AnimatePresence>
+      {/* No outer AnimatePresence needed — AddCreditCardModal self-manages its own animation */}
+      {addModal && (
+        <AddCreditCardModal
+          onClose={() => setAddModal(false)}
+          onSuccess={() => setActiveIdx(0)}
+        />
+      )}
 
       {/* ── Delete confirm modal ──────────────────────────────────────── */}
+      {/* motion elements must be DIRECT children of AnimatePresence (not wrapped in a plain div) */}
       <AnimatePresence>
         {confirmDelete && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+          <>
+            {/* Backdrop — direct motion child so exit animation fires */}
             <motion.div
+              key="delete-backdrop"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0"
+              className="fixed inset-0 z-50"
               style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
               onClick={() => setConfirmDelete(null)}
             />
+
+            {/* Dialog — direct motion child so exit animation fires */}
             <motion.div
+              key="delete-dialog"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-sm rounded-2xl p-6 text-center space-y-4"
-              style={{ background: 'var(--surface-modal)', border: '1px solid var(--border)' }}
+              className="fixed inset-0 z-50 flex items-center justify-center px-6 pointer-events-none"
             >
-              <span className="text-4xl">🗑️</span>
-              <div>
-                <p className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
-                  Hapus Kartu?
-                </p>
-                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                  Data kartu akan dihapus permanen. Transaksi terkait tidak ikut terhapus.
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setConfirmDelete(null)}
-                  className="flex-1 py-3 rounded-xl text-sm font-semibold"
-                  style={{ background: 'var(--surface-btn)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={async () => {
-                    await deleteCard(confirmDelete)
-                    setConfirmDelete(null)
-                    setActiveIdx(0)
-                  }}
-                  className="flex-1 py-3 rounded-xl text-sm font-semibold"
-                  style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)', color: '#fff' }}
-                >
-                  Hapus
-                </button>
+              <div
+                className="relative w-full max-w-sm rounded-2xl p-6 text-center space-y-4 pointer-events-auto"
+                style={{ background: 'var(--surface-modal)', border: '1px solid var(--border)' }}
+              >
+                <span className="text-4xl">🗑️</span>
+                <div>
+                  <p className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
+                    Hapus Kartu?
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                    Data kartu akan dihapus permanen. Transaksi terkait tidak ikut terhapus.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setConfirmDelete(null)}
+                    className="flex-1 py-3 rounded-xl text-sm font-semibold"
+                    style={{ background: 'var(--surface-btn)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={async () => {
+                      await deleteCard(confirmDelete)
+                      setConfirmDelete(null)
+                      setActiveIdx(0)
+                    }}
+                    className="flex-1 py-3 rounded-xl text-sm font-semibold"
+                    style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)', color: '#fff' }}
+                  >
+                    Hapus
+                  </button>
+                </div>
               </div>
             </motion.div>
-          </div>
+          </>
         )}
       </AnimatePresence>
     </div>
