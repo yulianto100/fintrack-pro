@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo, useCallback, memo, useEffect, useRef } from 'react'
+import { useState, useMemo, useCallback, memo, useEffect, useRef, Suspense } from 'react'
 import { motion, AnimatePresence }              from 'framer-motion'
-import { usePathname }                          from 'next/navigation'
+import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import {
   ChevronLeft, Trash2, CreditCard as CreditCardIcon, Wallet,
   CheckCircle2, ChevronDown, ChevronUp,
@@ -22,8 +22,21 @@ import { CreditCardTransactionList } from '@/components/credit-card/CreditCardTr
 import { AccountTransactionList }    from '@/components/account/AccountTransactionList'
 
 import type { UnifiedAccount, AccountType } from '@/types/account'
-import { getProviderInfo }  from '@/types/account'
+import { getProviderInfo, calcAccountSummary }  from '@/types/account'
 import type { CreditCard }  from '@/types'
+
+// ── Tab ↔ URL param mapping ──────────────────────────────────────────────────
+const TAB_TO_PARAM: Record<AccountTab, string> = {
+  all:     '',
+  bank:    'rekening',
+  credit:  'kredit',
+  ewallet: 'ewallet',
+}
+const PARAM_TO_TAB: Record<string, AccountTab> = {
+  rekening: 'bank',
+  kredit:   'credit',
+  ewallet:  'ewallet',
+}
 
 // ── Due date helper
 function getDueDays(dueDate: number): { days: number; label: string; urgent: boolean } {
@@ -380,16 +393,34 @@ function EmptyState({ type, onAdd }: { type: string; onAdd: () => void }) {
   )
 }
 
-// ── Main page
-export default function AkunPage() {
-  const { accounts, loading, summary, refetch, deleteAccount, payBill } = useAccounts()
-  const pathname = usePathname()
+// ── Main page content (needs Suspense for useSearchParams)
+function AkunContent() {
+  const { accounts, loading, refetch, deleteAccount, payBill } = useAccounts()
+  const pathname     = usePathname()
+  const searchParams = useSearchParams()
+  const router       = useRouter()
 
   const [hidden,    setHidden]    = useState(false)
   const [activeTab, setActiveTab] = useState<AccountTab>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [addType,   setAddType]   = useState<AccountType | null | 'open'>(null)
   const [payTarget, setPayTarget] = useState<UnifiedAccount | null>(null)
+
+  // ── Sync tab from URL on mount (e.g. /akun?tab=rekening) ────────────────
+  useEffect(() => {
+    const tabParam = searchParams.get('tab')
+    if (tabParam && PARAM_TO_TAB[tabParam]) {
+      setActiveTab(PARAM_TO_TAB[tabParam])
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // intentionally only on mount
+
+  // ── Tab change: update state + URL ──────────────────────────────────────
+  const handleTabChange = useCallback((tab: AccountTab) => {
+    setActiveTab(tab)
+    const param = TAB_TO_PARAM[tab]
+    router.replace(param ? `/akun?tab=${param}` : '/akun', { scroll: false })
+  }, [router])
 
   // ── Fix 1: Reset detail view whenever user taps the Akun nav tab
   // Case A: navigating from another page to /akun
@@ -419,10 +450,16 @@ export default function AkunPage() {
     [selectedId, accounts]
   )
 
-  const filtered = useMemo(() => activeTab === 'all' ? accounts : accounts.filter(a => a.type === activeTab), [accounts, activeTab])
+  const filtered = useMemo(
+    () => activeTab === 'all' ? accounts : accounts.filter(a => a.type === activeTab),
+    [accounts, activeTab]
+  )
   const banks    = useMemo(() => filtered.filter(a => a.type === 'bank'),    [filtered])
   const credits  = useMemo(() => filtered.filter(a => a.type === 'credit'),  [filtered])
   const ewallets = useMemo(() => filtered.filter(a => a.type === 'ewallet'), [filtered])
+
+  // ── Dynamic summary: totals change based on the active tab ──────────────
+  const summary = useMemo(() => calcAccountSummary(filtered), [filtered])
 
   const handleDelete = useCallback(async (account: UnifiedAccount) => {
     if (!confirm(`Hapus "${account.name}"?`)) return
@@ -470,7 +507,7 @@ export default function AkunPage() {
             </div>
 
             <div className="mb-4">
-              <AccountTabs active={activeTab} onChange={setActiveTab} />
+              <AccountTabs active={activeTab} onChange={handleTabChange} />
             </div>
 
             {loading && (
@@ -534,5 +571,20 @@ export default function AkunPage() {
         />
       )}
     </div>
+  )
+}
+
+// ── Default export — wraps in Suspense so useSearchParams works ──────────────
+export default function AkunPage() {
+  return (
+    <Suspense fallback={
+      <div className="px-4 py-6 space-y-4">
+        <div className="h-8 w-32 rounded-xl animate-pulse" style={{ background: 'var(--surface-card)' }} />
+        <div className="h-28 rounded-3xl animate-pulse" style={{ background: 'var(--surface-card)' }} />
+        <div className="h-10 rounded-full animate-pulse" style={{ background: 'var(--surface-card)' }} />
+      </div>
+    }>
+      <AkunContent />
+    </Suspense>
   )
 }

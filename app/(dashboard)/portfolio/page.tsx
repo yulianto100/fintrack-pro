@@ -703,7 +703,7 @@ function PortfolioContent() {
           )}
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Link href="/portfolio?type=bank">
+          <Link href="/akun?tab=rekening">
             <motion.div whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.97 }}
               className="glass-card p-4 flex items-center gap-3 cursor-pointer"
               style={{ borderColor: 'rgba(59,130,246,0.2)' }}>
@@ -718,7 +718,7 @@ function PortfolioContent() {
               <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />
             </motion.div>
           </Link>
-          <Link href="/portfolio?type=ewallet">
+          <Link href="/akun?tab=ewallet">
             <motion.div whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.97 }}
               className="glass-card p-4 flex items-center gap-3 cursor-pointer"
               style={{ borderColor: 'rgba(168,85,247,0.2)' }}>

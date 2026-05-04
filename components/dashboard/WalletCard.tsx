@@ -11,11 +11,11 @@ const WALLET_CONFIG: Record<WalletType, { icon: string; label: string; color: st
   },
   bank: {
     icon: '🏦', label: 'Bank', color: '#3b82f6',
-    bg: 'rgba(59,130,246,0.1)', portfolioHref: '/portfolio?type=bank',
+    bg: 'rgba(59,130,246,0.1)', portfolioHref: '/akun?tab=rekening',
   },
   ewallet: {
     icon: '📱', label: 'E-Wallet', color: '#a855f7',
-    bg: 'rgba(168,85,247,0.1)', portfolioHref: '/portfolio?type=ewallet',
+    bg: 'rgba(168,85,247,0.1)', portfolioHref: '/akun?tab=ewallet',
   },
 }
 
