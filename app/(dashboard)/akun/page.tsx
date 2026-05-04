@@ -56,9 +56,6 @@ const AccountDetailSheet = memo(function AccountDetailSheet({
 
   const usageBarColor = pct >= 80 ? '#ef4444' : pct >= 50 ? '#f59e0b' : 'var(--accent)'
 
-  // Credit card _raw object for transaction list
-  const rawCard = isCredit ? (account._raw as CreditCard) : undefined
-
   return (
     <motion.div
       key="detail"
@@ -197,12 +194,12 @@ const AccountDetailSheet = memo(function AccountDetailSheet({
       </div>
 
       {/* Transaction list (credit card) */}
-      {isCredit && rawCard && (
+      {isCredit && (
         <div className="mb-6">
           <p className="px-4 text-[11px] font-semibold tracking-widest uppercase mb-2" style={{ color: 'var(--text-muted)' }}>
             TRANSAKSI TERBARU
           </p>
-          <CreditCardTransactionList card={rawCard} />
+          <CreditCardTransactionList creditCardId={account.id} />
         </div>
       )}
     </motion.div>
