@@ -1,9 +1,42 @@
 'use client'
 
-import { memo }          from 'react'
+import { memo, useState } from 'react'
 import { ChevronRight }  from 'lucide-react'
 import type { UnifiedAccount } from '@/types/account'
 import { getProviderInfo }     from '@/types/account'
+
+// ── Logo map by provider name/id ──────────────────────────────
+const PROVIDER_LOGOS: Record<string, string> = {
+  bca:        'https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg',
+  mandiri:    'https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg',
+  bri:        'https://upload.wikimedia.org/wikipedia/commons/6/68/BANK_BRI_logo.svg',
+  bni:        'https://upload.wikimedia.org/wikipedia/commons/5/55/BNI_logo.svg',
+  cimb:       'https://upload.wikimedia.org/wikipedia/commons/7/7e/CIMB_Niaga.svg',
+  jago:       'https://upload.wikimedia.org/wikipedia/commons/b/bd/Bank_Jago_logo.svg',
+  jenius:     'https://upload.wikimedia.org/wikipedia/commons/f/f0/Jenius_logo.svg',
+  bsi:        'https://upload.wikimedia.org/wikipedia/commons/0/06/Bank_Syariah_Indonesia.svg',
+  permata:    'https://upload.wikimedia.org/wikipedia/commons/a/a3/Bank_Permata.svg',
+  danamon:    'https://upload.wikimedia.org/wikipedia/commons/c/cc/Bank-danamon.svg',
+  ocbc:       'https://upload.wikimedia.org/wikipedia/commons/2/27/OCBC_NISP.svg',
+  btn:        'https://upload.wikimedia.org/wikipedia/commons/5/52/Logo_Bank_BTN.svg',
+  sinarmas:   'https://upload.wikimedia.org/wikipedia/commons/0/09/Bank_Sinarmas_logo.svg',
+  panin:      'https://upload.wikimedia.org/wikipedia/commons/e/e8/Panin_Bank_logo.svg',
+  mega:       'https://upload.wikimedia.org/wikipedia/commons/d/db/Logo-bank-mega.svg',
+  gopay:      'https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg',
+  ovo:        'https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_ovo_purple.svg',
+  dana:       'https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_dana_blue.svg',
+  shopeepay:  'https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg',
+  linkaja:    'https://upload.wikimedia.org/wikipedia/commons/8/85/LinkAja.svg',
+  flip:       'https://upload.wikimedia.org/wikipedia/commons/c/c6/Flip_logo_%28company%29.svg',
+}
+
+function getLogoUrl(providerId?: string, providerName?: string): string | null {
+  const key = ((providerId ?? '') + ' ' + (providerName ?? '')).toLowerCase().replace(/\s+/g, '')
+  for (const [id, url] of Object.entries(PROVIDER_LOGOS)) {
+    if (key.includes(id)) return url
+  }
+  return null
+}
 
 // ── helpers ──────────────────────────────────────────────────
 function fmtBalance(n: number, hidden: boolean): string {
@@ -19,18 +52,33 @@ function usageColor(pct: number) {
 
 // ── Provider icon badge ───────────────────────────────────────
 function ProviderBadge({ providerId, providerName }: { providerId?: string; providerName?: string }) {
-  const info = getProviderInfo(providerId ?? '', providerName ?? '')
+  const info    = getProviderInfo(providerId ?? '', providerName ?? '')
+  const logoUrl = getLogoUrl(providerId, providerName)
+  const [errored, setErrored] = useState(false)
+
   return (
     <div
-      className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+      className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
       style={{ background: info.bg }}
     >
-      <span
-        className="text-[10px] font-extrabold tracking-tight leading-none"
-        style={{ color: info.color }}
-      >
-        {info.abbr}
-      </span>
+      {logoUrl && !errored ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={logoUrl}
+          alt={providerName ?? ''}
+          width={28}
+          height={28}
+          onError={() => setErrored(true)}
+          style={{ objectFit: 'contain', width: 28, height: 28 }}
+        />
+      ) : (
+        <span
+          className="text-[10px] font-extrabold tracking-tight leading-none"
+          style={{ color: info.color }}
+        >
+          {info.abbr}
+        </span>
+      )}
     </div>
   )
 }

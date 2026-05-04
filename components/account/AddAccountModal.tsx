@@ -2,24 +2,72 @@
 
 import { useState, memo }          from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Building2, CreditCard, Wallet, ChevronLeft } from 'lucide-react'
+import { X, Building2, CreditCard, Wallet, ChevronLeft, Check } from 'lucide-react'
 import { useAccounts }             from '@/hooks/useAccounts'
 import type { AccountType }        from '@/types/account'
 
-// ── Provider pickers ─────────────────────────────────────────
-const BANK_PROVIDERS = [
-  'BCA', 'Mandiri', 'BRI', 'BNI', 'CIMB Niaga',
-  'Jago', 'Jenius', 'BSI', 'Permata', 'Danamon',
-  'OCBC', 'BTN', 'Sinarmas', 'Panin', 'Mega',
+// ── Provider data with logos ──────────────────────────────────
+interface ProviderInfo {
+  name:    string
+  logoUrl: string
+}
+
+const BANK_PROVIDERS: ProviderInfo[] = [
+  { name: 'BCA',       logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg' },
+  { name: 'Mandiri',   logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg' },
+  { name: 'BRI',       logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/68/BANK_BRI_logo.svg' },
+  { name: 'BNI',       logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/5/55/BNI_logo.svg' },
+  { name: 'CIMB Niaga',logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/7/7e/CIMB_Niaga.svg' },
+  { name: 'Jago',      logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/b/bd/Bank_Jago_logo.svg' },
+  { name: 'Jenius',    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/f0/Jenius_logo.svg' },
+  { name: 'BSI',       logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/06/Bank_Syariah_Indonesia.svg' },
+  { name: 'Permata',   logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a3/Bank_Permata.svg' },
+  { name: 'Danamon',   logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/Bank-danamon.svg' },
+  { name: 'OCBC',      logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/27/OCBC_NISP.svg' },
+  { name: 'BTN',       logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/5/52/Logo_Bank_BTN.svg' },
+  { name: 'Sinarmas',  logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/09/Bank_Sinarmas_logo.svg' },
+  { name: 'Panin',     logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/e8/Panin_Bank_logo.svg' },
+  { name: 'Mega',      logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/db/Logo-bank-mega.svg' },
 ]
 
-const EWALLET_PROVIDERS = [
-  'GoPay', 'OVO', 'DANA', 'ShopeePay', 'LinkAja', 'Flip',
+const EWALLET_PROVIDERS: ProviderInfo[] = [
+  { name: 'GoPay',     logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg' },
+  { name: 'OVO',       logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_ovo_purple.svg' },
+  { name: 'DANA',      logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_dana_blue.svg' },
+  { name: 'ShopeePay', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg' },
+  { name: 'LinkAja',   logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/8/85/LinkAja.svg' },
+  { name: 'Flip',      logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/c6/Flip_logo_%28company%29.svg' },
 ]
 
 const CARD_COLORS = [
   '#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4',
 ]
+
+// ── Provider Logo component ───────────────────────────────────
+function ProviderLogo({ logoUrl, name, size = 28 }: { logoUrl: string; name: string; size?: number }) {
+  const [errored, setErrored] = useState(false)
+  if (errored) {
+    return (
+      <div
+        className="rounded-lg flex items-center justify-center flex-shrink-0"
+        style={{ width: size, height: size, background: 'var(--accent-dim)', fontSize: size * 0.35, fontWeight: 700, color: 'var(--accent)' }}
+      >
+        {name.slice(0, 2).toUpperCase()}
+      </div>
+    )
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={logoUrl}
+      alt={name}
+      width={size}
+      height={size}
+      onError={() => setErrored(true)}
+      style={{ objectFit: 'contain', flexShrink: 0, width: size, height: size }}
+    />
+  )
+}
 
 // ── Shared modal wrapper ──────────────────────────────────────
 function ModalWrapper({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
@@ -29,7 +77,7 @@ function ModalWrapper({ onClose, children }: { onClose: () => void; children: Re
         key="add-bd"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         className="fixed inset-0 z-40"
-        style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
+        style={{ background: 'rgba(0,0,0,0.80)' }}
         onClick={onClose}
       />
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none">
@@ -90,33 +138,61 @@ function TypeSelector({ onSelect }: { onSelect: (t: AccountType) => void }) {
   )
 }
 
-// ── Provider picker grid ──────────────────────────────────────
-function ProviderPicker({
+// ── Provider chip picker (horizontal scroll, like image 2) ────
+function ProviderChipPicker({
   providers,
   selected,
   onSelect,
-}: { providers: string[]; selected: string; onSelect: (p: string) => void }) {
+}: { providers: ProviderInfo[]; selected: string; onSelect: (p: string) => void }) {
   return (
-    <div className="grid grid-cols-3 gap-2 px-4">
-      {providers.map(p => {
-        const active = selected === p
-        return (
-          <button
-            key={p}
-            onClick={() => onSelect(p)}
-            className="py-3 px-2 rounded-2xl text-center transition-all active:scale-95"
-            style={{
-              background: active ? 'var(--accent-dim)' : 'var(--surface-card)',
-              border:     `1px solid ${active ? 'rgba(34,197,94,0.4)' : 'var(--border)'}`,
-              color:      active ? 'var(--accent)' : 'var(--text-primary)',
-              fontSize:   12,
-              fontWeight: active ? 700 : 500,
-            }}
-          >
-            {p}
-          </button>
-        )
-      })}
+    <div>
+      {/* Selected display */}
+      {selected && (
+        <div
+          className="flex items-center gap-3 px-4 py-3 rounded-2xl mb-3"
+          style={{ background: 'var(--surface-card)', border: '1px solid rgba(34,197,94,0.35)' }}
+        >
+          <ProviderLogo
+            logoUrl={providers.find(p => p.name === selected)?.logoUrl ?? ''}
+            name={selected}
+            size={32}
+          />
+          <div className="flex-1">
+            <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{selected}</p>
+            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Dipilih</p>
+          </div>
+          <Check size={16} style={{ color: 'var(--accent)' }} />
+        </div>
+      )}
+
+      {/* Chip scroll row */}
+      <div
+        className="flex gap-2 overflow-x-auto pb-1"
+        style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+      >
+        {providers.map(p => {
+          const active = selected === p.name
+          return (
+            <button
+              key={p.name}
+              onClick={() => onSelect(p.name)}
+              className="flex items-center gap-2 px-3 py-2 rounded-full flex-shrink-0 transition-all active:scale-95"
+              style={{
+                background: active ? 'var(--accent-dim)' : 'var(--surface-card)',
+                border:     `1px solid ${active ? 'rgba(34,197,94,0.5)' : 'var(--border)'}`,
+              }}
+            >
+              <ProviderLogo logoUrl={p.logoUrl} name={p.name} size={18} />
+              <span
+                className="text-[12px] whitespace-nowrap"
+                style={{ color: active ? 'var(--accent)' : 'var(--text-primary)', fontWeight: active ? 700 : 500 }}
+              >
+                {p.name}
+              </span>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -155,7 +231,11 @@ function WalletForm({ type, onDone }: { type: 'bank' | 'ewallet'; onDone: () => 
         <p className="text-[11px] font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
           {type === 'bank' ? 'PILIH BANK' : 'PILIH E-WALLET'}
         </p>
-        <ProviderPicker providers={providers} selected={provider} onSelect={p => { setProvider(p); if (!name) setName(p) }} />
+        <ProviderChipPicker
+          providers={providers}
+          selected={provider}
+          onSelect={p => { setProvider(p); if (!name) setName(p) }}
+        />
       </div>
 
       {/* Custom name */}
@@ -257,7 +337,11 @@ function CreditCardForm({ onDone }: { onDone: () => void }) {
       {/* Bank picker */}
       <div>
         <p className="text-[11px] font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>PENERBIT KARTU</p>
-        <ProviderPicker providers={BANK_PROVIDERS} selected={provider} onSelect={p => { setProvider(p); if (!name) setName(`${p} Credit Card`) }} />
+        <ProviderChipPicker
+          providers={BANK_PROVIDERS}
+          selected={provider}
+          onSelect={p => { setProvider(p); if (!name) setName(`${p} Credit Card`) }}
+        />
       </div>
 
       {/* Nama kartu */}

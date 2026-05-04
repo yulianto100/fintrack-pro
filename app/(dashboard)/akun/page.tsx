@@ -5,7 +5,7 @@ import { motion, AnimatePresence }              from 'framer-motion'
 import {
   ChevronLeft, Trash2, CreditCard as CreditCardIcon, Wallet,
   CheckCircle2, ChevronDown, ChevronUp,
-  ReceiptText, RefreshCw, Settings2, ShieldOff,
+  ReceiptText,
   ArrowRight,
 } from 'lucide-react'
 
@@ -271,16 +271,6 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
         </div>
       </div>
 
-      {/* Aksi Cepat */}
-      <div className="mx-4 mb-6">
-        <SectionLabel title="Aksi Cepat" />
-        <div className="flex gap-4 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-          <QuickAction icon={<CreditCardIcon size={18} />}  label="Ubah Limit"        />
-          <QuickAction icon={<ReceiptText size={18} />} label="Riwayat Tagihan"   />
-          <QuickAction icon={<Settings2 size={18} />}   label="Pengaturan Kartu"  />
-          <QuickAction icon={<ShieldOff size={18} />}   label="Blokir Kartu" danger />
-        </div>
-      </div>
     </motion.div>
   )
 })
@@ -364,16 +354,6 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
         </div>
       </div>
 
-      {/* Aksi Cepat */}
-      <div className="mx-4 mb-6">
-        <SectionLabel title="Aksi Cepat" />
-        <div className="flex gap-4 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-          <QuickAction icon={<Wallet size={18} />}    label="Ubah Saldo"    />
-          <QuickAction icon={<RefreshCw size={18} />} label="Perbarui Data" />
-          <QuickAction icon={<Settings2 size={18} />} label="Pengaturan"    />
-          <QuickAction icon={<Trash2 size={18} />}    label="Hapus Akun" danger onClick={onDelete} />
-        </div>
-      </div>
     </motion.div>
   )
 })
