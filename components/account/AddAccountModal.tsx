@@ -13,30 +13,30 @@ interface ProviderInfo {
 }
 
 const BANK_PROVIDERS: ProviderInfo[] = [
-  { name: 'BCA',        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg' },
-  { name: 'Mandiri',    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg' },
-  { name: 'BRI',        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/68/BANK_BRI_logo.svg' },
-  { name: 'BNI',        logoUrl: 'https://logo.clearbit.com/bni.co.id' },
-  { name: 'CIMB Niaga', logoUrl: 'https://logo.clearbit.com/cimbniaga.co.id' },
-  { name: 'Jago',       logoUrl: 'https://logo.clearbit.com/jago.com' },
-  { name: 'Jenius',     logoUrl: 'https://logo.clearbit.com/jenius.com' },
-  { name: 'BSI',        logoUrl: 'https://logo.clearbit.com/bankbsi.co.id' },
-  { name: 'Permata',    logoUrl: 'https://logo.clearbit.com/permatabank.com' },
-  { name: 'Danamon',    logoUrl: 'https://logo.clearbit.com/danamon.co.id' },
-  { name: 'OCBC',       logoUrl: 'https://logo.clearbit.com/ocbc.id' },
-  { name: 'BTN',        logoUrl: 'https://logo.clearbit.com/btn.co.id' },
-  { name: 'Sinarmas',   logoUrl: 'https://logo.clearbit.com/banksinarmas.com' },
-  { name: 'Panin',      logoUrl: 'https://logo.clearbit.com/panin.co.id' },
-  { name: 'Mega',       logoUrl: 'https://logo.clearbit.com/bankmega.com' },
+  { name: 'BCA',        logoUrl: '/bank-icons/bca.png'      },
+  { name: 'Mandiri',    logoUrl: '/bank-icons/mandiri.png'   },
+  { name: 'BRI',        logoUrl: '/bank-icons/bri.png'       },
+  { name: 'BNI',        logoUrl: '/bank-icons/bni.png'       },
+  { name: 'CIMB Niaga', logoUrl: '/bank-icons/cimb.png'      },
+  { name: 'Jago',       logoUrl: '/bank-icons/jago.png'      },
+  { name: 'Jenius',     logoUrl: '/bank-icons/jenius.png'    },
+  { name: 'BSI',        logoUrl: '/bank-icons/bsi.png'       },
+  { name: 'Permata',    logoUrl: '/bank-icons/permata.png'   },
+  { name: 'Danamon',    logoUrl: '/bank-icons/danamon.png'   },
+  { name: 'OCBC',       logoUrl: '/bank-icons/ocbc.png'      },
+  { name: 'BTN',        logoUrl: '/bank-icons/btn.png'       },
+  { name: 'Sinarmas',   logoUrl: '/bank-icons/sinarmas.png'  },
+  { name: 'Panin',      logoUrl: '/bank-icons/panin.png'     },
+  { name: 'Mega',       logoUrl: '/bank-icons/mega.png'      },
 ]
 
 const EWALLET_PROVIDERS: ProviderInfo[] = [
-  { name: 'GoPay',     logoUrl: 'https://logo.clearbit.com/gojek.com' },
-  { name: 'OVO',       logoUrl: 'https://logo.clearbit.com/ovo.id' },
-  { name: 'DANA',      logoUrl: 'https://logo.clearbit.com/dana.id' },
-  { name: 'ShopeePay', logoUrl: 'https://logo.clearbit.com/shopee.co.id' },
-  { name: 'LinkAja',   logoUrl: 'https://logo.clearbit.com/linkaja.id' },
-  { name: 'Flip',      logoUrl: 'https://logo.clearbit.com/flip.id' },
+  { name: 'GoPay',     logoUrl: '/bank-icons/gopay.png'     },
+  { name: 'OVO',       logoUrl: '/bank-icons/ovo.png'       },
+  { name: 'DANA',      logoUrl: '/bank-icons/dana.png'      },
+  { name: 'ShopeePay', logoUrl: '/bank-icons/shopeepay.png' },
+  { name: 'LinkAja',   logoUrl: '/bank-icons/linkaja.png'   },
+  { name: 'Flip',      logoUrl: '/bank-icons/flip.png'      },
 ]
 
 const CARD_COLORS = [
