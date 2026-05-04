@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, memo } from 'react'
 import { motion, AnimatePresence }              from 'framer-motion'
 import {
-  ChevronLeft, Trash2, CreditCard, Wallet,
+  ChevronLeft, Trash2, CreditCard as CreditCardIcon, Wallet,
   CheckCircle2, ChevronDown, ChevronUp,
   ReceiptText, RefreshCw, Settings2, ShieldOff,
   ArrowRight,
@@ -275,7 +275,7 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
       <div className="mx-4 mb-6">
         <SectionLabel title="Aksi Cepat" />
         <div className="flex gap-4 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-          <QuickAction icon={<CreditCard size={18} />}  label="Ubah Limit"        />
+          <QuickAction icon={<CreditCardIcon size={18} />}  label="Ubah Limit"        />
           <QuickAction icon={<ReceiptText size={18} />} label="Riwayat Tagihan"   />
           <QuickAction icon={<Settings2 size={18} />}   label="Pengaturan Kartu"  />
           <QuickAction icon={<ShieldOff size={18} />}   label="Blokir Kartu" danger />
