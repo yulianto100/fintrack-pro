@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LayoutDashboard, ArrowLeftRight, TrendingUp, Settings, Target, CreditCard } from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, TrendingUp, Settings, Target, Wallet } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { useDarkMode } from '@/hooks/useDarkMode'
 
@@ -20,7 +20,7 @@ const NAV_TABS = [
   { href: '/transactions', icon: ArrowLeftRight,  label: 'Transaksi'  },
   { href: '/portfolio',    icon: TrendingUp,      label: 'Portofolio' },
   { href: '/goals',        icon: Target,          label: 'Goals'      },
-  { href: '/credit-card',  icon: CreditCard,      label: 'Kartu'      },
+  { href: '/akun',         icon: Wallet,          label: 'Akun'       },
   { href: '/settings',     icon: Settings,        label: 'Pengaturan' },
 ]
 
@@ -192,7 +192,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           const active =
             href === '/'
               ? pathname === '/'
-              : pathname.startsWith(href) || (href === '/goals' && pathname.startsWith('/budget'))
+              : pathname.startsWith(href)
+              || (href === '/goals' && pathname.startsWith('/budget'))
+              || (href === '/akun'  && pathname.startsWith('/credit-card'))
           return (
             <Link
               key={href}
