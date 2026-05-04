@@ -13,21 +13,21 @@ interface ProviderInfo {
 }
 
 const BANK_PROVIDERS: ProviderInfo[] = [
-  { name: 'BCA',       logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg' },
-  { name: 'Mandiri',   logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg' },
-  { name: 'BRI',       logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/68/BANK_BRI_logo.svg' },
-  { name: 'BNI',       logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/5/55/BNI_logo.svg' },
-  { name: 'CIMB Niaga',logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/7/7e/CIMB_Niaga.svg' },
-  { name: 'Jago',      logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/b/bd/Bank_Jago_logo.svg' },
-  { name: 'Jenius',    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/f0/Jenius_logo.svg' },
-  { name: 'BSI',       logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/06/Bank_Syariah_Indonesia.svg' },
-  { name: 'Permata',   logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a3/Bank_Permata.svg' },
-  { name: 'Danamon',   logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/Bank-danamon.svg' },
-  { name: 'OCBC',      logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/27/OCBC_NISP.svg' },
-  { name: 'BTN',       logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/5/52/Logo_Bank_BTN.svg' },
-  { name: 'Sinarmas',  logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/09/Bank_Sinarmas_logo.svg' },
-  { name: 'Panin',     logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/e8/Panin_Bank_logo.svg' },
-  { name: 'Mega',      logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/db/Logo-bank-mega.svg' },
+  { name: 'BCA',        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg' },
+  { name: 'Mandiri',    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg' },
+  { name: 'BRI',        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/68/BANK_BRI_logo.svg' },
+  { name: 'BNI',        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/5/55/BNI_logo.svg' },
+  { name: 'CIMB Niaga', logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/7/7e/CIMB_Niaga.svg' },
+  { name: 'Jago',       logoUrl: 'https://upload.wikimedia.org/wikipedia/id/b/bd/Bank_Jago_logo.svg' },
+  { name: 'Jenius',     logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/f/f0/Jenius_logo.svg' },
+  { name: 'BSI',        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/9/9a/Bank_Syariah_Indonesia.svg' },
+  { name: 'Permata',    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a3/Bank_Permata.svg' },
+  { name: 'Danamon',    logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/c/cc/Bank-danamon.svg' },
+  { name: 'OCBC',       logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/4b/OCBC_NISP_logo.svg' },
+  { name: 'BTN',        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/5/52/Logo_Bank_BTN.svg' },
+  { name: 'Sinarmas',   logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/09/Bank_Sinarmas_logo.svg' },
+  { name: 'Panin',      logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/e8/Panin_Bank_logo.svg' },
+  { name: 'Mega',       logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/db/Logo-bank-mega.svg' },
 ]
 
 const EWALLET_PROVIDERS: ProviderInfo[] = [
@@ -231,22 +231,20 @@ function WalletForm({ type, onDone }: { type: 'bank' | 'ewallet'; onDone: () => 
   const providers = type === 'bank' ? BANK_PROVIDERS : EWALLET_PROVIDERS
   const [provider, setProvider] = useState('')
   const [name,     setName]     = useState('')
-  const [balance,  setBalance]  = useState('')
   const [saving,   setSaving]   = useState(false)
 
-  const handleBalanceChange = (v: string) => {
-    const numeric = v.replace(/\D/g, '')
-    setBalance(numeric ? parseInt(numeric, 10).toLocaleString('id-ID') : '')
+  // Auto-sync name whenever provider changes
+  const handleProviderSelect = (p: string) => {
+    setProvider(p)
+    setName(p) // always follow the selected bank/ewallet name
   }
-
-  const getRaw = () => parseInt(balance.replace(/\./g, '').replace(',', '.'), 10) || 0
 
   const handleSave = async () => {
     const finalName = name.trim() || provider
     if (!finalName) return
     setSaving(true)
     try {
-      await addWalletAccount({ type, name: finalName, balance: getRaw() })
+      await addWalletAccount({ type, name: finalName, balance: 0 })
       onDone()
     } catch { /* toast already shown */ }
     finally { setSaving(false) }
@@ -262,11 +260,11 @@ function WalletForm({ type, onDone }: { type: 'bank' | 'ewallet'; onDone: () => 
         <ProviderChipPicker
           providers={providers}
           selected={provider}
-          onSelect={p => { setProvider(p); if (!name) setName(p) }}
+          onSelect={handleProviderSelect}
         />
       </div>
 
-      {/* Custom name */}
+      {/* Custom name — shows auto-filled value, still editable */}
       <div>
         <p className="text-[11px] font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>
           NAMA AKUN
@@ -274,7 +272,7 @@ function WalletForm({ type, onDone }: { type: 'bank' | 'ewallet'; onDone: () => 
         <input
           value={name}
           onChange={e => setName(e.target.value)}
-          placeholder={type === 'bank' ? 'Contoh: BCA Tabungan Harian' : 'Contoh: OVO Pribadi'}
+          placeholder={type === 'bank' ? 'Pilih bank dulu' : 'Pilih e-wallet dulu'}
           className="w-full px-4 py-3 rounded-2xl text-[13px] outline-none"
           style={{
             background: 'var(--surface-card)',
@@ -282,28 +280,6 @@ function WalletForm({ type, onDone }: { type: 'bank' | 'ewallet'; onDone: () => 
             color:      'var(--text-primary)',
           }}
         />
-      </div>
-
-      {/* Opening balance */}
-      <div>
-        <p className="text-[11px] font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>
-          SALDO AWAL (OPSIONAL)
-        </p>
-        <div className="flex items-center gap-2">
-          <span className="text-[13px] font-semibold px-3" style={{ color: 'var(--text-muted)' }}>Rp</span>
-          <input
-            value={balance}
-            onChange={e => handleBalanceChange(e.target.value)}
-            inputMode="numeric"
-            placeholder="0"
-            className="flex-1 px-4 py-3 rounded-2xl text-[13px] outline-none"
-            style={{
-              background: 'var(--surface-card)',
-              border:     '1px solid var(--border)',
-              color:      'var(--text-primary)',
-            }}
-          />
-        </div>
       </div>
 
       <button
