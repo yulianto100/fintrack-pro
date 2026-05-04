@@ -199,6 +199,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Link
               key={href}
               href={href}
+              onClick={() => {
+                // When tapping the already-active Akun tab, reset detail view
+                if (href === '/akun' && active) {
+                  window.dispatchEvent(new Event('akun:reset'))
+                }
+              }}
               className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl relative transition-all active:scale-95"
               style={{ color: active ? 'var(--accent)' : 'var(--text-muted)' }}
             >

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useMemo, useCallback, memo } from 'react'
+import { useState, useMemo, useCallback, memo, useEffect, useRef } from 'react'
 import { motion, AnimatePresence }              from 'framer-motion'
+import { usePathname }                          from 'next/navigation'
 import {
   ChevronLeft, Trash2, CreditCard as CreditCardIcon, Wallet,
   CheckCircle2, ChevronDown, ChevronUp,
@@ -382,12 +383,41 @@ function EmptyState({ type, onAdd }: { type: string; onAdd: () => void }) {
 // ── Main page
 export default function AkunPage() {
   const { accounts, loading, summary, refetch, deleteAccount, payBill } = useAccounts()
+  const pathname = usePathname()
 
   const [hidden,    setHidden]    = useState(false)
   const [activeTab, setActiveTab] = useState<AccountTab>('all')
-  const [selected,  setSelected]  = useState<UnifiedAccount | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [addType,   setAddType]   = useState<AccountType | null | 'open'>(null)
   const [payTarget, setPayTarget] = useState<UnifiedAccount | null>(null)
+
+  // ── Fix 1: Reset detail view whenever user taps the Akun nav tab
+  // Case A: navigating from another page to /akun
+  const isFirstMount = useRef(true)
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false
+      return
+    }
+    // pathname changed to /akun (came from another tab) → reset
+    setSelectedId(null)
+  }, [pathname])
+
+  // Case B: tapping Akun tab while already on /akun (same pathname, no re-mount)
+  // Layout dispatches 'akun:reset' event in this case
+  useEffect(() => {
+    const handleNavReset = () => setSelectedId(null)
+    window.addEventListener('akun:reset', handleNavReset)
+    return () => window.removeEventListener('akun:reset', handleNavReset)
+  }, [])
+
+  // ── Fix 2: Always resolve selected from live accounts list
+  // This prevents blank screen when accounts array re-fetches and
+  // the old object reference is stale
+  const selected = useMemo(
+    () => selectedId ? (accounts.find(a => a.id === selectedId) ?? null) : null,
+    [selectedId, accounts]
+  )
 
   const filtered = useMemo(() => activeTab === 'all' ? accounts : accounts.filter(a => a.type === activeTab), [accounts, activeTab])
   const banks    = useMemo(() => filtered.filter(a => a.type === 'bank'),    [filtered])
@@ -396,31 +426,40 @@ export default function AkunPage() {
 
   const handleDelete = useCallback(async (account: UnifiedAccount) => {
     if (!confirm(`Hapus "${account.name}"?`)) return
-    try { await deleteAccount(account); setSelected(null) } catch { /* toast handled */ }
+    try { await deleteAccount(account); setSelectedId(null) } catch { /* toast handled */ }
   }, [deleteAccount])
 
   const showAll = activeTab === 'all'
 
+  // ── Fix 3: Don't use AnimatePresence mode="wait" — it causes blank frame
+  // while old component exits before new one enters. Use mode="popLayout" or
+  // just conditional render without wait.
   return (
     <div className="relative min-h-screen overflow-hidden" style={{ background: 'transparent' }}>
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="popLayout" initial={false}>
         {selected ? (
           selected.type === 'credit' ? (
             <CreditDetailSheet key={`credit-${selected.id}`}
               account={selected} hidden={hidden}
-              onClose={() => setSelected(null)}
+              onClose={() => setSelectedId(null)}
               onDelete={() => handleDelete(selected)}
               onPay={() => setPayTarget(selected)}
             />
           ) : (
             <WalletDetailSheet key={`wallet-${selected.id}`}
               account={selected} hidden={hidden}
-              onClose={() => setSelected(null)}
+              onClose={() => setSelectedId(null)}
               onDelete={() => handleDelete(selected)}
             />
           )
         ) : (
-          <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+          <motion.div
+            key="list"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
             <div className="px-4 pt-4 pb-3">
               <h1 className="text-[22px] font-bold tracking-tight" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Akun</h1>
               <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Semua rekening dan kartu dalam satu tempat</p>
@@ -445,21 +484,21 @@ export default function AkunPage() {
                 {(showAll || activeTab === 'bank') && banks.length > 0 && (
                   <AccountSection title="Rekening Bank" count={banks.length} delay={0}>
                     {banks.map((a, i) => (
-                      <AccountItem key={a.id} account={a} hidden={hidden} onTap={setSelected} isLast={i === banks.length - 1} />
+                      <AccountItem key={a.id} account={a} hidden={hidden} onTap={a => setSelectedId(a.id)} isLast={i === banks.length - 1} />
                     ))}
                   </AccountSection>
                 )}
                 {(showAll || activeTab === 'credit') && credits.length > 0 && (
                   <AccountSection title="Kartu Kredit" count={credits.length} delay={0.05}>
                     {credits.map((a, i) => (
-                      <AccountItem key={a.id} account={a} hidden={hidden} onTap={setSelected} isLast={i === credits.length - 1} />
+                      <AccountItem key={a.id} account={a} hidden={hidden} onTap={a => setSelectedId(a.id)} isLast={i === credits.length - 1} />
                     ))}
                   </AccountSection>
                 )}
                 {(showAll || activeTab === 'ewallet') && ewallets.length > 0 && (
                   <AccountSection title="E-Wallet" count={ewallets.length} delay={0.1}>
                     {ewallets.map((a, i) => (
-                      <AccountItem key={a.id} account={a} hidden={hidden} onTap={setSelected} isLast={i === ewallets.length - 1} />
+                      <AccountItem key={a.id} account={a} hidden={hidden} onTap={a => setSelectedId(a.id)} isLast={i === ewallets.length - 1} />
                     ))}
                   </AccountSection>
                 )}
