@@ -2,7 +2,7 @@
 
 import { useState, memo }          from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Building2, CreditCard, Wallet, ChevronLeft, Check } from 'lucide-react'
+import { X, Building2, CreditCard, Wallet, ChevronLeft } from 'lucide-react'
 import { useAccounts }             from '@/hooks/useAccounts'
 import type { AccountType }        from '@/types/account'
 
@@ -73,11 +73,12 @@ function ProviderLogo({ logoUrl, name, size = 28 }: { logoUrl: string; name: str
 function ModalWrapper({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
     <>
+      {/* Solid black overlay — no blur so background is completely hidden */}
       <motion.div
         key="add-bd"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         className="fixed inset-0 z-40"
-        style={{ background: 'rgba(0,0,0,0.80)' }}
+        style={{ background: 'rgba(0,0,0,0.88)' }}
         onClick={onClose}
       />
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none">
@@ -93,6 +94,8 @@ function ModalWrapper({ onClose, children }: { onClose: () => void; children: Re
             border:     '1px solid var(--border)',
             maxHeight:  '90dvh',
             overflowY:  'auto',
+            /* Force solid — no transparency leaking from parent */
+            isolation:  'isolate',
           }}
         >
           {children}
@@ -138,37 +141,18 @@ function TypeSelector({ onSelect }: { onSelect: (t: AccountType) => void }) {
   )
 }
 
-// ── Provider chip picker (horizontal scroll, like image 2) ────
+// ── Provider chip picker (horizontal scroll, clean pill style) ─
 function ProviderChipPicker({
   providers,
   selected,
   onSelect,
 }: { providers: ProviderInfo[]; selected: string; onSelect: (p: string) => void }) {
   return (
-    <div>
-      {/* Selected display */}
-      {selected && (
-        <div
-          className="flex items-center gap-3 px-4 py-3 rounded-2xl mb-3"
-          style={{ background: 'var(--surface-card)', border: '1px solid rgba(34,197,94,0.35)' }}
-        >
-          <ProviderLogo
-            logoUrl={providers.find(p => p.name === selected)?.logoUrl ?? ''}
-            name={selected}
-            size={32}
-          />
-          <div className="flex-1">
-            <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{selected}</p>
-            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Dipilih</p>
-          </div>
-          <Check size={16} style={{ color: 'var(--accent)' }} />
-        </div>
-      )}
-
+    <div className="flex flex-col gap-3">
       {/* Chip scroll row */}
       <div
-        className="flex gap-2 overflow-x-auto pb-1"
-        style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+        className="flex gap-2 overflow-x-auto"
+        style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', paddingBottom: 2 }}
       >
         {providers.map(p => {
           const active = selected === p.name
@@ -176,16 +160,31 @@ function ProviderChipPicker({
             <button
               key={p.name}
               onClick={() => onSelect(p.name)}
-              className="flex items-center gap-2 px-3 py-2 rounded-full flex-shrink-0 transition-all active:scale-95"
+              className="flex items-center gap-2 flex-shrink-0 transition-all active:scale-95"
               style={{
-                background: active ? 'var(--accent-dim)' : 'var(--surface-card)',
-                border:     `1px solid ${active ? 'rgba(34,197,94,0.5)' : 'var(--border)'}`,
+                padding:         '8px 14px 8px 10px',
+                borderRadius:    999,
+                background:      active ? 'var(--accent-dim)' : 'var(--surface-card)',
+                border:          `1.5px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                boxShadow:       active ? '0 0 0 3px rgba(34,197,94,0.10)' : 'none',
               }}
             >
-              <ProviderLogo logoUrl={p.logoUrl} name={p.name} size={18} />
+              <div
+                style={{
+                  width: 22, height: 22, borderRadius: 6, overflow: 'hidden',
+                  background: 'rgba(255,255,255,0.08)', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <ProviderLogo logoUrl={p.logoUrl} name={p.name} size={18} />
+              </div>
               <span
-                className="text-[12px] whitespace-nowrap"
-                style={{ color: active ? 'var(--accent)' : 'var(--text-primary)', fontWeight: active ? 700 : 500 }}
+                style={{
+                  fontSize:   12,
+                  fontWeight: active ? 700 : 500,
+                  color:      active ? 'var(--accent)' : 'var(--text-primary)',
+                  whiteSpace: 'nowrap',
+                }}
               >
                 {p.name}
               </span>
@@ -193,6 +192,35 @@ function ProviderChipPicker({
           )
         })}
       </div>
+
+      {/* Selected display card */}
+      {selected && (
+        <div
+          className="flex items-center gap-3 px-3.5 py-3 rounded-2xl"
+          style={{
+            background: 'var(--accent-dim)',
+            border:     '1.5px solid var(--accent)',
+          }}
+        >
+          <div
+            style={{
+              width: 36, height: 36, borderRadius: 10, overflow: 'hidden',
+              background: 'rgba(255,255,255,0.12)', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <ProviderLogo
+              logoUrl={providers.find(p => p.name === selected)?.logoUrl ?? ''}
+              name={selected}
+              size={28}
+            />
+          </div>
+          <div className="flex-1">
+            <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{selected}</p>
+            <p style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 500 }}>Dipilih ✓</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
