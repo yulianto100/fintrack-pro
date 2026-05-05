@@ -165,8 +165,14 @@ export function InsightStrip({ lines }: { lines: InsightLine[] }) {
     return () => clearInterval(t)
   }, [lines.length])
 
+  // Reset idx if lines shrink
+  useEffect(() => {
+    if (idx >= lines.length) setIdx(0)
+  }, [lines.length, idx])
+
   if (lines.length === 0) return null
-  const current = lines[idx]
+  const current = lines[idx] ?? lines[0]
+  if (!current) return null
 
   return (
     <motion.div
@@ -401,7 +407,7 @@ const EMPTY_CFG = {
   ewallet: { emoji: '👛', title: 'Belum ada aktivitas', sub: 'Top up dompetmu untuk mulai bertransaksi.', cta: 'Top Up Sekarang' },
 }
 export function EmptyTransactionState({ type, onCta }: { type: 'bank' | 'credit' | 'ewallet'; onCta?: () => void }) {
-  const cfg = EMPTY_CFG[type]
+  const cfg = EMPTY_CFG[type] ?? EMPTY_CFG.bank
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
       className="mx-4 rounded-2xl flex flex-col items-center py-10 px-6 text-center"
