@@ -27,15 +27,17 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const nameChanged = 'name' in body
     const iconChanged = 'icon' in body
     if (nameChanged || iconChanged) {
-      const txSnap = await db.ref(`users/${userId}/transactions`).orderByChild('categoryId').equalTo(catId).get()
+      const txSnap = await db.ref(`users/${userId}/transactions`).get()
       if (txSnap.exists()) {
         const updates: Record<string, unknown> = {}
         txSnap.forEach((child) => {
-          if (nameChanged) updates[`users/${userId}/transactions/${child.key}/categoryName`] = body.name
-          if (iconChanged) updates[`users/${userId}/transactions/${child.key}/categoryIcon`] = body.icon
-          updates[`users/${userId}/transactions/${child.key}/updatedAt`] = new Date().toISOString()
+          if (child.val()?.categoryId === catId) {
+            if (nameChanged) updates[`users/${userId}/transactions/${child.key}/categoryName`] = body.name
+            if (iconChanged) updates[`users/${userId}/transactions/${child.key}/categoryIcon`] = body.icon
+            updates[`users/${userId}/transactions/${child.key}/updatedAt`] = new Date().toISOString()
+          }
         })
-        await db.ref().update(updates)
+        if (Object.keys(updates).length > 0) await db.ref().update(updates)
       }
     }
 
