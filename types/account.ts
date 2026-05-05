@@ -138,11 +138,13 @@ export interface AccountSummaryData {
 }
 
 export function calcAccountSummary(accounts: UnifiedAccount[]): AccountSummaryData {
-  const aset = accounts
+  const safe = Array.isArray(accounts) ? accounts : []
+
+  const aset = safe
     .filter(a => a.type === 'bank' || a.type === 'ewallet')
     .reduce((s, a) => s + (a.balance ?? 0), 0)
 
-  const liabilitas = accounts
+  const liabilitas = safe
     .filter(a => a.type === 'credit')
     .reduce((s, a) => s + (a.creditUsed ?? 0), 0)
 
