@@ -26,6 +26,9 @@ export default function SettingsPage() {
 
   // Modals
   const [showCatModal,    setShowCatModal   ] = useState(false)
+  const [editingCat,      setEditingCat     ] = useState<Category | null>(null)
+  const [editCatForm,     setEditCatForm    ] = useState({ name: '', icon: '📋', color: '#22c55e' })
+  const [savingEditCat,   setSavingEditCat  ] = useState(false)
 
   const [catForm, setCatForm] = useState({ name: '', icon: '📋', type: 'expense', color: '#22c55e' })
   const [saving,  setSaving ] = useState(false)
@@ -173,6 +176,30 @@ export default function SettingsPage() {
     refetchCats()
   }
 
+  const openEditCat = (cat: Category) => {
+    setEditingCat(cat)
+    setEditCatForm({ name: cat.name, icon: cat.icon, color: cat.color })
+  }
+
+  const handleSaveEditCat = async () => {
+    if (!editingCat) return
+    if (!editCatForm.name.trim()) { toast.error('Nama kategori wajib diisi'); return }
+    setSavingEditCat(true)
+    try {
+      const res  = await fetch(`/api/categories/${editingCat.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editCatForm.name.trim(), icon: editCatForm.icon, color: editCatForm.color }),
+      })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error)
+      toast.success('Kategori diperbarui ✓')
+      setEditingCat(null)
+      refetchCats()
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Gagal menyimpan')
+    } finally { setSavingEditCat(false) }
+  }
+
   const CatSection = ({ label, cats }: { label: string; cats: Category[] }) => (
     <div>
       <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>{label}</p>
@@ -186,8 +213,13 @@ export default function SettingsPage() {
               style={{ background: `${c.color}15`, border: `1px solid ${c.color}35` }}>
               <span className="text-sm">{c.icon}</span>
               <span className="text-xs font-medium" style={{ color: c.color }}>{c.name}</span>
-              <button onClick={() => handleDeleteCat(c.id)}
+              <button onClick={() => openEditCat(c)}
                 className="opacity-0 group-hover:opacity-100 transition-opacity ml-0.5"
+                style={{ color: c.color }}>
+                <Pencil size={10}/>
+              </button>
+              <button onClick={() => handleDeleteCat(c.id)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
                 style={{ color: 'var(--red)' }}>
                 <X size={11}/>
               </button>
@@ -649,6 +681,70 @@ export default function SettingsPage() {
           </motion.div>
         </div>
       )}
+
+      {/* ── Edit Category Modal ── */}
+      <AnimatePresence>
+        {editingCat && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0"
+              style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
+              onClick={() => setEditingCat(null)} />
+            <motion.div
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+              className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl p-6"
+              style={{ background: 'var(--surface-4)', border: '1px solid var(--border)' }}
+              onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>Edit Kategori</h2>
+                <button onClick={() => setEditingCat(null)}
+                  className="w-9 h-9 rounded-full flex items-center justify-center"
+                  style={{ background: 'var(--surface-3)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                  <X size={18}/>
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>Nama Kategori</label>
+                    <input type="text" className="input-glass" placeholder="contoh: Gaji"
+                      value={editCatForm.name}
+                      onChange={(e) => setEditCatForm({ ...editCatForm, name: e.target.value })}/>
+                  </div>
+                  <div>
+                    <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>Emoji Icon</label>
+                    <input type="text" className="input-glass text-center text-2xl" placeholder="📋"
+                      value={editCatForm.icon}
+                      onChange={(e) => setEditCatForm({ ...editCatForm, icon: e.target.value })}/>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>Warna</label>
+                  <input type="color" className="input-glass h-11 p-1 cursor-pointer"
+                    value={editCatForm.color}
+                    onChange={(e) => setEditCatForm({ ...editCatForm, color: e.target.value })}/>
+                </div>
+                {editCatForm.name && (
+                  <div className="p-3 rounded-xl flex items-center gap-2"
+                    style={{ background: `${editCatForm.color}15`, border: `1px solid ${editCatForm.color}35` }}>
+                    <span className="text-xl">{editCatForm.icon}</span>
+                    <span className="text-sm font-medium" style={{ color: editCatForm.color }}>{editCatForm.name}</span>
+                  </div>
+                )}
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  💡 Semua transaksi dengan kategori ini akan otomatis diperbarui.
+                </p>
+                <button onClick={handleSaveEditCat} disabled={savingEditCat} className="btn-primary w-full py-3.5 flex items-center justify-center gap-2">
+                  {savingEditCat
+                    ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+                    : <><Check size={16}/> Simpan Perubahan</>}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   )

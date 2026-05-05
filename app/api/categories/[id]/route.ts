@@ -18,7 +18,27 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   try {
     const body = await request.json()
     const db   = getAdminDatabase()
-    await db.ref(`users/${userId}/categories/${params.id}`).update({ ...body, updatedAt: new Date().toISOString() })
+    const catId = params.id
+
+    // Update the category itself
+    await db.ref(`users/${userId}/categories/${catId}`).update({ ...body, updatedAt: new Date().toISOString() })
+
+    // If name or icon changed, cascade-update all transactions using this category
+    const nameChanged = 'name' in body
+    const iconChanged = 'icon' in body
+    if (nameChanged || iconChanged) {
+      const txSnap = await db.ref(`users/${userId}/transactions`).orderByChild('categoryId').equalTo(catId).get()
+      if (txSnap.exists()) {
+        const updates: Record<string, unknown> = {}
+        txSnap.forEach((child) => {
+          if (nameChanged) updates[`users/${userId}/transactions/${child.key}/categoryName`] = body.name
+          if (iconChanged) updates[`users/${userId}/transactions/${child.key}/categoryIcon`] = body.icon
+          updates[`users/${userId}/transactions/${child.key}/updatedAt`] = new Date().toISOString()
+        })
+        await db.ref().update(updates)
+      }
+    }
+
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
