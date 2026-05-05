@@ -25,7 +25,6 @@ import { AccountTransactionList }    from '@/components/account/AccountTransacti
 
 import {
   LiveIndicator,
-  DailyDelta,
   InsightStrip,
   QuickActionsRow,
   CreditUsageBar,
@@ -43,8 +42,69 @@ import {
 } from '@/components/account/AccountDetailShared'
 
 import type { UnifiedAccount, AccountType } from '@/types/account'
-import { getProviderInfo, calcAccountSummary } from '@/types/account'
+import { calcAccountSummary } from '@/types/account'
 import type { CreditCard } from '@/types'
+
+// ── Provider logo map (same as AccountItem) ─────────────────
+const PROVIDER_LOGOS: Record<string, string> = {
+  bca:       '/bank-icons/bca.png',
+  mandiri:   '/bank-icons/mandiri.png',
+  bri:       '/bank-icons/bri.png',
+  bni:       '/bank-icons/bni.png',
+  cimb:      '/bank-icons/cimb.png',
+  jago:      '/bank-icons/jago.png',
+  jenius:    '/bank-icons/jenius.png',
+  bsi:       '/bank-icons/bsi.png',
+  permata:   '/bank-icons/permata.png',
+  danamon:   '/bank-icons/danamon.png',
+  ocbc:      '/bank-icons/ocbc.png',
+  btn:       '/bank-icons/btn.png',
+  sinarmas:  '/bank-icons/sinarmas.png',
+  panin:     '/bank-icons/panin.png',
+  mega:      '/bank-icons/mega.png',
+  gopay:     '/bank-icons/gopay.png',
+  ovo:       '/bank-icons/ovo.png',
+  dana:      '/bank-icons/dana.png',
+  shopeepay: '/bank-icons/shopeepay.png',
+  linkaja:   '/bank-icons/linkaja.png',
+  flip:      '/bank-icons/flip.png',
+}
+
+function getLogoUrl(providerId?: string, providerName?: string): string | null {
+  const key = ((providerId ?? '') + ' ' + (providerName ?? '')).toLowerCase().replace(/\s+/g, '')
+  for (const [id, url] of Object.entries(PROVIDER_LOGOS)) {
+    if (key.includes(id)) return url
+  }
+  return null
+}
+
+function ProviderIcon({ providerId, providerName, size = 44 }: {
+  providerId?: string; providerName?: string; size?: number
+}) {
+  const info    = getProviderInfo(providerId ?? '', providerName ?? '')
+  const logoUrl = getLogoUrl(providerId, providerName)
+  const [errored, setErrored] = useState(false)
+  const hasLogo = logoUrl && !errored
+
+  return (
+    <div className="flex-shrink-0 overflow-hidden" style={{
+      width: size, height: size, borderRadius: 12,
+      background:  hasLogo ? 'transparent' : info.bg,
+      border:      hasLogo ? '1px solid rgba(255,255,255,0.08)' : 'none',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      {hasLogo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={logoUrl!} alt={providerName ?? ''} onError={() => setErrored(true)}
+          style={{ width: size, height: size, objectFit: 'cover', display: 'block' }} />
+      ) : (
+        <span className="font-extrabold" style={{ color: info.color, fontSize: size * 0.26 }}>
+          {info.abbr}
+        </span>
+      )}
+    </div>
+  )
+}
 
 // ── Tab ↔ URL param mapping ─────────────────────────────────
 const TAB_TO_PARAM: Record<AccountTab, string> = {
@@ -170,12 +230,11 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
 
         {/* Balance */}
         <p className="text-[9px] font-bold tracking-[0.18em] mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>TAGIHAN BERJALAN</p>
-        <p className="text-[30px] font-bold leading-none mb-1" style={{
+        <p className="text-[30px] font-bold leading-none" style={{
           color: getCreditUsageColor(pct), fontFamily: 'var(--font-syne)',
         }}>
           {fmtRp(used, hidden)}
         </p>
-        <DailyDelta amount={340000} hidden={hidden} />
       </div>
 
       {/* Insight strip */}
@@ -217,7 +276,6 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
 const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onClose, onDelete }: {
   account: UnifiedAccount; hidden: boolean; onClose: () => void; onDelete: () => void
 }) {
-  const provider  = getProviderInfo(account.providerId ?? '', account.providerName ?? '')
   const isEwallet = account.type === 'ewallet'
   const balance   = account.balance ?? 0
 
@@ -302,9 +360,7 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
         {/* Provider + live */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: provider.bg }}>
-              <span className="text-[11px] font-extrabold" style={{ color: provider.color }}>{provider.abbr}</span>
-            </div>
+            <ProviderIcon providerId={account.providerId} providerName={account.providerName} size={44} />
             <div>
               <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{account.name}</p>
               <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{isEwallet ? 'E-Wallet' : 'Rekening Bank'}</p>
@@ -317,7 +373,6 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
         <p className="text-[32px] font-bold leading-none" style={{ color: 'var(--accent)', fontFamily: 'var(--font-syne)', fontVariantNumeric: 'tabular-nums' }}>
           {fmtRp(balance, hidden)}
         </p>
-        <DailyDelta amount={isEwallet ? 50000 : 120000} hidden={hidden} />
 
         {balance === 0 && (
           <p className="text-[12px] mt-2" style={{ color: 'var(--text-muted)' }}>
