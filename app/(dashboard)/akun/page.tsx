@@ -5,9 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import {
   ChevronLeft, Trash2, ReceiptText, ArrowRight,
-  ChevronDown, ChevronUp,
   Building2, CreditCard as CreditCardIcon, Wallet,
-  Hash, User, Calendar, TrendingUp, ArrowDownUp,
+  Hash, Calendar, TrendingUp, ArrowDownUp,
   Phone, ShieldCheck, Repeat, AlertTriangle,
 } from 'lucide-react'
 
@@ -31,7 +30,6 @@ import {
   BillingStatusCard,
   InfoSection,
   SectionLabel,
-  EmptyTransactionState,
   StatusBadge,
   fmtRp,
   getBillingStatus,
@@ -42,7 +40,7 @@ import {
 } from '@/components/account/AccountDetailShared'
 
 import type { UnifiedAccount, AccountType } from '@/types/account'
-import { calcAccountSummary } from '@/types/account'
+import { getProviderInfo, calcAccountSummary } from '@/types/account'
 import type { CreditCard } from '@/types'
 
 // ── Provider logo map (same as AccountItem) ─────────────────
