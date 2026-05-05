@@ -276,6 +276,14 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
 }) {
   const isEwallet = account.type === 'ewallet'
   const balance   = account.balance ?? 0
+  const router    = useRouter()
+
+  // Build shared query params so destination pages know which account
+  const accountParams = new URLSearchParams({
+    accountId:   account.id,
+    accountName: account.name,
+    balance:     String(balance),
+  }).toString()
 
   // Insights
   const insights = getAccountInsights(
@@ -284,15 +292,35 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
       : { type: 'bank', biggestCategory: 'Transfer', monthlyChangePct: -8 }
   )
 
-  // Quick actions
+  // Quick actions — now fully wired with router.push()
   const quickActions: QuickActionItem[] = isEwallet
     ? [
-        { label: 'Top Up', icon: <TrendingUp size={14} />, primary: true },
-        { label: 'Kirim',  icon: <ArrowRight size={14} />, primary: false },
+        {
+          label: 'Top Up',
+          icon: <TrendingUp size={14} />,
+          primary: true,
+          onClick: () => router.push(`/ewallet/topup?${accountParams}`),
+        },
+        {
+          label: 'Kirim',
+          icon: <ArrowRight size={14} />,
+          primary: false,
+          onClick: () => router.push(`/ewallet/send?${accountParams}`),
+        },
       ]
     : [
-        { label: 'Transfer',      icon: <ArrowDownUp size={14} />, primary: true },
-        { label: 'Tambah Saldo',  icon: <TrendingUp size={14} />,  primary: false },
+        {
+          label: 'Transfer',
+          icon: <ArrowDownUp size={14} />,
+          primary: true,
+          onClick: () => router.push(`/transaksi/transfer?${accountParams}`),
+        },
+        {
+          label: 'Tambah Saldo',
+          icon: <TrendingUp size={14} />,
+          primary: false,
+          onClick: () => router.push(`/transaksi/deposit?${accountParams}`),
+        },
       ]
 
   // Info groups
