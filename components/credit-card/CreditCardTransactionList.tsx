@@ -72,13 +72,15 @@ export function CreditCardTransactionList({ creditCardId, hidden = false }: Prop
   if (transactions.length === 0) {
     return (
       <div
-        className="rounded-2xl p-10 flex flex-col items-center gap-3 text-center"
+        className="rounded-2xl py-10 px-6 flex flex-col items-center gap-2 text-center"
         style={{ background: 'var(--surface-subtle)', border: '1px solid var(--border)' }}
       >
-        <span className="text-3xl">💳</span>
-        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Belum Ada Transaksi</p>
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          Transaksi menggunakan kartu ini akan muncul di sini
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-1 text-2xl" style={{ background: 'var(--accent-dim)' }}>
+          💳
+        </div>
+        <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>Belum ada tagihan pada kartu ini</p>
+        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+          Gunakan kartu untuk mulai melacak pengeluaran.
         </p>
       </div>
     )

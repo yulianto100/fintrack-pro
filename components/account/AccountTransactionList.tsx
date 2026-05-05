@@ -56,16 +56,21 @@ export function AccountTransactionList({ accountId, accountType, hidden = false,
   }
 
   if (transactions.length === 0) {
+    const emptyConfig = {
+      bank:    { emoji: '🏦', title: 'Belum ada transaksi di akun ini', sub: 'Transaksi rekening kamu akan muncul di sini.' },
+      ewallet: { emoji: '👛', title: 'Belum ada aktivitas', sub: 'Top up dompetmu untuk mulai bertransaksi.' },
+    }
+    const cfg = emptyConfig[accountType] ?? emptyConfig.bank
     return (
       <div
-        className="rounded-2xl p-10 flex flex-col items-center gap-3 text-center"
+        className="rounded-2xl py-10 px-6 flex flex-col items-center gap-2 text-center"
         style={{ background: 'var(--surface-subtle)', border: '1px solid var(--border)' }}
       >
-        <span className="text-3xl">🏦</span>
-        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Belum Ada Transaksi</p>
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          Transaksi menggunakan akun ini akan muncul di sini
-        </p>
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-1 text-2xl" style={{ background: 'var(--accent-dim)' }}>
+          {cfg.emoji}
+        </div>
+        <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{cfg.title}</p>
+        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{cfg.sub}</p>
       </div>
     )
   }

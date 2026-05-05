@@ -4,10 +4,11 @@ import { useState, useMemo, useCallback, memo, useEffect, useRef, Suspense } fro
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import {
-  ChevronLeft, Trash2, CreditCard as CreditCardIcon, Wallet,
-  CheckCircle2, ChevronDown, ChevronUp,
-  ReceiptText,
-  ArrowRight,
+  ChevronLeft, Trash2, ReceiptText, ArrowRight,
+  ChevronDown, ChevronUp,
+  Building2, CreditCard as CreditCardIcon, Wallet,
+  Hash, User, Calendar, TrendingUp, ArrowDownUp,
+  Phone, ShieldCheck, Repeat, AlertTriangle,
 } from 'lucide-react'
 
 import { useAccounts }        from '@/hooks/useAccounts'
@@ -22,24 +23,38 @@ import { PayCreditCardModal } from '@/components/credit-card/PayCreditCardModal'
 import { CreditCardTransactionList } from '@/components/credit-card/CreditCardTransactionList'
 import { AccountTransactionList }    from '@/components/account/AccountTransactionList'
 
+import {
+  LiveIndicator,
+  DailyDelta,
+  InsightStrip,
+  QuickActionsRow,
+  CreditUsageBar,
+  BillingStatusCard,
+  InfoSection,
+  SectionLabel,
+  EmptyTransactionState,
+  StatusBadge,
+  fmtRp,
+  getBillingStatus,
+  getCreditUsageColor,
+  getAccountInsights,
+  type InfoGroupData,
+  type QuickActionItem,
+} from '@/components/account/AccountDetailShared'
+
 import type { UnifiedAccount, AccountType } from '@/types/account'
 import { getProviderInfo, calcAccountSummary } from '@/types/account'
 import type { CreditCard } from '@/types'
 
-// ── Tab ↔ URL param mapping ──────────────────────────────────────────────────
+// ── Tab ↔ URL param mapping ─────────────────────────────────
 const TAB_TO_PARAM: Record<AccountTab, string> = {
-  all:     '',
-  bank:    'rekening',
-  credit:  'kredit',
-  ewallet: 'ewallet',
+  all: '', bank: 'rekening', credit: 'kredit', ewallet: 'ewallet',
 }
 const PARAM_TO_TAB: Record<string, AccountTab> = {
-  rekening: 'bank',
-  kredit:   'credit',
-  ewallet:  'ewallet',
+  rekening: 'bank', kredit: 'credit', ewallet: 'ewallet',
 }
 
-// ── Due date helper ──────────────────────────────────────────
+// ── Due date helper ─────────────────────────────────────────
 function getDueDays(dueDate: number): { days: number; label: string; urgent: boolean } {
   const today = new Date()
   let d = new Date(today.getFullYear(), today.getMonth(), dueDate)
@@ -49,67 +64,18 @@ function getDueDays(dueDate: number): { days: number; label: string; urgent: boo
   return { days, label, urgent: days <= 7 }
 }
 
-function usageColor(pct: number) {
-  if (pct >= 80) return { bar: '#ef4444', text: '#ef4444' }
-  if (pct >= 50) return { bar: '#f59e0b', text: '#f59e0b' }
-  return { bar: 'var(--accent)', text: 'var(--accent)' }
-}
-
-function QuickAction({ icon, label, danger = false, onClick }: {
-  icon: React.ReactNode; label: string; danger?: boolean; onClick?: () => void
-}) {
-  return (
-    <button onClick={onClick} className="flex flex-col items-center gap-2 flex-shrink-0" style={{ minWidth: 72 }}>
-      <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{
-        background: danger ? 'rgba(239,68,68,0.08)' : 'var(--surface-subtle)',
-        border: `1px solid ${danger ? 'rgba(239,68,68,0.18)' : 'var(--border)'}`,
-      }}>
-        <span style={{ color: danger ? '#ef4444' : 'var(--accent)' }}>{icon}</span>
-      </div>
-      <span className="text-[10px] font-semibold text-center leading-tight" style={{
-        color: danger ? '#ef4444' : 'var(--text-muted)', maxWidth: 72
-      }}>
-        {label}
-      </span>
-    </button>
-  )
-}
-
-function InfoRow({ label, value, isLast = false }: { label: string; value: string; isLast?: boolean }) {
-  return (
-    <div className="flex items-center justify-between px-4 py-3"
-      style={{ borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)' }}>
-      <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{label}</span>
-      <span className="text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>{value}</span>
-    </div>
-  )
-}
-
-function SectionLabel({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
-  return (
-    <div className="flex items-center justify-between px-4 mb-2">
-      <p className="text-[10px] font-bold tracking-[0.15em] uppercase" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>{title}</p>
-      {action && (
-        <button onClick={onAction} className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: 'var(--accent)' }}>
-          {action} <ArrowRight size={11} />
-        </button>
-      )}
-    </div>
-  )
-}
-
-// ── CREDIT CARD DETAIL ───────────────────────────────────────
+// ── CREDIT CARD DETAIL ──────────────────────────────────────
 const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onClose, onDelete, onPay }: {
   account: UnifiedAccount; hidden: boolean; onClose: () => void; onDelete: () => void; onPay?: () => void
 }) {
   const [infoExpanded, setInfoExpanded] = useState(false)
 
-  const pct       = account.creditLimit ? Math.min(((account.creditUsed ?? 0) / account.creditLimit) * 100, 100) : 0
-  const remaining = (account.creditLimit ?? 0) - (account.creditUsed ?? 0)
+  const used      = account.creditUsed ?? 0
+  const limit     = account.creditLimit ?? 0
+  const pct       = limit > 0 ? Math.min((used / limit) * 100, 100) : 0
   const due       = account.dueDate ? getDueDays(account.dueDate) : null
-  const colors    = usageColor(pct)
-
-  const fmt = (n: number) => hidden ? 'Rp ••••••' : `Rp ${n.toLocaleString('id-ID')}`
+  const billing   = getBillingStatus(pct, due?.days ?? 999)
+  const minPayment = Math.round(used * 0.10)
 
   const cardTypeLabel = (() => {
     const id = (account.providerId ?? '').toLowerCase()
@@ -120,15 +86,37 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
     return 'Visa'
   })()
 
-  const minimumPayment = Math.round((account.creditUsed ?? 0) * 0.10)
+  // Insights
+  const insights = getAccountInsights({
+    type: 'credit',
+    usagePercent: Math.round(pct),
+    monthlyChangePct: 20, // TODO: wire from real data
+  })
 
-  const extendedInfo = [
-    { label: 'Bank Penerbit',   value: account.providerName || '-' },
-    { label: 'Tanggal Tagihan', value: `${account.billingDate} tiap bulan` },
-    { label: 'Jenis Kartu',     value: cardTypeLabel },
-    { label: 'Jatuh Tempo',     value: `${account.dueDate} tiap bulan` },
-    { label: 'Limit Total',     value: fmt(account.creditLimit ?? 0) },
-    { label: 'Mata Uang',       value: 'IDR' },
+  // Quick actions
+  const quickActions: QuickActionItem[] = [
+    { label: 'Bayar Sekarang', icon: <ReceiptText size={14} />, primary: true, onClick: onPay },
+    { label: 'Lihat Tagihan',  icon: <ArrowRight size={14} />,  primary: false },
+  ]
+
+  // Info groups
+  const infoGroups: InfoGroupData[] = [
+    {
+      title: 'Informasi Kartu',
+      rows: [
+        { icon: <Building2 size={14} />,   label: 'Bank Penerbit',   value: account.providerName || '-' },
+        { icon: <Hash size={14} />,         label: 'Jenis Kartu',     value: cardTypeLabel },
+        { icon: <Calendar size={14} />,     label: 'Tanggal Tagihan', value: `${account.billingDate} tiap bulan` },
+        { icon: <AlertTriangle size={14} />,label: 'Jatuh Tempo',     value: `${account.dueDate} tiap bulan` },
+      ],
+    },
+    {
+      title: 'Detail Finansial',
+      rows: [
+        { icon: <CreditCardIcon size={14} />, label: 'Limit Total',  value: fmtRp(limit, hidden) },
+        { icon: <TrendingUp size={14} />,     label: 'Mata Uang',    value: 'IDR' },
+      ],
+    },
   ]
 
   return (
@@ -149,13 +137,23 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
 
       {/* Card identity */}
       <div className="px-4 mb-1">
-        <p className="text-[18px] font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>{account.name}</p>
-        <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-          {account.last4 ? `••••• ${account.last4}` : ''} • {cardTypeLabel}
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-[18px] font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
+              {account.name}
+            </p>
+            <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+              {account.last4 ? `••••• ${account.last4}` : ''} · {cardTypeLabel}
+            </p>
+          </div>
+          <StatusBadge
+            label={due ? (due.urgent ? '⚠ Segera bayar' : '✓ Aktif') : '✓ Aktif'}
+            variant={due?.urgent ? 'warn' : 'safe'}
+          />
+        </div>
       </div>
 
-      {/* Hero card */}
+      {/* Hero balance card */}
       <div className="mx-4 rounded-3xl overflow-hidden mb-4 mt-3 relative" style={{
         background: `linear-gradient(145deg, #0B3B2E 0%, #071f18 60%, #040f0b 100%)`,
         border: '1px solid rgba(34,197,94,0.15)', padding: '20px', boxShadow: '0 12px 40px rgba(0,0,0,0.4)',
@@ -165,131 +163,46 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
           background: `radial-gradient(circle, ${account.color || '#22c55e'}18 0%, transparent 70%)`,
         }} />
 
-        {/* Usage % — prominent */}
-        <div className="flex items-end gap-2 mb-1">
-          <p className="text-[9px] font-bold tracking-[0.18em]" style={{ color: 'rgba(255,255,255,0.35)' }}>TERPAKAI</p>
-          <p className="text-[14px] font-bold leading-none" style={{ color: colors.text, fontFamily: 'var(--font-syne)' }}>
-            {pct.toFixed(0)}%
-          </p>
+        {/* Live indicator */}
+        <div className="mb-3">
+          <LiveIndicator text="Diperbarui baru saja" />
         </div>
 
-        <p className="text-[30px] font-bold leading-none mb-3" style={{ color: colors.text, fontFamily: 'var(--font-syne)' }}>
-          {fmt(account.creditUsed ?? 0)}
+        {/* Balance */}
+        <p className="text-[9px] font-bold tracking-[0.18em] mb-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>TAGIHAN BERJALAN</p>
+        <p className="text-[30px] font-bold leading-none mb-1" style={{
+          color: getCreditUsageColor(pct), fontFamily: 'var(--font-syne)',
+        }}>
+          {fmtRp(used, hidden)}
         </p>
-
-        {/* 3-zone progress bar */}
-        <div className="h-[5px] rounded-full overflow-hidden mb-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
-          <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }}
-            transition={{ duration: 0.9, ease: [0.23, 1, 0.32, 1], delay: 0.2 }}
-            className="h-full rounded-full" style={{ background: colors.bar }} />
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div>
-            <p className="text-[9px] tracking-widest font-semibold mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>LIMIT TOTAL</p>
-            <p className="text-[12px] font-bold" style={{ color: 'rgba(255,255,255,0.65)', fontFamily: 'var(--font-jetbrains)' }}>
-              {fmt(account.creditLimit ?? 0)}
-            </p>
-          </div>
-          <div className="w-px h-6" style={{ background: 'rgba(255,255,255,0.10)' }} />
-          <div>
-            <p className="text-[9px] tracking-widest font-semibold mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>SISA LIMIT</p>
-            <p className="text-[12px] font-bold" style={{ color: 'rgba(255,255,255,0.65)', fontFamily: 'var(--font-jetbrains)' }}>
-              {fmt(remaining)}
-            </p>
-          </div>
-          <div className="ml-auto flex items-center gap-1.5">
-            <CheckCircle2 size={13} style={{ color: '#22c55e' }} />
-            <span className="text-[11px] font-bold" style={{ color: '#22c55e' }}>Aktif</span>
-          </div>
-        </div>
+        <DailyDelta amount={340000} hidden={hidden} />
       </div>
 
-      {/* Tagihan Saat Ini */}
+      {/* Insight strip */}
+      {insights.length > 0 && <InsightStrip lines={insights} />}
+
+      {/* Credit usage bar */}
+      <CreditUsageBar used={used} limit={limit} hidden={hidden} billingStatus={billing} />
+
+      {/* Billing status */}
       {due && (
-        <div className="mx-4 mb-4">
-          <SectionLabel title="Tagihan Saat Ini" />
-          <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'var(--surface-card)' }}>
-            <div className="px-4 pt-4 pb-3">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="text-[10px] font-semibold mb-0.5" style={{ color: 'var(--text-muted)' }}>TOTAL TAGIHAN</p>
-                  <p className="text-[22px] font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
-                    {fmt(account.creditUsed ?? 0)}
-                  </p>
-                  <button className="mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                    style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)' }}>
-                    Belum Lunas
-                  </button>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-semibold mb-0.5" style={{ color: 'var(--text-muted)' }}>BAYAR MINIMUM</p>
-                  <p className="text-[16px] font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-jetbrains)' }}>
-                    {fmt(minimumPayment)}
-                  </p>
-                  <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>10% dari tagihan</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between px-3 py-2 rounded-xl mb-3" style={{
-                background: due.urgent ? 'rgba(239,68,68,0.07)' : 'rgba(34,197,94,0.06)',
-                border: `1px solid ${due.urgent ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.12)'}`,
-              }}>
-                <div>
-                  <p className="text-[11px] font-bold" style={{ color: due.urgent ? '#ef4444' : 'var(--accent)' }}>Jatuh Tempo</p>
-                  <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{due.label}</p>
-                </div>
-                <span className="text-[11px] font-bold px-2 py-1 rounded-lg" style={{
-                  background: due.urgent ? 'rgba(239,68,68,0.10)' : 'rgba(34,197,94,0.10)',
-                  color: due.urgent ? '#ef4444' : 'var(--accent)',
-                }}>
-                  {due.days === 0 ? 'Hari ini' : due.days === 1 ? 'Besok' : `${due.days} hari lagi`}
-                </span>
-              </div>
-
-              <div className="flex gap-2">
-                <button className="flex-1 py-2.5 rounded-xl text-[13px] font-bold flex items-center justify-center gap-1.5"
-                  style={{ border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
-                  <ReceiptText size={14} /> Lihat Tagihan
-                </button>
-                {onPay && (
-                  <button onClick={onPay} className="flex-1 py-2.5 rounded-xl text-[13px] font-bold"
-                    style={{ background: 'var(--accent)', color: '#fff' }}>
-                    Bayar Sekarang
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <BillingStatusCard
+          dueLabel={due.label}
+          daysLeft={due.days}
+          urgent={due.urgent}
+          minimumPayment={minPayment}
+          totalBill={used}
+          hidden={hidden}
+        />
       )}
 
-      {/* Info Kartu */}
-      <div className="mx-4 mb-4">
-        <SectionLabel title="Info Kartu" />
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'var(--surface-card)' }}>
-          {extendedInfo.slice(0, infoExpanded ? extendedInfo.length : 4).map((row, i, arr) => (
-            <InfoRow key={row.label} label={row.label} value={row.value} isLast={i === arr.length - 1 && !infoExpanded} />
-          ))}
-          <AnimatePresence>
-            {infoExpanded && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} style={{ overflow: 'hidden' }}>
-                {extendedInfo.slice(4).map((row, i, arr) => (
-                  <InfoRow key={row.label} label={row.label} value={row.value} isLast={i === arr.length - 1} />
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <button onClick={() => setInfoExpanded(v => !v)}
-            className="w-full flex items-center justify-center gap-1.5 py-3"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.05)', color: 'var(--accent)', fontSize: '12px', fontWeight: 600 }}>
-            {infoExpanded ? <><ChevronUp size={14} /> Sembunyikan</> : <><ChevronDown size={14} /> Lihat Detail Kartu</>}
-          </button>
-        </div>
-      </div>
+      {/* Quick actions */}
+      <QuickActionsRow actions={quickActions} />
 
-      {/* Transaksi Terakhir */}
+      {/* Info groups */}
+      <InfoSection groups={infoGroups} />
+
+      {/* Transactions */}
       <div className="mb-4">
         <SectionLabel title="Transaksi Terakhir" action="Lihat Semua" />
         <div className="px-4">
@@ -300,19 +213,53 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
   )
 })
 
-// ── BANK / EWALLET DETAIL ────────────────────────────────────
+// ── BANK / EWALLET DETAIL ───────────────────────────────────
 const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onClose, onDelete }: {
   account: UnifiedAccount; hidden: boolean; onClose: () => void; onDelete: () => void
 }) {
   const provider  = getProviderInfo(account.providerId ?? '', account.providerName ?? '')
   const isEwallet = account.type === 'ewallet'
-  const fmt       = (n: number) => hidden ? 'Rp ••••••' : `Rp ${n.toLocaleString('id-ID')}`
+  const balance   = account.balance ?? 0
 
-  const infoRows = [
-    { label: 'Provider',   value: account.providerName || '-' },
-    { label: 'Tipe Akun',  value: isEwallet ? 'E-Wallet' : 'Rekening Bank' },
-    { label: 'Status',     value: 'Aktif' },
-    ...(account.accountNumber ? [{ label: 'No. Rekening', value: account.accountNumber }] : []),
+  // Insights
+  const insights = getAccountInsights(
+    isEwallet
+      ? { type: 'ewallet', lastTopUpDays: 2, topCategory: 'Transport' }
+      : { type: 'bank', biggestCategory: 'Transfer', monthlyChangePct: -8 }
+  )
+
+  // Quick actions
+  const quickActions: QuickActionItem[] = isEwallet
+    ? [
+        { label: 'Top Up', icon: <TrendingUp size={14} />, primary: true },
+        { label: 'Kirim',  icon: <ArrowRight size={14} />, primary: false },
+      ]
+    : [
+        { label: 'Transfer',      icon: <ArrowDownUp size={14} />, primary: true },
+        { label: 'Tambah Saldo',  icon: <TrendingUp size={14} />,  primary: false },
+      ]
+
+  // Info groups
+  const accountInfoRows = [
+    { icon: <Building2 size={14} />,  label: 'Provider',    value: account.providerName || '-' },
+    { icon: <Wallet size={14} />,     label: 'Tipe Akun',   value: isEwallet ? 'E-Wallet' : 'Rekening Bank' },
+    { icon: <ShieldCheck size={14} />,label: 'Status',      value: <StatusBadge label="✓ Aktif" variant="safe" /> },
+    ...(account.accountNumber
+      ? [{ icon: <Hash size={14} />, label: 'No. Rekening', value: account.accountNumber }]
+      : []),
+    ...(isEwallet && account.accountNumber
+      ? [{ icon: <Phone size={14} />, label: 'No. HP Terdaftar', value: account.accountNumber }]
+      : []),
+  ]
+
+  const financialInfoRows = [
+    { icon: <TrendingUp size={14} />,  label: 'Total keluar bulan ini', value: fmtRp(0, hidden) },
+    { icon: <Repeat size={14} />,      label: 'Transaksi bulan ini',    value: '0 transaksi' },
+  ]
+
+  const infoGroups: InfoGroupData[] = [
+    { title: 'Informasi Akun',    rows: accountInfoRows },
+    { title: 'Detail Finansial',  rows: financialInfoRows },
   ]
 
   return (
@@ -331,63 +278,79 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
         </button>
       </div>
 
-      {/* Card identity */}
+      {/* Identity */}
       <div className="px-4 mb-1">
-        <p className="text-[18px] font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>{account.name}</p>
-        <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-          {isEwallet ? 'E-Wallet' : 'Rekening Bank'} • {account.providerName || '-'}
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-[18px] font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
+              {account.name}
+            </p>
+            <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+              {isEwallet ? 'E-Wallet' : 'Rekening Bank'} · {account.providerName || '-'}
+            </p>
+          </div>
+          <StatusBadge label="✓ Aktif" variant="safe" />
+        </div>
       </div>
 
-      {/* Hero card */}
+      {/* Hero balance card */}
       <div className="mx-4 rounded-3xl overflow-hidden mb-4 mt-3" style={{
-        background: 'var(--surface-card)', border: '1px solid rgba(255,255,255,0.07)', padding: '20px',
+        background: 'var(--surface-card)',
+        border: '1px solid rgba(255,255,255,0.07)',
+        padding: '20px',
       }}>
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: provider.bg }}>
-            <span className="text-[11px] font-extrabold" style={{ color: provider.color }}>{provider.abbr}</span>
-          </div>
-          <div>
-            <p className="text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>{account.name}</p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <CheckCircle2 size={11} style={{ color: '#22c55e' }} />
-              <span className="text-[11px] font-semibold" style={{ color: '#22c55e' }}>Aktif</span>
+        {/* Provider + live */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: provider.bg }}>
+              <span className="text-[11px] font-extrabold" style={{ color: provider.color }}>{provider.abbr}</span>
+            </div>
+            <div>
+              <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{account.name}</p>
+              <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{isEwallet ? 'E-Wallet' : 'Rekening Bank'}</p>
             </div>
           </div>
         </div>
+
+        {/* Balance */}
         <p className="text-[9px] font-bold tracking-[0.18em] mb-1" style={{ color: 'var(--text-muted)' }}>SALDO</p>
-        <p className="text-[30px] font-bold leading-none" style={{ color: 'var(--accent)', fontFamily: 'var(--font-syne)' }}>
-          {fmt(account.balance ?? 0)}
+        <p className="text-[32px] font-bold leading-none" style={{ color: 'var(--accent)', fontFamily: 'var(--font-syne)', fontVariantNumeric: 'tabular-nums' }}>
+          {fmtRp(balance, hidden)}
         </p>
-        {(account.balance ?? 0) === 0 && (
+        <DailyDelta amount={isEwallet ? 50000 : 120000} hidden={hidden} />
+
+        {balance === 0 && (
           <p className="text-[12px] mt-2" style={{ color: 'var(--text-muted)' }}>
             Belum ada saldo · Mulai gunakan akun ini
           </p>
         )}
       </div>
 
-      {/* Info Akun */}
-      <div className="mx-4 mb-4">
-        <SectionLabel title="Info Akun" />
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'var(--surface-card)' }}>
-          {infoRows.map((row, i) => (
-            <InfoRow key={row.label} label={row.label} value={row.value} isLast={i === infoRows.length - 1} />
-          ))}
-        </div>
-      </div>
+      {/* Insight strip */}
+      {insights.length > 0 && <InsightStrip lines={insights} />}
 
-      {/* Transaksi Terakhir */}
+      {/* Quick actions */}
+      <QuickActionsRow actions={quickActions} />
+
+      {/* Info groups */}
+      <InfoSection groups={infoGroups} />
+
+      {/* Transactions */}
       <div className="mb-4">
         <SectionLabel title="Transaksi Terakhir" />
         <div className="px-4">
-          <AccountTransactionList accountId={account.id} accountType={account.type as 'bank' | 'ewallet'} hidden={hidden} />
+          <AccountTransactionList
+            accountId={account.id}
+            accountType={account.type as 'bank' | 'ewallet'}
+            hidden={hidden}
+          />
         </div>
       </div>
     </motion.div>
   )
 })
 
-// ── Empty state — improved ────────────────────────────────────
+// ── Empty state ─────────────────────────────────────────────
 function EmptyState({ type, onAdd }: { type: string; onAdd: () => void }) {
   const config: Record<string, { emoji: string; label: string; hint: string }> = {
     bank:    { emoji: '🏦', label: 'rekening bank',  hint: 'Hubungkan rekening untuk mulai melacak saldo' },
@@ -396,47 +359,37 @@ function EmptyState({ type, onAdd }: { type: string; onAdd: () => void }) {
     all:     { emoji: '💰', label: 'akun',            hint: 'Tambahkan akun untuk mulai melacak keuangan kamu' },
   }
   const { emoji, label, hint } = config[type] ?? config['all']
-
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
       className="flex flex-col items-center justify-center py-16 px-6 text-center">
-      <div className="w-16 h-16 rounded-3xl flex items-center justify-center mb-4"
-        style={{ background: 'var(--accent-dim)' }}>
+      <div className="w-16 h-16 rounded-3xl flex items-center justify-center mb-4" style={{ background: 'var(--accent-dim)' }}>
         <span className="text-3xl">{emoji}</span>
       </div>
-      <p className="text-[15px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-        Belum ada {label}
-      </p>
-      <p className="text-[12px] mb-5 max-w-xs" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
-        {hint}
-      </p>
-      <button onClick={onAdd} className="px-6 py-2.5 rounded-full text-[13px] font-bold"
-        style={{ background: 'var(--accent)', color: '#fff' }}>
+      <p className="text-[15px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Belum ada {label}</p>
+      <p className="text-[12px] mb-5 max-w-xs" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>{hint}</p>
+      <button onClick={onAdd} className="px-6 py-2.5 rounded-full text-[13px] font-bold" style={{ background: 'var(--accent)', color: '#fff' }}>
         Tambah Sekarang
       </button>
     </motion.div>
   )
 }
 
-// ── Main page content ─────────────────────────────────────────
+// ── Main page content ────────────────────────────────────────
 function AkunContent() {
   const { accounts, loading, refetch, deleteAccount, payBill } = useAccounts()
   const pathname     = usePathname()
   const searchParams = useSearchParams()
   const router       = useRouter()
 
-  const [hidden,    setHidden]    = useState(false)
-  const [activeTab, setActiveTab] = useState<AccountTab>('all')
+  const [hidden,     setHidden]    = useState(false)
+  const [activeTab,  setActiveTab] = useState<AccountTab>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [addType,   setAddType]   = useState<AccountType | null | 'open'>(null)
-  const [payTarget, setPayTarget] = useState<UnifiedAccount | null>(null)
+  const [addType,    setAddType]   = useState<AccountType | null | 'open'>(null)
+  const [payTarget,  setPayTarget] = useState<UnifiedAccount | null>(null)
 
-  // Sync tab from URL on mount
   useEffect(() => {
     const tabParam = searchParams.get('tab')
-    if (tabParam && PARAM_TO_TAB[tabParam]) {
-      setActiveTab(PARAM_TO_TAB[tabParam])
-    }
+    if (tabParam && PARAM_TO_TAB[tabParam]) setActiveTab(PARAM_TO_TAB[tabParam])
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -470,8 +423,7 @@ function AkunContent() {
   const banks    = useMemo(() => filtered.filter(a => a.type === 'bank'),    [filtered])
   const credits  = useMemo(() => filtered.filter(a => a.type === 'credit'),  [filtered])
   const ewallets = useMemo(() => filtered.filter(a => a.type === 'ewallet'), [filtered])
-
-  const summary = useMemo(() => calcAccountSummary(filtered), [filtered])
+  const summary  = useMemo(() => calcAccountSummary(filtered), [filtered])
 
   const handleDelete = useCallback(async (account: UnifiedAccount) => {
     if (!confirm(`Hapus "${account.name}"?`)) return
@@ -499,14 +451,8 @@ function AkunContent() {
             />
           )
         ) : (
-          <motion.div
-            key="list"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-          >
-            {/* ── Page header */}
+          <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+            {/* Page header */}
             <div className="px-4 pt-4 pb-3">
               <h1 className="text-[22px] font-bold tracking-tight" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em', fontFamily: 'var(--font-syne)' }}>
                 Akun
@@ -516,32 +462,26 @@ function AkunContent() {
               </p>
             </div>
 
-            {/* ── 1. Summary card (Net Saldo primary) */}
             <div className="mb-3">
               <AccountSummary summary={summary} hidden={hidden} onToggleHidden={() => setHidden(v => !v)} />
             </div>
 
-            {/* ── 2. Insight strip */}
             {!loading && accounts.length > 0 && (
               <div className="mb-4">
                 <AccountInsights summary={summary} accounts={accounts} />
               </div>
             )}
 
-            {/* ── 3. Filter tabs */}
             <div className="mb-5">
               <AccountTabs active={activeTab} onChange={handleTabChange} />
             </div>
 
-            {/* ── Loading */}
             {loading && (
               <div className="flex justify-center py-10">
-                <div className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin"
-                  style={{ borderColor: 'var(--accent)' }} />
+                <div className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--accent)' }} />
               </div>
             )}
 
-            {/* ── Account lists */}
             {!loading && (
               <div className="flex flex-col gap-5 pb-32">
                 {(showAll || activeTab === 'bank') && banks.length > 0 && (
@@ -551,7 +491,6 @@ function AkunContent() {
                     ))}
                   </AccountSection>
                 )}
-
                 {(showAll || activeTab === 'credit') && credits.length > 0 && (
                   <AccountSection title="Kartu Kredit" count={credits.length} delay={0.05}>
                     {credits.map((a, i) => (
@@ -559,7 +498,6 @@ function AkunContent() {
                     ))}
                   </AccountSection>
                 )}
-
                 {(showAll || activeTab === 'ewallet') && ewallets.length > 0 && (
                   <AccountSection title="E-Wallet" count={ewallets.length} delay={0.1}>
                     {ewallets.map((a, i) => (
@@ -567,8 +505,6 @@ function AkunContent() {
                     ))}
                   </AccountSection>
                 )}
-
-                {/* ── Empty state */}
                 {!loading && filtered.length === 0 && (
                   <EmptyState type={activeTab} onAdd={() => setAddType('open')} />
                 )}
@@ -604,7 +540,6 @@ function AkunContent() {
   )
 }
 
-// ── Default export — wraps in Suspense ───────────────────────
 export default function AkunPage() {
   return (
     <Suspense fallback={
