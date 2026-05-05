@@ -1,8 +1,8 @@
 'use client'
 
-import { memo }             from 'react'
-import { motion }           from 'framer-motion'
-import type { ReactNode }   from 'react'
+import { memo } from 'react'
+import { motion } from 'framer-motion'
+import type { ReactNode } from 'react'
 
 interface Props {
   title:    string
@@ -24,9 +24,11 @@ export const AccountSection = memo(function AccountSection({
       transition={{ duration: 0.25, delay, ease: [0.23, 1, 0.32, 1] }}
     >
       {/* Section header */}
-      <div className="flex items-center justify-between px-4 mb-2">
-        <span className="text-[11px] font-semibold tracking-widest uppercase"
-          style={{ color: 'var(--text-muted)' }}>
+      <div className="flex items-center justify-between px-4 mb-2.5">
+        <span
+          className="text-[10px] font-bold tracking-[0.15em] uppercase"
+          style={{ color: 'var(--text-muted)', opacity: 0.7 }}
+        >
           {title}
         </span>
         {count !== undefined && (
@@ -34,7 +36,7 @@ export const AccountSection = memo(function AccountSection({
             className="text-[10px] font-bold px-2 py-0.5 rounded-full"
             style={{
               background: 'var(--accent-dim)',
-              color:      'var(--accent)',
+              color: 'var(--accent)',
             }}
           >
             {count}
@@ -46,8 +48,9 @@ export const AccountSection = memo(function AccountSection({
       <div
         className="mx-4 rounded-2xl overflow-hidden"
         style={{
-          border:     '1px solid var(--border)',
+          border: '1px solid rgba(255,255,255,0.07)',
           background: 'var(--surface-card)',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
         }}
       >
         {children}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback, memo, useEffect, useRef, Suspense } from 'react'
-import { motion, AnimatePresence }              from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import {
   ChevronLeft, Trash2, CreditCard as CreditCardIcon, Wallet,
@@ -12,6 +12,7 @@ import {
 
 import { useAccounts }        from '@/hooks/useAccounts'
 import { AccountSummary }     from '@/components/account/AccountSummary'
+import { AccountInsights }    from '@/components/account/AccountInsights'
 import { AccountTabs, type AccountTab } from '@/components/account/AccountTabs'
 import { AccountSection }     from '@/components/account/AccountSection'
 import { AccountItem }        from '@/components/account/AccountItem'
@@ -22,8 +23,8 @@ import { CreditCardTransactionList } from '@/components/credit-card/CreditCardTr
 import { AccountTransactionList }    from '@/components/account/AccountTransactionList'
 
 import type { UnifiedAccount, AccountType } from '@/types/account'
-import { getProviderInfo, calcAccountSummary }  from '@/types/account'
-import type { CreditCard }  from '@/types'
+import { getProviderInfo, calcAccountSummary } from '@/types/account'
+import type { CreditCard } from '@/types'
 
 // ── Tab ↔ URL param mapping ──────────────────────────────────────────────────
 const TAB_TO_PARAM: Record<AccountTab, string> = {
@@ -38,7 +39,7 @@ const PARAM_TO_TAB: Record<string, AccountTab> = {
   ewallet:  'ewallet',
 }
 
-// ── Due date helper
+// ── Due date helper ──────────────────────────────────────────
 function getDueDays(dueDate: number): { days: number; label: string; urgent: boolean } {
   const today = new Date()
   let d = new Date(today.getFullYear(), today.getMonth(), dueDate)
@@ -77,7 +78,7 @@ function QuickAction({ icon, label, danger = false, onClick }: {
 function InfoRow({ label, value, isLast = false }: { label: string; value: string; isLast?: boolean }) {
   return (
     <div className="flex items-center justify-between px-4 py-3"
-      style={{ borderBottom: isLast ? 'none' : '1px solid var(--border)' }}>
+      style={{ borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)' }}>
       <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{label}</span>
       <span className="text-[12px] font-semibold" style={{ color: 'var(--text-primary)' }}>{value}</span>
     </div>
@@ -87,7 +88,7 @@ function InfoRow({ label, value, isLast = false }: { label: string; value: strin
 function SectionLabel({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
   return (
     <div className="flex items-center justify-between px-4 mb-2">
-      <p className="text-[11px] font-bold tracking-widest uppercase" style={{ color: 'var(--text-muted)' }}>{title}</p>
+      <p className="text-[10px] font-bold tracking-[0.15em] uppercase" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>{title}</p>
       {action && (
         <button onClick={onAction} className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: 'var(--accent)' }}>
           {action} <ArrowRight size={11} />
@@ -97,7 +98,7 @@ function SectionLabel({ title, action, onAction }: { title: string; action?: str
   )
 }
 
-// ── CREDIT CARD DETAIL
+// ── CREDIT CARD DETAIL ───────────────────────────────────────
 const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onClose, onDelete, onPay }: {
   account: UnifiedAccount; hidden: boolean; onClose: () => void; onDelete: () => void; onPay?: () => void
 }) {
@@ -163,15 +164,26 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
           top: 0, right: 0, width: 140, height: 140, borderRadius: '50%',
           background: `radial-gradient(circle, ${account.color || '#22c55e'}18 0%, transparent 70%)`,
         }} />
-        <p className="text-[9px] font-bold tracking-[0.18em] mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>TOTAL TERPAKAI</p>
+
+        {/* Usage % — prominent */}
+        <div className="flex items-end gap-2 mb-1">
+          <p className="text-[9px] font-bold tracking-[0.18em]" style={{ color: 'rgba(255,255,255,0.35)' }}>TERPAKAI</p>
+          <p className="text-[14px] font-bold leading-none" style={{ color: colors.text, fontFamily: 'var(--font-syne)' }}>
+            {pct.toFixed(0)}%
+          </p>
+        </div>
+
         <p className="text-[30px] font-bold leading-none mb-3" style={{ color: colors.text, fontFamily: 'var(--font-syne)' }}>
           {fmt(account.creditUsed ?? 0)}
         </p>
-        <div className="h-[4px] rounded-full overflow-hidden mb-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
+
+        {/* 3-zone progress bar */}
+        <div className="h-[5px] rounded-full overflow-hidden mb-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
           <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }}
             transition={{ duration: 0.9, ease: [0.23, 1, 0.32, 1], delay: 0.2 }}
             className="h-full rounded-full" style={{ background: colors.bar }} />
         </div>
+
         <div className="flex items-center gap-4">
           <div>
             <p className="text-[9px] tracking-widest font-semibold mb-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>LIMIT TOTAL</p>
@@ -197,7 +209,7 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
       {due && (
         <div className="mx-4 mb-4">
           <SectionLabel title="Tagihan Saat Ini" />
-          <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)', background: 'var(--surface-card)' }}>
+          <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'var(--surface-card)' }}>
             <div className="px-4 pt-4 pb-3">
               <div className="flex items-start justify-between mb-3">
                 <div>
@@ -255,7 +267,7 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
       {/* Info Kartu */}
       <div className="mx-4 mb-4">
         <SectionLabel title="Info Kartu" />
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)', background: 'var(--surface-card)' }}>
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'var(--surface-card)' }}>
           {extendedInfo.slice(0, infoExpanded ? extendedInfo.length : 4).map((row, i, arr) => (
             <InfoRow key={row.label} label={row.label} value={row.value} isLast={i === arr.length - 1 && !infoExpanded} />
           ))}
@@ -271,7 +283,7 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
           </AnimatePresence>
           <button onClick={() => setInfoExpanded(v => !v)}
             className="w-full flex items-center justify-center gap-1.5 py-3"
-            style={{ borderTop: '1px solid var(--border)', color: 'var(--accent)', fontSize: '12px', fontWeight: 600 }}>
+            style={{ borderTop: '1px solid rgba(255,255,255,0.05)', color: 'var(--accent)', fontSize: '12px', fontWeight: 600 }}>
             {infoExpanded ? <><ChevronUp size={14} /> Sembunyikan</> : <><ChevronDown size={14} /> Lihat Detail Kartu</>}
           </button>
         </div>
@@ -284,12 +296,11 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
           <CreditCardTransactionList creditCardId={account.id} hidden={hidden} />
         </div>
       </div>
-
     </motion.div>
   )
 })
 
-// ── BANK / EWALLET DETAIL
+// ── BANK / EWALLET DETAIL ────────────────────────────────────
 const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onClose, onDelete }: {
   account: UnifiedAccount; hidden: boolean; onClose: () => void; onDelete: () => void
 }) {
@@ -330,7 +341,7 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
 
       {/* Hero card */}
       <div className="mx-4 rounded-3xl overflow-hidden mb-4 mt-3" style={{
-        background: 'var(--surface-card)', border: '1px solid var(--border)', padding: '20px',
+        background: 'var(--surface-card)', border: '1px solid rgba(255,255,255,0.07)', padding: '20px',
       }}>
         <div className="flex items-center gap-3 mb-5">
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: provider.bg }}>
@@ -348,12 +359,17 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
         <p className="text-[30px] font-bold leading-none" style={{ color: 'var(--accent)', fontFamily: 'var(--font-syne)' }}>
           {fmt(account.balance ?? 0)}
         </p>
+        {(account.balance ?? 0) === 0 && (
+          <p className="text-[12px] mt-2" style={{ color: 'var(--text-muted)' }}>
+            Belum ada saldo · Mulai gunakan akun ini
+          </p>
+        )}
       </div>
 
       {/* Info Akun */}
       <div className="mx-4 mb-4">
         <SectionLabel title="Info Akun" />
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)', background: 'var(--surface-card)' }}>
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'var(--surface-card)' }}>
           {infoRows.map((row, i) => (
             <InfoRow key={row.label} label={row.label} value={row.value} isLast={i === infoRows.length - 1} />
           ))}
@@ -367,23 +383,32 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
           <AccountTransactionList accountId={account.id} accountType={account.type as 'bank' | 'ewallet'} hidden={hidden} />
         </div>
       </div>
-
     </motion.div>
   )
 })
 
-// ── Empty state
+// ── Empty state — improved ────────────────────────────────────
 function EmptyState({ type, onAdd }: { type: string; onAdd: () => void }) {
-  const label = type === 'bank' ? 'rekening' : type === 'credit' ? 'kartu kredit' : type === 'ewallet' ? 'e-wallet' : 'akun'
+  const config: Record<string, { emoji: string; label: string; hint: string }> = {
+    bank:    { emoji: '🏦', label: 'rekening bank',  hint: 'Hubungkan rekening untuk mulai melacak saldo' },
+    credit:  { emoji: '💳', label: 'kartu kredit',   hint: 'Pantau limit dan tagihan kartu kamu' },
+    ewallet: { emoji: '📱', label: 'e-wallet',        hint: 'Tambah GoPay, OVO, DANA, dan lainnya' },
+    all:     { emoji: '💰', label: 'akun',            hint: 'Tambahkan akun untuk mulai melacak keuangan kamu' },
+  }
+  const { emoji, label, hint } = config[type] ?? config['all']
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
       className="flex flex-col items-center justify-center py-16 px-6 text-center">
-      <div className="w-16 h-16 rounded-3xl flex items-center justify-center mb-4" style={{ background: 'var(--accent-dim)' }}>
-        <span className="text-2xl">💳</span>
+      <div className="w-16 h-16 rounded-3xl flex items-center justify-center mb-4"
+        style={{ background: 'var(--accent-dim)' }}>
+        <span className="text-3xl">{emoji}</span>
       </div>
-      <p className="text-[15px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Belum ada {label}</p>
-      <p className="text-[12px] mb-5" style={{ color: 'var(--text-muted)' }}>
-        Tambahkan {label} untuk mulai melacak keuangan kamu
+      <p className="text-[15px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+        Belum ada {label}
+      </p>
+      <p className="text-[12px] mb-5 max-w-xs" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
+        {hint}
       </p>
       <button onClick={onAdd} className="px-6 py-2.5 rounded-full text-[13px] font-bold"
         style={{ background: 'var(--accent)', color: '#fff' }}>
@@ -393,7 +418,7 @@ function EmptyState({ type, onAdd }: { type: string; onAdd: () => void }) {
   )
 }
 
-// ── Main page content (needs Suspense for useSearchParams)
+// ── Main page content ─────────────────────────────────────────
 function AkunContent() {
   const { accounts, loading, refetch, deleteAccount, payBill } = useAccounts()
   const pathname     = usePathname()
@@ -406,45 +431,33 @@ function AkunContent() {
   const [addType,   setAddType]   = useState<AccountType | null | 'open'>(null)
   const [payTarget, setPayTarget] = useState<UnifiedAccount | null>(null)
 
-  // ── Sync tab from URL on mount (e.g. /akun?tab=rekening) ────────────────
+  // Sync tab from URL on mount
   useEffect(() => {
     const tabParam = searchParams.get('tab')
     if (tabParam && PARAM_TO_TAB[tabParam]) {
       setActiveTab(PARAM_TO_TAB[tabParam])
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // intentionally only on mount
+  }, [])
 
-  // ── Tab change: update state + URL ──────────────────────────────────────
   const handleTabChange = useCallback((tab: AccountTab) => {
     setActiveTab(tab)
     const param = TAB_TO_PARAM[tab]
     router.replace(param ? `/akun?tab=${param}` : '/akun', { scroll: false })
   }, [router])
 
-  // ── Fix 1: Reset detail view whenever user taps the Akun nav tab
-  // Case A: navigating from another page to /akun
   const isFirstMount = useRef(true)
   useEffect(() => {
-    if (isFirstMount.current) {
-      isFirstMount.current = false
-      return
-    }
-    // pathname changed to /akun (came from another tab) → reset
+    if (isFirstMount.current) { isFirstMount.current = false; return }
     setSelectedId(null)
   }, [pathname])
 
-  // Case B: tapping Akun tab while already on /akun (same pathname, no re-mount)
-  // Layout dispatches 'akun:reset' event in this case
   useEffect(() => {
     const handleNavReset = () => setSelectedId(null)
     window.addEventListener('akun:reset', handleNavReset)
     return () => window.removeEventListener('akun:reset', handleNavReset)
   }, [])
 
-  // ── Fix 2: Always resolve selected from live accounts list
-  // This prevents blank screen when accounts array re-fetches and
-  // the old object reference is stale
   const selected = useMemo(
     () => selectedId ? (accounts.find(a => a.id === selectedId) ?? null) : null,
     [selectedId, accounts]
@@ -458,7 +471,6 @@ function AkunContent() {
   const credits  = useMemo(() => filtered.filter(a => a.type === 'credit'),  [filtered])
   const ewallets = useMemo(() => filtered.filter(a => a.type === 'ewallet'), [filtered])
 
-  // ── Dynamic summary: totals change based on the active tab ──────────────
   const summary = useMemo(() => calcAccountSummary(filtered), [filtered])
 
   const handleDelete = useCallback(async (account: UnifiedAccount) => {
@@ -468,9 +480,6 @@ function AkunContent() {
 
   const showAll = activeTab === 'all'
 
-  // ── Fix 3: Don't use AnimatePresence mode="wait" — it causes blank frame
-  // while old component exits before new one enters. Use mode="popLayout" or
-  // just conditional render without wait.
   return (
     <div className="relative min-h-screen overflow-hidden" style={{ background: 'transparent' }}>
       <AnimatePresence mode="popLayout" initial={false}>
@@ -497,27 +506,44 @@ function AkunContent() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
           >
+            {/* ── Page header */}
             <div className="px-4 pt-4 pb-3">
-              <h1 className="text-[22px] font-bold tracking-tight" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Akun</h1>
-              <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-muted)' }}>Semua rekening dan kartu dalam satu tempat</p>
+              <h1 className="text-[22px] font-bold tracking-tight" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em', fontFamily: 'var(--font-syne)' }}>
+                Akun
+              </h1>
+              <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                Semua rekening dan kartu dalam satu tempat
+              </p>
             </div>
 
-            <div className="mb-4">
+            {/* ── 1. Summary card (Net Saldo primary) */}
+            <div className="mb-3">
               <AccountSummary summary={summary} hidden={hidden} onToggleHidden={() => setHidden(v => !v)} />
             </div>
 
-            <div className="mb-4">
-              <AccountTabs active={activeTab} onChange={handleTabChange} />
-            </div>
-
-            {loading && (
-              <div className="flex justify-center py-10">
-                <div className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--accent)' }} />
+            {/* ── 2. Insight strip */}
+            {!loading && accounts.length > 0 && (
+              <div className="mb-4">
+                <AccountInsights summary={summary} accounts={accounts} />
               </div>
             )}
 
+            {/* ── 3. Filter tabs */}
+            <div className="mb-5">
+              <AccountTabs active={activeTab} onChange={handleTabChange} />
+            </div>
+
+            {/* ── Loading */}
+            {loading && (
+              <div className="flex justify-center py-10">
+                <div className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin"
+                  style={{ borderColor: 'var(--accent)' }} />
+              </div>
+            )}
+
+            {/* ── Account lists */}
             {!loading && (
-              <div className="flex flex-col gap-4 pb-32">
+              <div className="flex flex-col gap-5 pb-32">
                 {(showAll || activeTab === 'bank') && banks.length > 0 && (
                   <AccountSection title="Rekening Bank" count={banks.length} delay={0}>
                     {banks.map((a, i) => (
@@ -525,6 +551,7 @@ function AkunContent() {
                     ))}
                   </AccountSection>
                 )}
+
                 {(showAll || activeTab === 'credit') && credits.length > 0 && (
                   <AccountSection title="Kartu Kredit" count={credits.length} delay={0.05}>
                     {credits.map((a, i) => (
@@ -532,6 +559,7 @@ function AkunContent() {
                     ))}
                   </AccountSection>
                 )}
+
                 {(showAll || activeTab === 'ewallet') && ewallets.length > 0 && (
                   <AccountSection title="E-Wallet" count={ewallets.length} delay={0.1}>
                     {ewallets.map((a, i) => (
@@ -539,6 +567,8 @@ function AkunContent() {
                     ))}
                   </AccountSection>
                 )}
+
+                {/* ── Empty state */}
                 {!loading && filtered.length === 0 && (
                   <EmptyState type={activeTab} onAdd={() => setAddType('open')} />
                 )}
@@ -574,7 +604,7 @@ function AkunContent() {
   )
 }
 
-// ── Default export — wraps in Suspense so useSearchParams works ──────────────
+// ── Default export — wraps in Suspense ───────────────────────
 export default function AkunPage() {
   return (
     <Suspense fallback={
