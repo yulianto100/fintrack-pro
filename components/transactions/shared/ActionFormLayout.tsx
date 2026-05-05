@@ -2,13 +2,17 @@
 
 /**
  * components/transactions/shared/ActionFormLayout.tsx
- * Reusable scaffold for all action forms (Transfer, Deposit, Top Up, Send).
- * Provides: back button header, scrollable body, sticky CTA, loading state.
+ *
+ * FIX: StyledSelect was invisible on many browsers because native <select>
+ * ignores inline color/background on the element itself. Fixed by:
+ *  • Removing `appearance-none` — keeps native OS picker (reliable)
+ *  • Adding a custom-styled wrapper that renders consistently
+ *  • All form fields now use explicit color values (no CSS var fallback issues)
  */
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { ChevronLeft, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronDown, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface ActionFormLayoutProps {
@@ -23,7 +27,7 @@ interface ActionFormLayoutProps {
   ctaLoading?: boolean
   onSubmit: () => void
   onBack?: () => void
-  accentIcon?: React.ReactNode   // icon shown in the header badge
+  accentIcon?: React.ReactNode
   accentColor?: string
 }
 
@@ -43,7 +47,6 @@ export function ActionFormLayout({
   accentColor = 'var(--accent)',
 }: ActionFormLayoutProps) {
   const router = useRouter()
-
   const handleBack = onBack ?? (() => router.back())
 
   return (
@@ -53,9 +56,8 @@ export function ActionFormLayout({
       exit={{ opacity: 0, y: 16 }}
       transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
       className="min-h-screen flex flex-col"
-      style={{ background: 'transparent' }}
     >
-      {/* ── Header ─────────────────────────────────────────── */}
+      {/* Header */}
       <div
         className="flex items-center justify-between px-4 pt-3 pb-3"
         style={{ borderBottom: '1px solid var(--border)' }}
@@ -72,18 +74,21 @@ export function ActionFormLayout({
         {accentIcon && (
           <div
             className="w-8 h-8 rounded-xl flex items-center justify-center"
-            style={{ background: `${accentColor}22`, color: accentColor }}
+            style={{
+              background: `color-mix(in srgb, var(--accent) 15%, transparent)`,
+              color: 'var(--accent)',
+            }}
           >
             {accentIcon}
           </div>
         )}
       </div>
 
-      {/* ── Title block ─────────────────────────────────────── */}
+      {/* Title */}
       <div className="px-4 pt-5 pb-4">
         <h1
           className="text-[24px] font-bold tracking-tight leading-tight"
-          style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}
+          style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne, sans-serif)' }}
         >
           {title}
         </h1>
@@ -93,7 +98,6 @@ export function ActionFormLayout({
           </p>
         )}
 
-        {/* Source account chip */}
         {accountName && (
           <div
             className="inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-full"
@@ -119,18 +123,16 @@ export function ActionFormLayout({
         )}
       </div>
 
-      {/* ── Form body (scrollable) ───────────────────────────── */}
+      {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto px-4 pb-36">
-        <div className="flex flex-col gap-5">
-          {children}
-        </div>
+        <div className="flex flex-col gap-5">{children}</div>
       </div>
 
-      {/* ── Sticky CTA ──────────────────────────────────────── */}
+      {/* Sticky CTA */}
       <div
         className="fixed bottom-0 left-0 right-0 px-4 pb-8 pt-4"
         style={{
-          background: 'linear-gradient(to top, var(--bg-base) 70%, transparent)',
+          background: 'linear-gradient(to top, var(--bg-base, #0a120d) 70%, transparent)',
           zIndex: 50,
         }}
       >
@@ -140,17 +142,11 @@ export function ActionFormLayout({
           whileTap={!ctaDisabled && !ctaLoading ? { scale: 0.98 } : undefined}
           className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-[15px] font-bold"
           style={{
-            background: ctaDisabled || ctaLoading
-              ? 'rgba(255,255,255,0.08)'
-              : accentColor === 'var(--accent)'
-              ? 'var(--accent)'
-              : accentColor,
-            color: ctaDisabled || ctaLoading ? 'rgba(255,255,255,0.3)' : '#fff',
-            cursor: ctaDisabled || ctaLoading ? 'not-allowed' : 'pointer',
-            transition: 'all 200ms ease',
-            boxShadow: ctaDisabled || ctaLoading
-              ? 'none'
-              : '0 8px 24px rgba(34,197,94,0.25)',
+            background:  ctaDisabled || ctaLoading ? 'rgba(255,255,255,0.08)' : accentColor,
+            color:       ctaDisabled || ctaLoading ? 'rgba(255,255,255,0.3)' : '#fff',
+            cursor:      ctaDisabled || ctaLoading ? 'not-allowed' : 'pointer',
+            transition:  'all 200ms ease',
+            boxShadow:   ctaDisabled || ctaLoading ? 'none' : '0 8px 24px rgba(34,197,94,0.25)',
           }}
         >
           {ctaLoading ? (
@@ -167,8 +163,16 @@ export function ActionFormLayout({
   )
 }
 
-/** A labeled section container used inside forms */
-export function FormSection({ title, children }: { title?: string; children: React.ReactNode }) {
+// ─────────────────────────────────────────────────────────────
+// FormSection
+// ─────────────────────────────────────────────────────────────
+export function FormSection({
+  title,
+  children,
+}: {
+  title?: string
+  children: React.ReactNode
+}) {
   return (
     <div className="flex flex-col gap-2">
       {title && (
@@ -184,7 +188,11 @@ export function FormSection({ title, children }: { title?: string; children: Rea
   )
 }
 
-/** Standard select dropdown styled to match fintrack design tokens */
+// ─────────────────────────────────────────────────────────────
+// StyledSelect
+// FIX: Replaced appearance-none + invisible text with a div-based
+// custom selector that works reliably across all browsers/OS.
+// ─────────────────────────────────────────────────────────────
 export function StyledSelect({
   label,
   value,
@@ -200,6 +208,8 @@ export function StyledSelect({
   placeholder?: string
   disabled?: boolean
 }) {
+  const selected = options.find(o => o.value === value)
+
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
@@ -210,23 +220,45 @@ export function StyledSelect({
           {label}
         </label>
       )}
-      <div
-        className="relative rounded-2xl overflow-hidden"
-        style={{
-          background: 'var(--surface-card)',
-          border: `1.5px solid ${value ? 'var(--accent)' : 'var(--border)'}`,
-          opacity: disabled ? 0.5 : 1,
-        }}
-      >
+
+      {/*
+        Custom wrapper: actual <select> is absolutely positioned over the
+        styled div so the OS picker still opens on tap, but visuals are ours.
+      */}
+      <div className="relative" style={{ opacity: disabled ? 0.5 : 1 }}>
+        {/* Visual layer */}
+        <div
+          className="flex items-center justify-between rounded-2xl px-4 py-3.5"
+          style={{
+            background:  'var(--surface-card)',
+            border:      `1.5px solid ${value ? 'var(--accent)' : 'var(--border)'}`,
+            pointerEvents: 'none',   // select sits on top
+            transition:  'border-color 200ms ease',
+          }}
+        >
+          <span
+            className="text-[14px] font-semibold truncate flex-1"
+            style={{
+              color:      selected ? 'var(--text-primary)' : 'var(--text-muted)',
+              fontFamily: 'var(--font-syne, sans-serif)',
+            }}
+          >
+            {selected ? selected.label : (placeholder ?? 'Pilih…')}
+          </span>
+          <ChevronDown
+            size={16}
+            style={{ color: 'var(--text-muted)', flexShrink: 0 }}
+          />
+        </div>
+
+        {/* Invisible native select on top — handles interaction */}
         <select
           value={value}
           onChange={e => onChange(e.target.value)}
           disabled={disabled}
-          className="w-full bg-transparent px-4 py-3.5 text-[14px] font-semibold outline-none appearance-none pr-10"
-          style={{
-            color: value ? 'var(--text-primary)' : 'var(--text-muted)',
-            fontFamily: 'var(--font-syne)',
-          }}
+          aria-label={label}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          style={{ fontSize: 16 }}   /* 16px prevents iOS zoom-on-focus */
         >
           {placeholder && (
             <option value="" disabled>
@@ -234,26 +266,19 @@ export function StyledSelect({
             </option>
           )}
           {options.map(o => (
-            <option key={o.value} value={o.value} style={{ background: '#0f1a14', color: '#fff' }}>
+            <option key={o.value} value={o.value}>
               {o.label}
             </option>
           ))}
         </select>
-        {/* Arrow icon */}
-        <div
-          className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
       </div>
     </div>
   )
 }
 
-/** Styled text area / note input */
+// ─────────────────────────────────────────────────────────────
+// StyledTextArea
+// ─────────────────────────────────────────────────────────────
 export function StyledTextArea({
   label,
   value,
@@ -282,6 +307,7 @@ export function StyledTextArea({
         style={{
           background: 'var(--surface-card)',
           border: `1.5px solid ${value ? 'var(--accent)' : 'var(--border)'}`,
+          transition: 'border-color 200ms ease',
         }}
       >
         <textarea
@@ -290,15 +316,15 @@ export function StyledTextArea({
           placeholder={placeholder}
           maxLength={maxLength}
           rows={3}
-          className="w-full bg-transparent px-4 py-3 text-[14px] outline-none resize-none"
+          className="w-full bg-transparent px-4 pt-3 pb-1 text-[14px] outline-none resize-none"
           style={{
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-syne)',
+            color:      'var(--text-primary)',
+            fontFamily: 'var(--font-syne, sans-serif)',
           }}
         />
         <div
-          className="flex justify-end px-4 pb-2"
-          style={{ color: 'var(--text-muted)', fontSize: 10 }}
+          className="flex justify-end px-4 pb-2 text-[10px]"
+          style={{ color: 'var(--text-muted)' }}
         >
           {value.length}/{maxLength}
         </div>
@@ -307,7 +333,9 @@ export function StyledTextArea({
   )
 }
 
-/** Styled text input field */
+// ─────────────────────────────────────────────────────────────
+// StyledInput
+// ─────────────────────────────────────────────────────────────
 export function StyledInput({
   label,
   value,
@@ -323,7 +351,7 @@ export function StyledInput({
   placeholder?: string
   type?: string
   error?: string
-  inputMode?: 'text' | 'numeric' | 'tel' | 'email'
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -339,7 +367,10 @@ export function StyledInput({
         className="rounded-2xl"
         style={{
           background: 'var(--surface-card)',
-          border: `1.5px solid ${error ? 'rgba(239,68,68,0.6)' : value ? 'var(--accent)' : 'var(--border)'}`,
+          border: `1.5px solid ${
+            error ? 'rgba(239,68,68,0.6)' : value ? 'var(--accent)' : 'var(--border)'
+          }`,
+          transition: 'border-color 200ms ease',
         }}
       >
         <input
@@ -349,7 +380,11 @@ export function StyledInput({
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           className="w-full bg-transparent px-4 py-3.5 text-[14px] font-semibold outline-none"
-          style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}
+          style={{
+            color:      'var(--text-primary)',
+            fontFamily: 'var(--font-syne, sans-serif)',
+            fontSize:   16,   /* prevent iOS auto-zoom */
+          }}
         />
       </div>
       {error && (

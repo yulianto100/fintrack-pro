@@ -2,36 +2,39 @@
 
 /**
  * components/transactions/shared/CurrencyInput.tsx
- * Reusable IDR currency input with live Rp formatting.
- * Supports validation, disabled state, and max-amount guard.
+ *
+ * FIX: Cursor-jump bug — controlled input with toLocaleString() caused the
+ * cursor to jump on every keystroke. Now uses local displayVal state:
+ *  • While typing  → shows raw digits (no cursor jumping)
+ *  • On blur / chip click → shows formatted "1.500.000"
+ *  • onChange always receives clean number
  */
 
-import React, { useRef, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 
 interface CurrencyInputProps {
-  value: number                // raw numeric value (0 = empty)
+  value: number
   onChange: (value: number) => void
   placeholder?: string
-  max?: number                 // if set, show warning when exceeded
+  max?: number
   disabled?: boolean
-  error?: string               // inline error message
+  error?: string
   label?: string
-  hint?: string                // helper text below input
+  hint?: string
   autoFocus?: boolean
 }
 
-/** Format a number as "Rp 1.500.000" (id-ID locale). */
 export function formatRp(n: number): string {
   return `Rp ${n.toLocaleString('id-ID')}`
 }
 
-/** Parse a Rp-formatted string back to a number. */
 export function parseRp(s: string): number {
-  // strip everything except digits
   const digits = s.replace(/[^\d]/g, '')
-  return digits ? parseInt(digits, 10) : 0
+  return digits ? Math.min(parseInt(digits, 10), 9_999_999_999) : 0
 }
+
+const CHIPS = [50_000, 100_000, 200_000, 500_000, 1_000_000]
 
 export function CurrencyInput({
   value,
@@ -45,20 +48,63 @@ export function CurrencyInput({
   autoFocus = false,
 }: CurrencyInputProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const exceeds = max !== undefined && value > max
+  const focused  = useRef(false)
+
+  // Local display value: raw digits while typing, formatted on blur
+  const [displayVal, setDisplayVal] = useState(
+    value > 0 ? value.toLocaleString('id-ID') : ''
+  )
+
+  // Sync when parent updates value externally (chip, clear, form reset)
+  useEffect(() => {
+    if (!focused.current) {
+      setDisplayVal(value > 0 ? value.toLocaleString('id-ID') : '')
+    }
+  }, [value])
+
+  const handleFocus = useCallback(() => {
+    focused.current = true
+    // Switch to raw digits so cursor never jumps mid-number
+    setDisplayVal(value > 0 ? String(value) : '')
+  }, [value])
+
+  const handleBlur = useCallback(() => {
+    focused.current = false
+    setDisplayVal(value > 0 ? value.toLocaleString('id-ID') : '')
+  }, [value])
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const raw = e.target.value
-      const num = parseRp(raw)
+      // Strip everything except digits — keep exactly what user typed
+      const raw = e.target.value.replace(/[^\d]/g, '')
+      const num = raw ? Math.min(parseInt(raw, 10), 9_999_999_999) : 0
+      setDisplayVal(raw)   // raw string → no cursor jump
       onChange(num)
     },
     [onChange]
   )
 
-  // Quick-amount chips (common top-up/transfer amounts in IDR)
-  const CHIPS = [50_000, 100_000, 200_000, 500_000, 1_000_000]
+  // Use onMouseDown (fires before onBlur) so focus state is still active
+  const handleChip = useCallback(
+    (chip: number) => {
+      onChange(chip)
+      setDisplayVal(focused.current ? String(chip) : chip.toLocaleString('id-ID'))
+      inputRef.current?.focus()
+    },
+    [onChange]
+  )
 
+  const handleClear = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      onChange(0)
+      setDisplayVal('')
+      inputRef.current?.focus()
+    },
+    [onChange]
+  )
+
+  const exceeds     = max !== undefined && value > max
   const borderColor = error || exceeds
     ? 'rgba(239,68,68,0.60)'
     : value > 0
@@ -76,44 +122,52 @@ export function CurrencyInput({
         </label>
       )}
 
-      {/* Input wrapper */}
       <div
-        className="flex items-center gap-3 rounded-2xl px-4 py-3.5 transition-all"
+        className="flex items-center gap-3 rounded-2xl px-4 py-3.5"
         style={{
           background: 'var(--surface-card)',
-          border: `1.5px solid ${borderColor}`,
-          opacity: disabled ? 0.5 : 1,
+          border:     `1.5px solid ${borderColor}`,
+          opacity:    disabled ? 0.5 : 1,
           transition: 'border-color 200ms ease',
+          cursor:     disabled ? 'not-allowed' : 'text',
         }}
-        onClick={() => inputRef.current?.focus()}
+        onClick={() => !disabled && inputRef.current?.focus()}
       >
         <span
-          className="text-[18px] font-bold flex-shrink-0"
-          style={{ color: value > 0 ? 'var(--accent)' : 'var(--text-muted)', fontFamily: 'var(--font-jetbrains)' }}
+          className="text-[18px] font-bold flex-shrink-0 select-none"
+          style={{
+            color:      value > 0 ? 'var(--accent)' : 'var(--text-muted)',
+            fontFamily: 'var(--font-jetbrains, monospace)',
+          }}
         >
           Rp
         </span>
+
         <input
           ref={inputRef}
           autoFocus={autoFocus}
           disabled={disabled}
           inputMode="numeric"
-          pattern="[0-9]*"
-          value={value > 0 ? value.toLocaleString('id-ID') : ''}
+          value={displayVal}
           onChange={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           placeholder={placeholder}
-          className="flex-1 bg-transparent outline-none text-[22px] font-bold tabular-nums"
+          className="flex-1 bg-transparent outline-none text-[22px] font-bold"
           style={{
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-syne)',
-            caretColor: 'var(--accent)',
+            color:              'var(--text-primary)',
+            fontFamily:         'var(--font-syne, sans-serif)',
+            caretColor:         'var(--accent)',
+            fontVariantNumeric: 'tabular-nums',
+            minWidth:           0,
           }}
         />
+
         {value > 0 && !disabled && (
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onChange(0) }}
-            className="text-[10px] px-2 py-1 rounded-lg"
+            onMouseDown={handleClear}
+            className="flex-shrink-0 text-[10px] px-2 py-1 rounded-lg"
             style={{ color: 'var(--text-muted)', background: 'rgba(255,255,255,0.06)' }}
           >
             ✕
@@ -121,33 +175,37 @@ export function CurrencyInput({
         )}
       </div>
 
-      {/* Quick chips */}
+      {/* Quick-amount chips */}
       {!disabled && (
         <div className="flex gap-1.5 flex-wrap mt-0.5">
           {CHIPS.map(chip => (
             <button
               key={chip}
               type="button"
-              onClick={() => onChange(chip)}
-              className="px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all"
+              onMouseDown={() => handleChip(chip)}
+              className="px-2.5 py-1 rounded-full text-[11px] font-semibold"
               style={{
                 background: value === chip ? 'var(--accent)' : 'var(--surface-card)',
-                color: value === chip ? '#fff' : 'var(--text-muted)',
-                border: `1px solid ${value === chip ? 'var(--accent)' : 'var(--border)'}`,
+                color:      value === chip ? '#fff' : 'var(--text-muted)',
+                border:     `1px solid ${value === chip ? 'var(--accent)' : 'var(--border)'}`,
+                transition: 'all 150ms ease',
               }}
             >
-              {chip >= 1_000_000 ? `${chip / 1_000_000}jt` : `${chip / 1_000}rb`}
+              {chip >= 1_000_000
+                ? `${chip / 1_000_000}jt`
+                : `${chip / 1_000}rb`}
             </button>
           ))}
+
           {max !== undefined && max > 0 && (
             <button
               type="button"
-              onClick={() => onChange(max)}
-              className="px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all"
+              onMouseDown={() => handleChip(max)}
+              className="px-2.5 py-1 rounded-full text-[11px] font-semibold"
               style={{
                 background: value === max ? 'var(--accent)' : 'rgba(34,197,94,0.08)',
-                color: value === max ? '#fff' : 'var(--accent)',
-                border: `1px solid ${value === max ? 'var(--accent)' : 'rgba(34,197,94,0.25)'}`,
+                color:      value === max ? '#fff' : 'var(--accent)',
+                border:     `1px solid ${value === max ? 'var(--accent)' : 'rgba(34,197,94,0.25)'}`,
               }}
             >
               Maks
@@ -160,13 +218,12 @@ export function CurrencyInput({
       <AnimatePresence>
         {(error || exceeds || hint) && (
           <motion.p
+            key={error ?? 'hint'}
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             className="text-[11px] font-medium px-1"
-            style={{
-              color: error || exceeds ? '#ef4444' : 'var(--text-muted)',
-            }}
+            style={{ color: error || exceeds ? '#ef4444' : 'var(--text-muted)' }}
           >
             {error
               ? error

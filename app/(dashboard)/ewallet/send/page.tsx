@@ -2,112 +2,150 @@
 
 /**
  * app/(dashboard)/ewallet/send/page.tsx
- * Kirim (send) form for e-wallet accounts.
- * Route: /ewallet/send?accountId=...&accountName=...&balance=...
+ *
+ * FIX: onBlur fired before onClick on suggestion list, causing contacts
+ * to never register when tapped. Fixed by:
+ *  • Using onMouseDown instead of onClick on suggestion buttons
+ *  • Removing the setTimeout blur workaround (unreliable on mobile)
+ *  • Tracking suggestion hover with a ref so blur knows to stay open
  */
 
-import { useState, useMemo, useCallback, Suspense } from 'react'
+import { useState, useMemo, useRef, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { ArrowRight, Search } from 'lucide-react'
+import { ArrowRight, Search, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-import { ActionFormLayout, FormSection, StyledTextArea, StyledInput } from '@/components/transactions/shared/ActionFormLayout'
+import {
+  ActionFormLayout,
+  FormSection,
+  StyledTextArea,
+} from '@/components/transactions/shared/ActionFormLayout'
 import { CurrencyInput, formatRp } from '@/components/transactions/shared/CurrencyInput'
 import { SuccessState } from '@/components/transactions/shared/SuccessState'
 
-// ── Mock contact list (in production: search /api/users/lookup) ─
+// ── Mock contacts ────────────────────────────────────────────
 const MOCK_CONTACTS = [
-  { id: 'u001', name: 'Budi Santoso',   phone: '081234567890', provider: 'GoPay' },
-  { id: 'u002', name: 'Sari Dewi',      phone: '082345678901', provider: 'OVO'   },
-  { id: 'u003', name: 'Raka Putra',     phone: '083456789012', provider: 'Dana'  },
-  { id: 'u004', name: 'Anisa Rahma',    phone: '081987654321', provider: 'GoPay' },
-  { id: 'u005', name: 'Fajar Nugroho',  phone: '089876543210', provider: 'OVO'   },
+  { id: 'u001', name: 'Budi Santoso',  phone: '081234567890', provider: 'GoPay' },
+  { id: 'u002', name: 'Sari Dewi',     phone: '082345678901', provider: 'OVO'   },
+  { id: 'u003', name: 'Raka Putra',    phone: '083456789012', provider: 'Dana'  },
+  { id: 'u004', name: 'Anisa Rahma',   phone: '081987654321', provider: 'GoPay' },
+  { id: 'u005', name: 'Fajar Nugroho', phone: '089876543210', provider: 'OVO'   },
 ]
-
 type Contact = (typeof MOCK_CONTACTS)[number]
 
-// ── Validation ─────────────────────────────────────────────
-function validateSend(p: {
+// ── Helpers ───────────────────────────────────────────────────
+function searchContacts(q: string): Contact[] {
+  if (q.length < 2) return []
+  const lower = q.toLowerCase()
+  return MOCK_CONTACTS.filter(
+    c => c.name.toLowerCase().includes(lower) || c.phone.includes(q)
+  ).slice(0, 5)
+}
+
+function validate(p: {
   nominal: number
-  tujuan: string        // phone number or user id
-  selectedContact: Contact | null
+  recipient: Contact | null
+  manualPhone: string
   balance: number
 }) {
   const errors: Record<string, string> = {}
-  if (!p.tujuan.trim() && !p.selectedContact)
-    errors.tujuan = 'Masukkan nomor atau pilih penerima'
-  if (p.nominal <= 0) errors.nominal = 'Nominal harus lebih dari Rp 0'
-  if (p.nominal > p.balance)
-    errors.nominal = `Saldo tidak cukup (saldo: ${formatRp(p.balance)})`
-  if (p.nominal < 1_000) errors.nominal = 'Minimal kirim Rp 1.000'
+  const hasRecipient = p.recipient !== null || p.manualPhone.trim().length >= 8
+  if (!hasRecipient) errors.tujuan = 'Masukkan nomor atau pilih penerima'
+  if (p.nominal <= 0)           errors.nominal = 'Nominal harus lebih dari Rp 0'
+  if (p.nominal < 1_000)        errors.nominal = 'Minimal kirim Rp 1.000'
+  if (p.nominal > p.balance)    errors.nominal = `Saldo tidak cukup (saldo: ${formatRp(p.balance)})`
   return errors
 }
 
-// ── Simulate send ──────────────────────────────────────────
-async function simulateSend(p: {
+async function simulateSend(params: {
   accountId: string
-  toUserId?: string
   toPhone: string
   amount: number
   notes: string
 }): Promise<void> {
-  // In production: POST /api/transfers/ewallet or /api/transactions
   await new Promise(r => setTimeout(r, 1700))
 }
 
-// ── Phone search hook ──────────────────────────────────────
-function useContactSearch(query: string): Contact[] {
-  if (query.length < 3) return []
-  const q = query.toLowerCase()
-  return MOCK_CONTACTS.filter(
-    c =>
-      c.name.toLowerCase().includes(q) ||
-      c.phone.includes(q)
-  ).slice(0, 4)
+// ── Avatar chip ───────────────────────────────────────────────
+function Avatar({ name, size = 36 }: { name: string; size?: number }) {
+  return (
+    <div
+      className="flex-shrink-0 flex items-center justify-center rounded-full font-bold"
+      style={{
+        width: size, height: size,
+        background: 'var(--accent)',
+        color: '#fff',
+        fontSize: size * 0.38,
+      }}
+    >
+      {name[0].toUpperCase()}
+    </div>
+  )
 }
 
-// ── Main form ──────────────────────────────────────────────
+// ── Main form ─────────────────────────────────────────────────
 function SendForm() {
   const sp = useSearchParams()
-  const accountId   = sp.get('accountId') ?? ''
+  const accountId   = sp.get('accountId')   ?? ''
   const accountName = sp.get('accountName') ?? 'E-Wallet Saya'
   const balance     = parseInt(sp.get('balance') ?? '0', 10)
 
-  const [nominal, setNominal]             = useState(0)
-  const [query, setQuery]                 = useState('')           // raw input
-  const [selectedContact, setSelected]   = useState<Contact | null>(null)
-  const [catatan, setCatatan]             = useState('')
-  const [loading, setLoading]             = useState(false)
-  const [success, setSuccess]             = useState(false)
-  const [error, setError]                 = useState('')
-  const [submitted, setSubmitted]         = useState(false)
-  const [showSuggestions, setShowSugg]   = useState(false)
+  // Form state
+  const [nominal,    setNominal]    = useState(0)
+  const [query,      setQuery]      = useState('')
+  const [recipient,  setRecipient]  = useState<Contact | null>(null)
+  const [catatan,    setCatatan]    = useState('')
+  const [loading,    setLoading]    = useState(false)
+  const [success,    setSuccess]    = useState(false)
+  const [apiError,   setApiError]   = useState('')
+  const [submitted,  setSubmitted]  = useState(false)
+  const [showDropdown, setShowDrop] = useState(false)
 
-  const suggestions = useContactSearch(query)
+  // FIX: track whether pointer is inside the dropdown so blur doesn't close it
+  const insideDropdown = useRef(false)
 
-  const tujuanValue = selectedContact ? selectedContact.phone : query
+  const suggestions = useMemo(() => searchContacts(query), [query])
 
   const currentErrors = useMemo(() => {
     if (!submitted) return {}
-    return validateSend({ nominal, tujuan: tujuanValue, selectedContact, balance })
-  }, [submitted, nominal, tujuanValue, selectedContact, balance])
+    return validate({ nominal, recipient, manualPhone: query, balance })
+  }, [submitted, nominal, recipient, query, balance])
 
   const isValid = Object.keys(
-    validateSend({ nominal, tujuan: tujuanValue, selectedContact, balance })
+    validate({ nominal, recipient, manualPhone: query, balance })
   ).length === 0
 
+  // ── Contact selection ─────────────────────────────────────
+  // onMouseDown fires BEFORE the input's onBlur, so the contact registers
   const pickContact = useCallback((c: Contact) => {
-    setSelected(c)
+    setRecipient(c)
     setQuery(c.name)
-    setShowSugg(false)
+    setShowDrop(false)
+    insideDropdown.current = false
   }, [])
 
-  const clearContact = useCallback(() => {
-    setSelected(null)
+  const clearRecipient = useCallback(() => {
+    setRecipient(null)
     setQuery('')
-    setShowSugg(false)
+    setShowDrop(false)
   }, [])
 
+  // Input handlers
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuery(e.target.value)
+    setRecipient(null)          // clear selection when user edits
+    setShowDrop(true)
+    if (submitted) setApiError('')
+  }
+
+  const handleInputFocus = () => setShowDrop(true)
+
+  const handleInputBlur = () => {
+    // Only close if pointer is not inside the dropdown
+    if (!insideDropdown.current) setShowDrop(false)
+  }
+
+  // ── Submit ────────────────────────────────────────────────
   async function handleSubmit() {
     setSubmitted(true)
     if (!isValid) return
@@ -115,25 +153,25 @@ function SendForm() {
     try {
       await simulateSend({
         accountId,
-        toUserId: selectedContact?.id,
-        toPhone:  selectedContact?.phone ?? query,
-        amount:   nominal,
-        notes:    catatan,
+        toPhone: recipient?.phone ?? query,
+        amount:  nominal,
+        notes:   catatan,
       })
       setSuccess(true)
     } catch {
-      setError('Pengiriman gagal. Silakan coba lagi.')
+      setApiError('Pengiriman gagal. Silakan coba lagi.')
     } finally {
       setLoading(false)
     }
   }
 
-  const recipientName = selectedContact ? selectedContact.name : query
+  // ── Success summary ───────────────────────────────────────
+  const recipientName = recipient?.name ?? query
   const summaryRows = [
-    { label: 'Dari',          value: accountName },
-    { label: 'Ke',            value: recipientName || '-' },
-    { label: 'Nominal',       value: formatRp(nominal) },
-    { label: 'Saldo Sisa',    value: formatRp(balance - nominal) },
+    { label: 'Dari',        value: accountName },
+    { label: 'Ke',          value: recipientName || '-' },
+    { label: 'Nominal',     value: formatRp(nominal) },
+    { label: 'Saldo Sisa',  value: formatRp(balance - nominal) },
     ...(catatan ? [{ label: 'Catatan', value: catatan }] : []),
   ]
 
@@ -162,7 +200,7 @@ function SendForm() {
         onSubmit={handleSubmit}
         accentIcon={<ArrowRight size={16} />}
       >
-        {/* ── Tujuan ─────────────────────────────────────────── */}
+        {/* ── Penerima ─────────────────────────────────────── */}
         <FormSection title="Penerima">
           <div className="flex flex-col gap-1.5">
             <label
@@ -172,7 +210,7 @@ function SendForm() {
               Nomor / Nama Penerima
             </label>
 
-            {/* Input wrapper */}
+            {/* Input box */}
             <div
               className="flex items-center gap-3 rounded-2xl px-4 py-3"
               style={{
@@ -180,86 +218,104 @@ function SendForm() {
                 border: `1.5px solid ${
                   currentErrors.tujuan
                     ? 'rgba(239,68,68,0.6)'
-                    : selectedContact || query
+                    : recipient || query
                     ? 'var(--accent)'
                     : 'var(--border)'
                 }`,
+                transition: 'border-color 200ms ease',
               }}
             >
               <Search size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
 
-              {selectedContact ? (
-                // Selected contact chip
-                <div className="flex-1 flex items-center gap-2">
-                  <div
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold"
-                    style={{ background: 'var(--accent)', color: '#fff' }}
-                  >
-                    {selectedContact.name[0]}
-                  </div>
-                  <div>
-                    <p className="text-[13px] font-bold leading-none" style={{ color: 'var(--text-primary)' }}>
-                      {selectedContact.name}
+              {recipient ? (
+                // Selected contact display
+                <div className="flex-1 flex items-center gap-2 min-w-0">
+                  <Avatar name={recipient.name} size={28} />
+                  <div className="min-w-0">
+                    <p
+                      className="text-[13px] font-bold leading-none truncate"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      {recipient.name}
                     </p>
-                    <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                      {selectedContact.phone} · {selectedContact.provider}
+                    <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      {recipient.phone} · {recipient.provider}
                     </p>
                   </div>
                 </div>
               ) : (
                 <input
                   value={query}
-                  onChange={e => {
-                    setQuery(e.target.value)
-                    setShowSugg(true)
-                    if (submitted) setError('')
-                  }}
-                  onFocus={() => setShowSugg(true)}
-                  onBlur={() => setTimeout(() => setShowSugg(false), 150)}
+                  onChange={handleInputChange}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
                   placeholder="Cari nama atau nomor HP…"
-                  inputMode="text"
-                  className="flex-1 bg-transparent outline-none text-[14px] font-semibold"
-                  style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}
+                  className="flex-1 bg-transparent outline-none text-[14px] font-semibold min-w-0"
+                  style={{
+                    color:      'var(--text-primary)',
+                    fontFamily: 'var(--font-syne, sans-serif)',
+                    fontSize:   16, // prevent iOS zoom
+                  }}
                 />
               )}
 
-              {(selectedContact || query) && (
+              {(recipient || query) && (
                 <button
                   type="button"
-                  onClick={clearContact}
-                  className="text-[10px] px-2 py-1 rounded-lg flex-shrink-0"
+                  onMouseDown={clearRecipient}
+                  className="flex-shrink-0 p-1 rounded-lg"
                   style={{ color: 'var(--text-muted)', background: 'rgba(255,255,255,0.06)' }}
                 >
-                  ✕
+                  <X size={12} />
                 </button>
               )}
             </div>
 
-            {/* Suggestions dropdown */}
+            {/* Suggestion dropdown */}
             <AnimatePresence>
-              {showSuggestions && suggestions.length > 0 && (
+              {showDropdown && suggestions.length > 0 && !recipient && (
                 <motion.div
-                  initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.15 }}
                   className="rounded-2xl overflow-hidden"
-                  style={{ background: 'var(--surface-card)', border: '1px solid var(--border)', boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}
+                  style={{
+                    background:  'var(--surface-card)',
+                    border:      '1px solid var(--border)',
+                    boxShadow:   '0 8px 24px rgba(0,0,0,0.35)',
+                  }}
+                  // Track pointer inside dropdown so blur doesn't dismiss it
+                  onMouseEnter={() => { insideDropdown.current = true  }}
+                  onMouseLeave={() => { insideDropdown.current = false }}
+                  onTouchStart={() => { insideDropdown.current = true  }}
                 >
                   {suggestions.map((c, i) => (
                     <button
                       key={c.id}
                       type="button"
-                      onClick={() => pickContact(c)}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:opacity-80 transition-opacity"
-                      style={{ borderBottom: i < suggestions.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}
+                      // onMouseDown fires before onBlur — contact always registers
+                      onMouseDown={() => pickContact(c)}
+                      onTouchEnd={() => pickContact(c)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left transition-opacity active:opacity-70"
+                      style={{
+                        borderBottom:
+                          i < suggestions.length - 1
+                            ? '1px solid rgba(255,255,255,0.05)'
+                            : 'none',
+                      }}
                     >
-                      <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold flex-shrink-0"
-                        style={{ background: 'var(--accent)', color: '#fff' }}
-                      >
-                        {c.name[0]}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{c.name}</p>
-                        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{c.phone} · {c.provider}</p>
+                      <Avatar name={c.name} size={36} />
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className="text-[13px] font-bold truncate"
+                          style={{ color: 'var(--text-primary)' }}
+                        >
+                          {c.name}
+                        </p>
+                        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                          {c.phone} · {c.provider}
+                        </p>
                       </div>
                     </button>
                   ))}
@@ -275,12 +331,12 @@ function SendForm() {
           </div>
         </FormSection>
 
-        {/* ── Nominal ─────────────────────────────────────────── */}
+        {/* ── Nominal ──────────────────────────────────────── */}
         <FormSection title="Nominal">
           <CurrencyInput
             label="Jumlah"
             value={nominal}
-            onChange={v => { setNominal(v); if (submitted) setError('') }}
+            onChange={v => { setNominal(v); if (submitted) setApiError('') }}
             max={balance}
             error={currentErrors.nominal}
             hint="Minimal Rp 1.000"
@@ -289,9 +345,14 @@ function SendForm() {
           {nominal > 0 && nominal <= balance && (
             <div
               className="flex items-center justify-between px-4 py-2.5 rounded-xl"
-              style={{ background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.18)' }}
+              style={{
+                background: 'rgba(34,197,94,0.07)',
+                border:     '1px solid rgba(34,197,94,0.18)',
+              }}
             >
-              <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Saldo tersisa</span>
+              <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                Saldo tersisa
+              </span>
               <span className="text-[14px] font-bold" style={{ color: 'var(--accent)' }}>
                 {formatRp(balance - nominal)}
               </span>
@@ -299,7 +360,7 @@ function SendForm() {
           )}
         </FormSection>
 
-        {/* ── Catatan ─────────────────────────────────────────── */}
+        {/* ── Catatan ───────────────────────────────────────── */}
         <FormSection title="Catatan (Opsional)">
           <StyledTextArea
             label="Pesan"
@@ -309,11 +370,17 @@ function SendForm() {
           />
         </FormSection>
 
-        {/* Error */}
-        {error && (
-          <p className="text-[12px] font-semibold text-center px-2 py-3 rounded-xl"
-            style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}>
-            {error}
+        {/* API error */}
+        {apiError && (
+          <p
+            className="text-[12px] font-semibold text-center px-2 py-3 rounded-xl"
+            style={{
+              background: 'rgba(239,68,68,0.1)',
+              color:      '#ef4444',
+              border:     '1px solid rgba(239,68,68,0.2)',
+            }}
+          >
+            {apiError}
           </p>
         )}
       </ActionFormLayout>
@@ -323,11 +390,16 @@ function SendForm() {
 
 export default function EwalletSendPage() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--accent)' }} />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div
+            className="w-6 h-6 rounded-full border-2 border-t-transparent animate-spin"
+            style={{ borderColor: 'var(--accent)' }}
+          />
+        </div>
+      }
+    >
       <SendForm />
     </Suspense>
   )
