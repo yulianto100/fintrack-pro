@@ -58,26 +58,45 @@ function usageColor(pct: number): { bar: string; text: string; label: string } {
 
 // ── Provider icon badge ───────────────────────────────────────
 function ProviderBadge({ providerId, providerName }: { providerId?: string; providerName?: string }) {
-  const info = getProviderInfo(providerId ?? '', providerName ?? '')
+  const info    = getProviderInfo(providerId ?? '', providerName ?? '')
   const logoUrl = getLogoUrl(providerId, providerName)
   const [errored, setErrored] = useState(false)
 
+  const hasLogo = logoUrl && !errored
+
   return (
     <div
-      className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-      style={{ background: info.bg }}
+      className="flex-shrink-0 overflow-hidden"
+      style={{
+        width:        40,
+        height:       40,
+        borderRadius: 12,
+        // No background when we have a real logo — icon fills the space cleanly
+        // Fallback abbr badge keeps a subtle tinted bg so text is readable
+        background:   hasLogo ? 'transparent' : info.bg,
+        border:       hasLogo
+          ? '1px solid rgba(255,255,255,0.08)'   // thin border for edge definition
+          : 'none',
+        display:      'flex',
+        alignItems:   'center',
+        justifyContent: 'center',
+      }}
     >
-      {logoUrl && !errored ? (
+      {hasLogo ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={logoUrl}
           alt={providerName ?? ''}
-          width={28}
-          height={28}
           onError={() => setErrored(true)}
-          style={{ objectFit: 'contain', width: 28, height: 28 }}
+          style={{
+            width:      40,
+            height:     40,
+            objectFit:  'cover',   // fill the container — no dead space
+            display:    'block',
+          }}
         />
       ) : (
+        /* Fallback: abbreviated text on tinted bg */
         <span
           className="text-[10px] font-extrabold tracking-tight leading-none"
           style={{ color: info.color }}
