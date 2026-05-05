@@ -126,8 +126,6 @@ function getDueDays(dueDate: number): { days: number; label: string; urgent: boo
 const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onClose, onDelete, onPay }: {
   account: UnifiedAccount; hidden: boolean; onClose: () => void; onDelete: () => void; onPay?: () => void
 }) {
-  const [infoExpanded, setInfoExpanded] = useState(false)
-
   const used      = account.creditUsed ?? 0
   const limit     = account.creditLimit ?? 0
   const pct       = limit > 0 ? Math.min((used / limit) * 100, 100) : 0

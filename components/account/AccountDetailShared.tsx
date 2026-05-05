@@ -48,7 +48,8 @@ export interface InfoGroupData {
 // ─────────────────────────────────────────────────────────────
 export function fmtRp(n: number, hidden = false): string {
   if (hidden) return 'Rp ••••••'
-  return `Rp ${n.toLocaleString('id-ID')}`
+  const safe = typeof n === 'number' && isFinite(n) ? n : 0
+  return `Rp ${safe.toLocaleString('id-ID')}`
 }
 
 export function getCreditUsageColor(pct: number): string {
@@ -63,16 +64,17 @@ export function getBillingStatus(usagePct: number, daysUntilDue: number): BadgeV
   return 'safe'
 }
 
+// Always returns InsightLine[] — never undefined/null
 export function getAccountInsights(account: {
-  type: 'bank' | 'credit' | 'ewallet'
+  type: string   // loosened to string so unexpected values don't throw
   usagePercent?: number
   monthlyChangePct?: number
   biggestCategory?: string
   lastTopUpDays?: number
   topCategory?: string
 }): InsightLine[] {
-  switch (account.type) {
-    case 'bank': {
+  try {
+    if (account.type === 'bank') {
       const lines: InsightLine[] = []
       if (account.biggestCategory) {
         lines.push({
@@ -89,7 +91,8 @@ export function getAccountInsights(account: {
       }
       return lines.slice(0, 2)
     }
-    case 'credit': {
+
+    if (account.type === 'credit') {
       const lines: InsightLine[] = []
       if (account.usagePercent !== undefined) {
         lines.push({
@@ -106,7 +109,8 @@ export function getAccountInsights(account: {
       }
       return lines.slice(0, 2)
     }
-    case 'ewallet': {
+
+    if (account.type === 'ewallet') {
       const lines: InsightLine[] = []
       if (account.lastTopUpDays !== undefined) {
         lines.push({
@@ -122,6 +126,11 @@ export function getAccountInsights(account: {
       }
       return lines.slice(0, 2)
     }
+
+    // unknown type — return empty, no crash
+    return []
+  } catch {
+    return []
   }
 }
 
@@ -145,7 +154,7 @@ export function LiveIndicator({ text }: { text: string }) {
 // DailyDelta
 // ─────────────────────────────────────────────────────────────
 export function DailyDelta({ amount, hidden }: { amount: number; hidden: boolean }) {
-  if (hidden || amount === 0) return null
+  if (hidden || !amount || amount === 0) return null
   const positive = amount > 0
   return (
     <p className="text-[12px] mt-1" style={{ color: positive ? '#4ade80' : '#fca5a5' }}>
@@ -155,23 +164,27 @@ export function DailyDelta({ amount, hidden }: { amount: number; hidden: boolean
 }
 
 // ─────────────────────────────────────────────────────────────
-// InsightStrip
+// InsightStrip — safe against empty/undefined lines
 // ─────────────────────────────────────────────────────────────
 export function InsightStrip({ lines }: { lines: InsightLine[] }) {
+  const safeLines = Array.isArray(lines) ? lines.filter(Boolean) : []
   const [idx, setIdx] = useState(0)
+
   useEffect(() => {
-    if (lines.length <= 1) return
-    const t = setInterval(() => setIdx(i => (i + 1) % lines.length), 4000)
+    if (safeLines.length <= 1) return
+    const t = setInterval(() => setIdx(i => (i + 1) % safeLines.length), 4000)
     return () => clearInterval(t)
-  }, [lines.length])
+  }, [safeLines.length])
 
-  // Reset idx if lines shrink
+  // Reset idx when lines shrink
   useEffect(() => {
-    if (idx >= lines.length) setIdx(0)
-  }, [lines.length, idx])
+    if (idx >= safeLines.length) setIdx(0)
+  }, [safeLines.length, idx])
 
-  if (lines.length === 0) return null
-  const current = lines[idx] ?? lines[0]
+  if (safeLines.length === 0) return null
+
+  const safeIdx = Math.min(idx, safeLines.length - 1)
+  const current = safeLines[safeIdx]
   if (!current) return null
 
   return (
@@ -183,7 +196,7 @@ export function InsightStrip({ lines }: { lines: InsightLine[] }) {
     >
       <AnimatePresence mode="wait">
         <motion.div
-          key={idx}
+          key={safeIdx}
           initial={{ opacity: 0, x: 8 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -8 }}
@@ -191,29 +204,40 @@ export function InsightStrip({ lines }: { lines: InsightLine[] }) {
           className="flex items-center justify-between gap-2"
         >
           <div className="flex items-center gap-2 min-w-0">
-            <span className="flex-shrink-0" style={{ color: 'var(--accent)' }}>{current.icon}</span>
+            <span className="flex-shrink-0" style={{ color: 'var(--accent)' }}>
+              {current.icon}
+            </span>
             <p
               className="text-[12px] font-medium leading-snug truncate"
               style={{ color: 'var(--text-muted)' }}
-              dangerouslySetInnerHTML={{ __html: current.text }}
+              dangerouslySetInnerHTML={{ __html: current.text ?? '' }}
             />
           </div>
           {current.cta && (
-            <button onClick={current.onCta} className="flex-shrink-0 flex items-center gap-0.5 text-[11px] font-semibold" style={{ color: 'var(--accent)' }}>
+            <button
+              onClick={current.onCta}
+              className="flex-shrink-0 flex items-center gap-0.5 text-[11px] font-semibold"
+              style={{ color: 'var(--accent)' }}
+            >
               {current.cta} <ChevronRight size={11} />
             </button>
           )}
         </motion.div>
       </AnimatePresence>
-      {lines.length > 1 && (
+      {safeLines.length > 1 && (
         <div className="flex gap-1 mt-2">
-          {lines.map((_, i) => (
-            <button key={i} onClick={() => setIdx(i)} className="rounded-full" style={{
-              height: 4,
-              width: i === idx ? 14 : 4,
-              background: i === idx ? 'var(--accent)' : 'rgba(255,255,255,0.15)',
-              transition: 'width 250ms ease, background 200ms ease',
-            }} />
+          {safeLines.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setIdx(i)}
+              className="rounded-full"
+              style={{
+                height: 4,
+                width: i === safeIdx ? 14 : 4,
+                background: i === safeIdx ? 'var(--accent)' : 'rgba(255,255,255,0.15)',
+                transition: 'width 250ms ease, background 200ms ease',
+              }}
+            />
           ))}
         </div>
       )}
@@ -225,21 +249,32 @@ export function InsightStrip({ lines }: { lines: InsightLine[] }) {
 // QuickActionsRow
 // ─────────────────────────────────────────────────────────────
 export function QuickActionsRow({ actions }: { actions: QuickActionItem[] }) {
+  const safeActions = Array.isArray(actions) ? actions : []
+  if (safeActions.length === 0) return null
   return (
-    <div className="mx-4 mb-4 grid gap-2" style={{ gridTemplateColumns: `repeat(${actions.length}, 1fr)` }}>
-      {actions.map((action, i) => (
+    <div
+      className="mx-4 mb-4 grid gap-2"
+      style={{ gridTemplateColumns: `repeat(${safeActions.length}, 1fr)` }}
+    >
+      {safeActions.map((action, i) => (
         <motion.button
           key={i}
           onClick={action.onClick}
           whileTap={{ scale: 0.97 }}
           className="flex items-center justify-center gap-2 py-3 rounded-2xl text-[13px] font-bold"
-          style={action.primary
-            ? { background: 'var(--accent)', color: '#fff', border: 'none' }
-            : { background: 'var(--surface-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }
+          style={
+            action.primary
+              ? { background: 'var(--accent)', color: '#fff', border: 'none' }
+              : { background: 'var(--surface-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }
           }
         >
-          <span className="flex items-center justify-center w-6 h-6 rounded-lg text-[13px]"
-            style={{ background: action.primary ? 'rgba(255,255,255,0.18)' : 'var(--accent-dim)', color: action.primary ? '#fff' : 'var(--accent)' }}>
+          <span
+            className="flex items-center justify-center w-6 h-6 rounded-lg text-[13px]"
+            style={{
+              background: action.primary ? 'rgba(255,255,255,0.18)' : 'var(--accent-dim)',
+              color: action.primary ? '#fff' : 'var(--accent)',
+            }}
+          >
             {action.icon}
           </span>
           {action.label}
@@ -258,10 +293,12 @@ const BADGE_CFG: Record<BadgeVariant, { bg: string; color: string }> = {
   danger: { bg: 'rgba(239,68,68,0.12)',  color: '#dc2626' },
 }
 export function StatusBadge({ label, variant }: { label: string; variant: BadgeVariant }) {
-  const cfg = BADGE_CFG[variant]
+  const cfg = BADGE_CFG[variant] ?? BADGE_CFG.safe
   return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold"
-      style={{ background: cfg.bg, color: cfg.color }}>
+    <span
+      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+      style={{ background: cfg.bg, color: cfg.color }}
+    >
       {label}
     </span>
   )
@@ -273,10 +310,13 @@ export function StatusBadge({ label, variant }: { label: string; variant: BadgeV
 export function CreditUsageBar({ used, limit, hidden, billingStatus }: {
   used: number; limit: number; hidden: boolean; billingStatus: BadgeVariant
 }) {
-  const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 0
-  const remaining = limit - used
+  const safeUsed  = typeof used  === 'number' && isFinite(used)  ? used  : 0
+  const safeLimit = typeof limit === 'number' && isFinite(limit) ? limit : 0
+  const pct       = safeLimit > 0 ? Math.min((safeUsed / safeLimit) * 100, 100) : 0
+  const remaining = safeLimit - safeUsed
   const fillColor = getCreditUsageColor(pct)
-  const statusLabel = { safe: '✓ Aman', warn: '⚠ Perlu Perhatian', danger: '⚡ Hampir Habis' }[billingStatus]
+  const safeStatus = billingStatus ?? 'safe'
+  const statusLabel = { safe: '✓ Aman', warn: '⚠ Perlu Perhatian', danger: '⚡ Hampir Habis' }[safeStatus]
 
   return (
     <div className="mx-4 mb-3 rounded-2xl p-4" style={{ background: 'var(--surface-card)', border: '1px solid var(--border)' }}>
@@ -286,19 +326,23 @@ export function CreditUsageBar({ used, limit, hidden, billingStatus }: {
           <span className="text-[15px] font-bold" style={{ color: fillColor, fontFamily: 'var(--font-jetbrains)' }}>
             {pct.toFixed(0)}%
           </span>
-          <StatusBadge label={statusLabel} variant={billingStatus} />
+          <StatusBadge label={statusLabel} variant={safeStatus} />
         </div>
       </div>
       <div className="h-2 rounded-full overflow-hidden mb-3" style={{ background: 'rgba(255,255,255,0.10)' }}>
-        <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }}
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
           transition={{ duration: 0.9, ease: [0.23, 1, 0.32, 1], delay: 0.15 }}
-          className="h-full rounded-full" style={{ background: fillColor }} />
+          className="h-full rounded-full"
+          style={{ background: fillColor }}
+        />
       </div>
       <div className="flex gap-4">
         {[
-          { label: 'TERPAKAI',   val: used,      color: fillColor },
-          { label: 'SISA LIMIT', val: remaining, color: 'var(--text-muted)' },
-          { label: 'TOTAL LIMIT',val: limit,     color: 'var(--text-muted)' },
+          { label: 'TERPAKAI',    val: safeUsed,     color: fillColor },
+          { label: 'SISA LIMIT',  val: remaining,    color: 'var(--text-muted)' },
+          { label: 'TOTAL LIMIT', val: safeLimit,    color: 'var(--text-muted)' },
         ].map((s, i) => (
           <React.Fragment key={s.label}>
             {i > 0 && <div className="w-px" style={{ background: 'var(--border)' }} />}
@@ -322,27 +366,43 @@ export function BillingStatusCard({ dueLabel, daysLeft, urgent, minimumPayment, 
   dueLabel: string; daysLeft: number; urgent: boolean
   minimumPayment: number; totalBill: number; hidden: boolean
 }) {
-  const sv: BadgeVariant = daysLeft <= 3 ? 'danger' : daysLeft <= 7 ? 'warn' : 'safe'
-  const sl = daysLeft === 0 ? 'Hari ini!' : daysLeft === 1 ? 'Besok' : `${daysLeft} hari lagi`
+  const safeDays = typeof daysLeft === 'number' && isFinite(daysLeft) ? daysLeft : 0
+  const sv: BadgeVariant = safeDays <= 3 ? 'danger' : safeDays <= 7 ? 'warn' : 'safe'
+  const sl = safeDays === 0 ? 'Hari ini!' : safeDays === 1 ? 'Besok' : `${safeDays} hari lagi`
+
   return (
-    <div className="mx-4 mb-3 rounded-2xl overflow-hidden" style={{ background: 'var(--surface-card)', border: '1px solid var(--border)' }}>
-      <div className="flex items-center justify-between px-4 py-3"
-        style={{ background: urgent ? 'rgba(239,68,68,0.06)' : 'rgba(34,197,94,0.04)', borderBottom: '1px solid var(--border)' }}>
+    <div
+      className="mx-4 mb-3 rounded-2xl overflow-hidden"
+      style={{ background: 'var(--surface-card)', border: '1px solid var(--border)' }}
+    >
+      <div
+        className="flex items-center justify-between px-4 py-3"
+        style={{
+          background: urgent ? 'rgba(239,68,68,0.06)' : 'rgba(34,197,94,0.04)',
+          borderBottom: '1px solid var(--border)',
+        }}
+      >
         <div>
-          <p className="text-[10px] font-bold tracking-widest mb-0.5" style={{ color: urgent ? '#ef4444' : 'var(--accent)' }}>JATUH TEMPO</p>
-          <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{dueLabel}</p>
+          <p className="text-[10px] font-bold tracking-widest mb-0.5" style={{ color: urgent ? '#ef4444' : 'var(--accent)' }}>
+            JATUH TEMPO
+          </p>
+          <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{dueLabel || '-'}</p>
         </div>
         <StatusBadge label={sl} variant={sv} />
       </div>
       <div className="flex px-4 py-3 gap-4">
         <div className="flex-1">
           <p className="text-[9px] font-bold tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>TOTAL TAGIHAN</p>
-          <p className="text-[15px] font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>{fmtRp(totalBill, hidden)}</p>
+          <p className="text-[15px] font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
+            {fmtRp(totalBill ?? 0, hidden)}
+          </p>
         </div>
         <div className="w-px" style={{ background: 'var(--border)' }} />
         <div className="flex-1">
           <p className="text-[9px] font-bold tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>BAYAR MINIMUM</p>
-          <p className="text-[15px] font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>{fmtRp(minimumPayment, hidden)}</p>
+          <p className="text-[15px] font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
+            {fmtRp(minimumPayment ?? 0, hidden)}
+          </p>
           <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>10% dari tagihan</p>
         </div>
       </div>
@@ -354,23 +414,43 @@ export function BillingStatusCard({ dueLabel, daysLeft, urgent, minimumPayment, 
 // InfoSection — grouped info rows with icons
 // ─────────────────────────────────────────────────────────────
 export function InfoSection({ groups }: { groups: InfoGroupData[] }) {
+  const safeGroups = Array.isArray(groups) ? groups : []
   return (
     <>
-      {groups.map((group, gi) => (
+      {safeGroups.map((group, gi) => (
         <div key={gi} className="mx-4 mb-4">
-          <p className="text-[10px] font-bold tracking-[0.15em] uppercase mb-2 px-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
+          <p
+            className="text-[10px] font-bold tracking-[0.15em] uppercase mb-2 px-1"
+            style={{ color: 'var(--text-muted)', opacity: 0.7 }}
+          >
             {group.title}
           </p>
-          <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface-card)', border: '1px solid var(--border)' }}>
-            {group.rows.map((row, ri) => (
-              <div key={ri} className="flex items-center gap-3 px-4 py-3"
-                style={{ borderBottom: ri < group.rows.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{ background: 'var(--surface-card)', border: '1px solid var(--border)' }}
+          >
+            {(group.rows ?? []).map((row, ri) => (
+              <div
+                key={ri}
+                className="flex items-center gap-3 px-4 py-3"
+                style={{
+                  borderBottom:
+                    ri < (group.rows?.length ?? 0) - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                }}
+              >
+                <div
+                  className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
+                >
                   {row.icon}
                 </div>
-                <span className="text-[12px] flex-1" style={{ color: 'var(--text-muted)' }}>{row.label}</span>
-                <span className="text-[12px] font-semibold text-right" style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+                <span className="text-[12px] flex-1" style={{ color: 'var(--text-muted)' }}>
+                  {row.label}
+                </span>
+                <span
+                  className="text-[12px] font-semibold text-right"
+                  style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}
+                >
                   {row.value}
                 </span>
               </div>
@@ -385,12 +465,25 @@ export function InfoSection({ groups }: { groups: InfoGroupData[] }) {
 // ─────────────────────────────────────────────────────────────
 // SectionLabel
 // ─────────────────────────────────────────────────────────────
-export function SectionLabel({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
+export function SectionLabel({
+  title, action, onAction,
+}: {
+  title: string; action?: string; onAction?: () => void
+}) {
   return (
     <div className="flex items-center justify-between px-4 mb-2">
-      <p className="text-[10px] font-bold tracking-[0.15em] uppercase" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>{title}</p>
+      <p
+        className="text-[10px] font-bold tracking-[0.15em] uppercase"
+        style={{ color: 'var(--text-muted)', opacity: 0.7 }}
+      >
+        {title}
+      </p>
       {action && (
-        <button onClick={onAction} className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: 'var(--accent)' }}>
+        <button
+          onClick={onAction}
+          className="flex items-center gap-1 text-[11px] font-semibold"
+          style={{ color: 'var(--accent)' }}
+        >
           {action} <ChevronRight size={11} />
         </button>
       )}
@@ -401,23 +494,42 @@ export function SectionLabel({ title, action, onAction }: { title: string; actio
 // ─────────────────────────────────────────────────────────────
 // EmptyTransactionState
 // ─────────────────────────────────────────────────────────────
-const EMPTY_CFG = {
+const EMPTY_CFG: Record<string, { emoji: string; title: string; sub: string; cta: string }> = {
   bank:    { emoji: '🏦', title: 'Belum ada transaksi di akun ini', sub: 'Transaksi rekening kamu akan muncul di sini.', cta: 'Mulai transaksi' },
   credit:  { emoji: '💳', title: 'Belum ada tagihan pada kartu ini', sub: 'Gunakan kartu untuk mulai melacak pengeluaran.', cta: 'Gunakan kartu' },
   ewallet: { emoji: '👛', title: 'Belum ada aktivitas', sub: 'Top up dompetmu untuk mulai bertransaksi.', cta: 'Top Up Sekarang' },
 }
-export function EmptyTransactionState({ type, onCta }: { type: 'bank' | 'credit' | 'ewallet'; onCta?: () => void }) {
+
+export function EmptyTransactionState({
+  type, onCta,
+}: {
+  type: string; onCta?: () => void
+}) {
   const cfg = EMPTY_CFG[type] ?? EMPTY_CFG.bank
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className="mx-4 rounded-2xl flex flex-col items-center py-10 px-6 text-center"
-      style={{ background: 'var(--surface-card)', border: '1px solid var(--border)' }}>
-      <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 text-3xl" style={{ background: 'var(--accent-dim)' }}>
+      style={{ background: 'var(--surface-card)', border: '1px solid var(--border)' }}
+    >
+      <div
+        className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 text-3xl"
+        style={{ background: 'var(--accent-dim)' }}
+      >
         {cfg.emoji}
       </div>
-      <p className="text-[14px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{cfg.title}</p>
-      <p className="text-[12px] mb-5 max-w-xs" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>{cfg.sub}</p>
-      <button onClick={onCta} className="px-5 py-2 rounded-full text-[12px] font-bold" style={{ background: 'var(--accent)', color: '#fff' }}>
+      <p className="text-[14px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+        {cfg.title}
+      </p>
+      <p className="text-[12px] mb-5 max-w-xs" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
+        {cfg.sub}
+      </p>
+      <button
+        onClick={onCta}
+        className="px-5 py-2 rounded-full text-[12px] font-bold"
+        style={{ background: 'var(--accent)', color: '#fff' }}
+      >
         {cfg.cta}
       </button>
     </motion.div>
