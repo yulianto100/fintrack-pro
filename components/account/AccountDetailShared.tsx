@@ -436,7 +436,7 @@ export function InfoSection({ groups }: { groups: InfoGroupData[] }) {
   return (
     <>
       {safeGroups.map((group, gi) => (
-        <div key={gi} className="mx-4 mb-4">
+        <div key={gi} className="mx-4 mb-5">
           <p
             className="text-[10px] font-bold tracking-[0.15em] uppercase mb-2 px-1"
             style={{ color: 'var(--text-muted)', opacity: 0.7 }}
@@ -444,21 +444,26 @@ export function InfoSection({ groups }: { groups: InfoGroupData[] }) {
             {group.title}
           </p>
           <div
-            className="rounded-2xl overflow-hidden"
-            style={{ background: 'var(--surface-card)', border: '1px solid var(--border)' }}
+            className="rounded-3xl overflow-hidden"
+            style={{
+              background: 'color-mix(in srgb, var(--surface-card) 78%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent) 14%, var(--border))',
+              boxShadow: '0 14px 34px rgba(15,23,42,0.08)',
+              backdropFilter: 'blur(14px)',
+            }}
           >
             {(group.rows ?? []).map((row, ri) => (
               <div
                 key={ri}
-                className="flex items-center gap-3 px-4 py-3"
+                className="flex items-center gap-3 px-4 py-3.5"
                 style={{
                   borderBottom:
                     ri < (group.rows?.length ?? 0) - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
                 }}
               >
                 <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
+                  className="w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)' }}
                 >
                   {row.icon}
                 </div>
@@ -489,7 +494,7 @@ export function SectionLabel({
   title: string; action?: string; onAction?: () => void
 }) {
   return (
-    <div className="flex items-center justify-between px-4 mb-2">
+    <div className="flex items-center justify-between px-4 mb-3">
       <p
         className="text-[10px] font-bold tracking-[0.15em] uppercase"
         style={{ color: 'var(--text-muted)', opacity: 0.7 }}

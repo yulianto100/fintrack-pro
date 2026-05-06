@@ -160,7 +160,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         className="flex-1 overflow-y-auto"
         style={{
           paddingTop:    'calc(var(--nav-height) + env(safe-area-inset-top, 0px))',
-          paddingBottom: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 12px)',
+          paddingBottom: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 44px)',
         }}
       >
         <AnimatePresence mode="popLayout">
@@ -178,49 +178,77 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* ── Bottom navigation ── */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around"
-        style={{
-          height:               'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))',
-          paddingBottom:        'env(safe-area-inset-bottom, 0px)',
-          background:           'var(--surface-nav)',
-          backdropFilter:       'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          borderTop:            '1px solid var(--border)',
-        }}
+        className="fixed left-0 right-0 z-40 px-3 pointer-events-none"
+        style={{ bottom: 'max(10px, env(safe-area-inset-bottom, 0px))' }}
+        aria-label="Navigasi utama"
       >
-        {NAV_TABS.map(({ href, icon: Icon, label }) => {
-          const active =
-            href === '/'
-              ? pathname === '/'
-              : pathname.startsWith(href)
-              || (href === '/goals' && pathname.startsWith('/budget'))
-              || (href === '/akun'  && pathname.startsWith('/credit-card'))
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => {
-                // When tapping the already-active Akun tab, reset detail view
-                if (href === '/akun' && active) {
-                  window.dispatchEvent(new Event('akun:reset'))
-                }
-              }}
-              className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl relative transition-all active:scale-95"
-              style={{ color: active ? 'var(--accent)' : 'var(--text-muted)' }}
-            >
-              {active && (
+        <div
+          className="mx-auto flex items-center justify-around gap-1.5 rounded-[28px] px-2 py-2 pointer-events-auto"
+          style={{
+            maxWidth: 430,
+            minHeight: 74,
+            background: 'color-mix(in srgb, var(--surface-nav) 82%, transparent)',
+            border: '1px solid rgba(34,197,94,0.16)',
+            boxShadow: '0 18px 48px rgba(15,23,42,0.16), inset 0 1px 0 rgba(255,255,255,0.36)',
+            backdropFilter: 'blur(26px) saturate(1.45)',
+            WebkitBackdropFilter: 'blur(26px) saturate(1.45)',
+          }}
+        >
+          {NAV_TABS.map(({ href, icon: Icon, label }) => {
+            const active =
+              href === '/'
+                ? pathname === '/'
+                : pathname.startsWith(href)
+                || (href === '/transactions' && pathname.startsWith('/transaksi'))
+                || (href === '/goals' && pathname.startsWith('/budget'))
+                || (href === '/akun'  && pathname.startsWith('/credit-card'))
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => {
+                  // When tapping the already-active Akun tab, reset detail view
+                  if (href === '/akun' && active) {
+                    window.dispatchEvent(new Event('akun:reset'))
+                  }
+                }}
+                className="relative flex-1 min-w-0"
+                aria-current={active ? 'page' : undefined}
+              >
                 <motion.div
-                  layoutId="nav-pill"
-                  className="absolute inset-0 rounded-xl"
-                  style={{ background: 'var(--accent-dim)' }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
-              )}
-              <Icon size={19} strokeWidth={active ? 2.5 : 1.8} className="relative z-10" />
-              <span className="text-[9px] font-medium relative z-10">{label}</span>
-            </Link>
-          )
-        })}
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.94 }}
+                  className="relative h-[58px] rounded-2xl flex flex-col items-center justify-center gap-1 overflow-hidden"
+                  style={{ color: active ? 'var(--accent)' : 'var(--text-muted)' }}
+                >
+                  {active && (
+                    <motion.div
+                      layoutId="nav-pill"
+                      className="absolute inset-0 rounded-2xl"
+                      style={{
+                        background: 'linear-gradient(180deg, rgba(34,197,94,0.20), rgba(34,197,94,0.10))',
+                        boxShadow: '0 10px 24px rgba(34,197,94,0.20)',
+                      }}
+                      transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                    />
+                  )}
+                  <div
+                    className="relative z-10 h-7 w-7 rounded-xl flex items-center justify-center"
+                    style={{
+                      background: active ? 'rgba(34,197,94,0.14)' : 'transparent',
+                      color: active ? 'var(--accent)' : 'currentColor',
+                    }}
+                  >
+                    <Icon size={20} strokeWidth={active ? 2.55 : 1.9} />
+                  </div>
+                  <span className="text-[9px] font-semibold leading-none relative z-10 truncate max-w-full px-0.5">
+                    {label}
+                  </span>
+                </motion.div>
+              </Link>
+            )
+          })}
+        </div>
       </nav>
     </div>
   )
