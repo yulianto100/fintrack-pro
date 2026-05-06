@@ -113,7 +113,7 @@ function safeNumber(value: unknown): number {
 }
 
 function formatCurrencyIDR(value: unknown, hidden = false): string {
-  if (hidden) return 'Rp â€¢â€¢â€¢â€¢â€¢â€¢'
+  if (hidden) return 'Rp ******'
   return `Rp ${safeNumber(value).toLocaleString('id-ID')}`
 }
 
@@ -121,7 +121,7 @@ function maskAccountNumber(value?: string): string | null {
   const cleaned = (value ?? '').replace(/\s+/g, '')
   if (!cleaned) return null
   if (cleaned.length <= 4) return cleaned
-  return `â€¢â€¢â€¢â€¢ ${cleaned.slice(-4)}`
+  return `**** ${cleaned.slice(-4)}`
 }
 
 function getLastSyncText(updatedAt?: string): string {
@@ -544,12 +544,12 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
               {account.name}
             </p>
             <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-              {account.last4 ? `â€¢â€¢â€¢â€¢â€¢ ${account.last4}` : ''} Â· {cardTypeLabel}
+              {account.last4 ? `**** ${account.last4}` : ''} | {cardTypeLabel}
             </p>
             </div>
           </div>
           <StatusBadge
-            label={due ? (due.urgent ? 'âš  Segera bayar' : 'âœ“ Aktif') : 'âœ“ Aktif'}
+            label={due ? (due.urgent ? 'Segera bayar' : 'Aktif') : 'Aktif'}
             variant={due?.urgent ? 'warn' : 'safe'}
           />
         </div>
@@ -647,7 +647,7 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
   const accountInfoRows = [
     { icon: <Building2 size={14} />,  label: 'Provider',    value: providerName || '-' },
     { icon: <Wallet size={14} />,     label: 'Tipe Akun',   value: isEwallet ? 'E-Wallet' : 'Rekening Bank' },
-    { icon: <ShieldCheck size={14} />,label: 'Status',      value: <StatusBadge label="âœ“ Aktif" variant="safe" /> },
+    { icon: <ShieldCheck size={14} />,label: 'Status',      value: <StatusBadge label="Aktif" variant="safe" /> },
     ...(account.accountNumber
       ? [{ icon: <Hash size={14} />, label: 'No. Rekening', value: account.accountNumber }]
       : []),
@@ -705,7 +705,7 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
             </p>
             </div>
           </div>
-          <StatusBadge label="âœ“ Aktif" variant="safe" />
+          <StatusBadge label="Aktif" variant="safe" />
         </div>
       </SectionReveal>
 

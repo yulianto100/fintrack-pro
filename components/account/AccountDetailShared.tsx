@@ -50,7 +50,7 @@ export interface InfoGroupData {
 // Utilities
 // ─────────────────────────────────────────────────────────────
 export function fmtRp(n: number, hidden = false): string {
-  if (hidden) return 'Rp ••••••'
+  if (hidden) return 'Rp ******'
   const safe = typeof n === 'number' && isFinite(n) ? n : 0
   return `Rp ${safe.toLocaleString('id-ID')}`
 }
@@ -334,7 +334,7 @@ export function CreditUsageBar({ used, limit, hidden, billingStatus }: {
   const remaining = safeLimit - safeUsed
   const fillColor = getCreditUsageColor(pct)
   const safeStatus = billingStatus ?? 'safe'
-  const statusLabel = { safe: '✓ Aman', warn: '⚠ Perlu Perhatian', danger: '⚡ Hampir Habis' }[safeStatus]
+  const statusLabel = { safe: 'Aman', warn: 'Perlu perhatian', danger: 'Hampir habis' }[safeStatus]
 
   return (
     <div className="mx-4 mb-3 rounded-2xl p-4" style={{ background: 'var(--surface-card)', border: '1px solid var(--border)' }}>

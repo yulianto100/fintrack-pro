@@ -40,7 +40,7 @@ function getLogoUrl(providerId?: string, providerName?: string): string | null {
 
 // ── helpers ──────────────────────────────────────────────────
 function fmtBalance(n: number, hidden: boolean): string {
-  if (hidden) return 'Rp ••••••'
+  if (hidden) return 'Rp ******'
   return `Rp ${n.toLocaleString('id-ID')}`
 }
 
@@ -146,15 +146,15 @@ function CreditRow({ account, hidden }: { account: UnifiedAccount; hidden: boole
             {account.name}
           </span>
           <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            {account.last4 ? `•••• ${account.last4}` : account.providerName}
+            {account.last4 ? `**** ${account.last4}` : account.providerName}
           </span>
         </div>
         <div className="text-right ml-3 flex-shrink-0">
           <p className="text-[13px] font-bold" style={{ color: text }}>
-            {hidden ? 'Rp ••••••' : `Rp ${used.toLocaleString('id-ID')}`}
+            {hidden ? 'Rp ******' : `Rp ${used.toLocaleString('id-ID')}`}
           </p>
           <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-            dari {hidden ? '••••••' : `Rp ${limit.toLocaleString('id-ID')}`}
+            dari {hidden ? '******' : `Rp ${limit.toLocaleString('id-ID')}`}
           </p>
         </div>
       </div>
@@ -218,7 +218,7 @@ function AssetRow({ account, hidden }: { account: UnifiedAccount; hidden: boolea
           </span>
         ) : account.last4 ? (
           <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            •••• {account.last4}
+            **** {account.last4}
           </span>
         ) : null}
       </div>

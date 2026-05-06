@@ -114,7 +114,7 @@ export function ActionFormLayout({
                 <span style={{ color: 'var(--border)' }}>·</span>
                 <span className="text-[11px] font-semibold" style={{ color: 'var(--accent)' }}>
                   {hidden
-                    ? 'Rp ••••••'
+                    ? 'Rp ******'
                     : `Rp ${accountBalance.toLocaleString('id-ID')}`}
                 </span>
               </>

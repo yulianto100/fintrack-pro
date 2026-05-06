@@ -36,7 +36,7 @@ interface TransactionTone {
 }
 
 function formatCurrencyIDR(value: unknown, hidden = false): string {
-  if (hidden) return 'Rp ••••••'
+  if (hidden) return 'Rp ******'
   const amount = Number(value)
   return `Rp ${Number.isFinite(amount) ? amount.toLocaleString('id-ID') : '0'}`
 }
