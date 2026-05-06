@@ -6,7 +6,7 @@ import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import {
   ChevronLeft, Trash2, ReceiptText, ArrowRight,
   Building2, CreditCard as CreditCardIcon, Wallet,
-  Hash, Calendar, TrendingUp, ArrowDownUp,
+  Hash, Calendar, TrendingUp,
   Phone, ShieldCheck, Repeat, AlertTriangle,
 } from 'lucide-react'
 
@@ -356,29 +356,13 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
 }) {
   const isEwallet = account.type === 'ewallet'
   const balance   = safeNumber(account.balance)
-  const router    = useRouter()
   const { data: allTransactions, loading: transactionsLoading } = useApiList<Transaction>('/api/transactions', { refreshMs: 15000 })
-  const [navigatingAction, setNavigatingAction] = useState<'transfer' | 'deposit' | null>(null)
   const providerName = account.providerName || account.name
-
-  // Build shared query params so destination pages know which account.
-  const accountParams = useMemo(() => new URLSearchParams({
-    accountId:   account.id,
-    accountName: account.name,
-    providerName,
-    type:        account.type,
-    balance:     String(balance),
-  }).toString(), [account.id, account.name, account.type, balance, providerName])
 
   const monthlySummary = useMemo(
     () => getWalletMonthlySummary(allTransactions, account.id),
     [allTransactions, account.id]
   )
-
-  const navigateToAction = useCallback((kind: 'transfer' | 'deposit') => {
-    setNavigatingAction(kind)
-    router.push(`/transaksi/${kind}?${accountParams}`)
-  }, [accountParams, router])
 
   // Insights
   const insights = getAccountInsights(
@@ -386,28 +370,6 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
       ? { type: 'ewallet', lastTopUpDays: 2, topCategory: 'Transport' }
       : { type: 'bank', biggestCategory: 'Transfer', monthlyChangePct: -8 }
   )
-
-  // Quick actions — now fully wired with router.push()
-  const quickActions: QuickActionItem[] = [
-    {
-      label: 'Transfer',
-      icon: <ArrowDownUp size={14} />,
-      primary: true,
-      onClick: () => navigateToAction('transfer'),
-      ariaLabel: `Transfer dari ${account.name}`,
-      loading: navigatingAction === 'transfer',
-      disabled: Boolean(navigatingAction),
-    },
-    {
-      label: 'Tambah Saldo',
-      icon: <TrendingUp size={14} />,
-      primary: false,
-      onClick: () => navigateToAction('deposit'),
-      ariaLabel: `Tambah saldo ke ${account.name}`,
-      loading: navigatingAction === 'deposit',
-      disabled: Boolean(navigatingAction),
-    },
-  ]
 
   // Info groups
   const accountInfoRows = [
@@ -503,9 +465,6 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
 
       {/* Insight strip */}
       {insights.length > 0 && <InsightStrip lines={insights} />}
-
-      {/* Quick actions */}
-      <QuickActionsRow actions={quickActions} />
 
       <MonthlySummaryCards summary={monthlySummary} hidden={hidden} loading={transactionsLoading} />
 
