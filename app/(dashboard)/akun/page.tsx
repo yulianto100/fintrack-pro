@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 
 import { useAccounts }        from '@/hooks/useAccounts'
+import { useApiList }         from '@/hooks/useApiData'
 import { AccountSummary }     from '@/components/account/AccountSummary'
 import { AccountInsights }    from '@/components/account/AccountInsights'
 import { AccountTabs, type AccountTab } from '@/components/account/AccountTabs'
@@ -41,7 +42,7 @@ import {
 
 import type { UnifiedAccount, AccountType } from '@/types/account'
 import { getProviderInfo, calcAccountSummary } from '@/types/account'
-import type { CreditCard } from '@/types'
+import type { CreditCard, Transaction } from '@/types'
 
 // ── Provider logo map (same as AccountItem) ─────────────────
 const PROVIDER_LOGOS: Record<string, string> = {
@@ -104,6 +105,83 @@ function ProviderIcon({ providerId, providerName, size = 44 }: {
   )
 }
 
+function safeNumber(value: unknown): number {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : 0
+}
+
+function isCurrentMonth(dateValue?: string): boolean {
+  if (!dateValue) return false
+  const date = new Date(dateValue)
+  if (Number.isNaN(date.getTime())) return false
+  const now = new Date()
+  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth()
+}
+
+function getWalletMonthlySummary(transactions: Transaction[], accountId: string) {
+  return transactions.reduce(
+    (summary, tx) => {
+      if (!isCurrentMonth(tx.date || tx.createdAt)) return summary
+      const amount = safeNumber(tx.amount)
+      const fromThisAccount = tx.walletAccountId === accountId
+      const toThisAccount = tx.toWalletAccountId === accountId
+      if (!fromThisAccount && !toThisAccount) return summary
+
+      summary.count += 1
+      if (tx.type === 'income' || (tx.type === 'transfer' && toThisAccount && !fromThisAccount)) {
+        summary.income += amount
+      } else {
+        summary.expense += amount
+      }
+      summary.net = summary.income - summary.expense
+      return summary
+    },
+    { income: 0, expense: 0, net: 0, count: 0 }
+  )
+}
+
+function MonthlySummaryCards({ summary, hidden, loading }: {
+  summary: { income: number; expense: number; net: number; count: number }
+  hidden: boolean
+  loading?: boolean
+}) {
+  const cards = [
+    { label: 'Total Masuk', value: fmtRp(summary.income, hidden), color: '#22c55e' },
+    { label: 'Total Keluar', value: fmtRp(summary.expense, hidden), color: '#ef4444' },
+    { label: 'Net Flow', value: fmtRp(summary.net, hidden), color: summary.net >= 0 ? '#22c55e' : '#ef4444' },
+    { label: 'Transaksi', value: loading ? '...' : `${summary.count}x`, color: 'var(--text-primary)' },
+  ]
+
+  return (
+    <div className="mb-4">
+      <SectionLabel title="Ringkasan Bulan Ini" />
+      <div className="grid grid-cols-2 gap-2 px-4">
+        {cards.map(card => (
+          <div
+            key={card.label}
+            className="rounded-2xl px-3.5 py-3"
+            style={{
+              background: 'rgba(255,255,255,0.045)',
+              border: '1px solid var(--border)',
+              boxShadow: '0 8px 22px rgba(0,0,0,0.12)',
+            }}
+          >
+            <p className="text-[10px] font-semibold mb-1" style={{ color: 'var(--text-muted)' }}>
+              {card.label}
+            </p>
+            <p
+              className="text-[14px] font-bold truncate"
+              style={{ color: card.color, fontFamily: 'var(--font-jetbrains)', fontVariantNumeric: 'tabular-nums' }}
+            >
+              {card.value}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Tab ↔ URL param mapping ─────────────────────────────────
 const TAB_TO_PARAM: Record<AccountTab, string> = {
   all: '', bank: 'rekening', credit: 'kredit', ewallet: 'ewallet',
@@ -132,6 +210,7 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
   const due       = account.dueDate ? getDueDays(account.dueDate) : null
   const billing   = getBillingStatus(pct, due?.days ?? 999)
   const minPayment = Math.round(used * 0.10)
+  const providerName = account.providerName || account.name
 
   const cardTypeLabel = (() => {
     const id = (account.providerId ?? '').toLowerCase()
@@ -179,7 +258,7 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
     <motion.div key="detail-credit"
       initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }}
       transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-      className="absolute inset-0 overflow-y-auto pb-10"
+      className="absolute inset-0 overflow-y-auto pb-[calc(7rem+env(safe-area-inset-bottom))]"
     >
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 pt-2 pb-3">
@@ -193,14 +272,17 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
 
       {/* Card identity */}
       <div className="px-4 mb-1">
-        <div className="flex items-start justify-between">
-          <div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <ProviderIcon providerId={account.providerId} providerName={providerName} size={46} />
+            <div className="min-w-0">
             <p className="text-[18px] font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
               {account.name}
             </p>
             <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
               {account.last4 ? `••••• ${account.last4}` : ''} · {cardTypeLabel}
             </p>
+            </div>
           </div>
           <StatusBadge
             label={due ? (due.urgent ? '⚠ Segera bayar' : '✓ Aktif') : '✓ Aktif'}
@@ -273,15 +355,30 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
   account: UnifiedAccount; hidden: boolean; onClose: () => void; onDelete: () => void
 }) {
   const isEwallet = account.type === 'ewallet'
-  const balance   = account.balance ?? 0
+  const balance   = safeNumber(account.balance)
   const router    = useRouter()
+  const { data: allTransactions, loading: transactionsLoading } = useApiList<Transaction>('/api/transactions', { refreshMs: 15000 })
+  const [navigatingAction, setNavigatingAction] = useState<'transfer' | 'deposit' | null>(null)
+  const providerName = account.providerName || account.name
 
-  // Build shared query params so destination pages know which account
-  const accountParams = new URLSearchParams({
+  // Build shared query params so destination pages know which account.
+  const accountParams = useMemo(() => new URLSearchParams({
     accountId:   account.id,
     accountName: account.name,
+    providerName,
+    type:        account.type,
     balance:     String(balance),
-  }).toString()
+  }).toString(), [account.id, account.name, account.type, balance, providerName])
+
+  const monthlySummary = useMemo(
+    () => getWalletMonthlySummary(allTransactions, account.id),
+    [allTransactions, account.id]
+  )
+
+  const navigateToAction = useCallback((kind: 'transfer' | 'deposit') => {
+    setNavigatingAction(kind)
+    router.push(`/transaksi/${kind}?${accountParams}`)
+  }, [accountParams, router])
 
   // Insights
   const insights = getAccountInsights(
@@ -291,39 +388,30 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
   )
 
   // Quick actions — now fully wired with router.push()
-  const quickActions: QuickActionItem[] = isEwallet
-    ? [
-        {
-          label: 'Top Up',
-          icon: <TrendingUp size={14} />,
-          primary: true,
-          onClick: () => router.push(`/ewallet/topup?${accountParams}`),
-        },
-        {
-          label: 'Kirim',
-          icon: <ArrowRight size={14} />,
-          primary: false,
-          onClick: () => router.push(`/ewallet/send?${accountParams}`),
-        },
-      ]
-    : [
-        {
-          label: 'Transfer',
-          icon: <ArrowDownUp size={14} />,
-          primary: true,
-          onClick: () => router.push(`/transaksi/transfer?${accountParams}`),
-        },
-        {
-          label: 'Tambah Saldo',
-          icon: <TrendingUp size={14} />,
-          primary: false,
-          onClick: () => router.push(`/transaksi/deposit?${accountParams}`),
-        },
-      ]
+  const quickActions: QuickActionItem[] = [
+    {
+      label: 'Transfer',
+      icon: <ArrowDownUp size={14} />,
+      primary: true,
+      onClick: () => navigateToAction('transfer'),
+      ariaLabel: `Transfer dari ${account.name}`,
+      loading: navigatingAction === 'transfer',
+      disabled: Boolean(navigatingAction),
+    },
+    {
+      label: 'Tambah Saldo',
+      icon: <TrendingUp size={14} />,
+      primary: false,
+      onClick: () => navigateToAction('deposit'),
+      ariaLabel: `Tambah saldo ke ${account.name}`,
+      loading: navigatingAction === 'deposit',
+      disabled: Boolean(navigatingAction),
+    },
+  ]
 
   // Info groups
   const accountInfoRows = [
-    { icon: <Building2 size={14} />,  label: 'Provider',    value: account.providerName || '-' },
+    { icon: <Building2 size={14} />,  label: 'Provider',    value: providerName || '-' },
     { icon: <Wallet size={14} />,     label: 'Tipe Akun',   value: isEwallet ? 'E-Wallet' : 'Rekening Bank' },
     { icon: <ShieldCheck size={14} />,label: 'Status',      value: <StatusBadge label="✓ Aktif" variant="safe" /> },
     ...(account.accountNumber
@@ -335,8 +423,8 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
   ]
 
   const financialInfoRows = [
-    { icon: <TrendingUp size={14} />,  label: 'Total keluar bulan ini', value: fmtRp(0, hidden) },
-    { icon: <Repeat size={14} />,      label: 'Transaksi bulan ini',    value: '0 transaksi' },
+    { icon: <TrendingUp size={14} />,  label: 'Total masuk bulan ini',  value: fmtRp(monthlySummary.income, hidden) },
+    { icon: <Repeat size={14} />,      label: 'Transaksi bulan ini',    value: `${monthlySummary.count} transaksi` },
   ]
 
   const infoGroups: InfoGroupData[] = [
@@ -348,7 +436,7 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
     <motion.div key="detail-wallet"
       initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }}
       transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-      className="absolute inset-0 overflow-y-auto pb-10"
+      className="absolute inset-0 overflow-y-auto pb-[calc(7rem+env(safe-area-inset-bottom))]"
     >
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 pt-2 pb-3">
@@ -362,39 +450,47 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
 
       {/* Identity */}
       <div className="px-4 mb-1">
-        <div className="flex items-start justify-between">
-          <div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <ProviderIcon providerId={account.providerId} providerName={providerName} size={46} />
+            <div className="min-w-0">
             <p className="text-[18px] font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
               {account.name}
             </p>
             <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-              {isEwallet ? 'E-Wallet' : 'Rekening Bank'} · {account.providerName || '-'}
+              {isEwallet ? 'E-Wallet' : 'Rekening Bank'} | {providerName || '-'}
             </p>
+            </div>
           </div>
           <StatusBadge label="✓ Aktif" variant="safe" />
         </div>
       </div>
 
       {/* Hero balance card */}
-      <div className="mx-4 rounded-3xl overflow-hidden mb-4 mt-3" style={{
-        background: 'var(--surface-card)',
-        border: '1px solid rgba(255,255,255,0.07)',
+      <div className="mx-4 rounded-3xl overflow-hidden mb-4 mt-3 relative" style={{
+        background: 'linear-gradient(145deg, rgba(34,197,94,0.22) 0%, rgba(15,118,110,0.14) 44%, rgba(255,255,255,0.055) 100%)',
+        border: '1px solid rgba(134,239,172,0.20)',
         padding: '20px',
+        boxShadow: '0 18px 44px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.06)',
+        backdropFilter: 'blur(14px)',
       }}>
+        <div className="absolute inset-x-0 top-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(187,247,208,0.45), transparent)' }} />
+        <div className="absolute pointer-events-none right-[-28px] top-[-34px] h-32 w-32 rounded-full" style={{ background: 'radial-gradient(circle, rgba(34,197,94,0.26), transparent 68%)' }} />
         {/* Provider + live */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <ProviderIcon providerId={account.providerId} providerName={account.providerName} size={44} />
+            <ProviderIcon providerId={account.providerId} providerName={providerName} size={44} />
             <div>
               <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{account.name}</p>
               <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{isEwallet ? 'E-Wallet' : 'Rekening Bank'}</p>
             </div>
           </div>
+          <LiveIndicator text="Saldo sinkron" />
         </div>
 
         {/* Balance */}
-        <p className="text-[9px] font-bold tracking-[0.18em] mb-1" style={{ color: 'var(--text-muted)' }}>SALDO</p>
-        <p className="text-[32px] font-bold leading-none" style={{ color: 'var(--accent)', fontFamily: 'var(--font-syne)', fontVariantNumeric: 'tabular-nums' }}>
+        <p className="text-[10px] font-bold tracking-[0.16em] mb-1" style={{ color: 'rgba(255,255,255,0.56)' }}>SALDO TERSEDIA</p>
+        <p className="text-[34px] font-bold leading-none" style={{ color: 'var(--accent)', fontFamily: 'var(--font-syne)', fontVariantNumeric: 'tabular-nums' }}>
           {fmtRp(balance, hidden)}
         </p>
 
@@ -411,6 +507,8 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
       {/* Quick actions */}
       <QuickActionsRow actions={quickActions} />
 
+      <MonthlySummaryCards summary={monthlySummary} hidden={hidden} loading={transactionsLoading} />
+
       {/* Info groups */}
       <InfoSection groups={infoGroups} />
 
@@ -422,6 +520,7 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
             accountId={account.id}
             accountType={account.type as 'bank' | 'ewallet'}
             hidden={hidden}
+            limit={8}
           />
         </div>
       </div>

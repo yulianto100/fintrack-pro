@@ -14,6 +14,7 @@ import { AnimatePresence } from 'framer-motion'
 import { ActionFormLayout, FormSection, StyledSelect, StyledTextArea, StyledInput } from '@/components/transactions/shared/ActionFormLayout'
 import { CurrencyInput, formatRp } from '@/components/transactions/shared/CurrencyInput'
 import { SuccessState } from '@/components/transactions/shared/SuccessState'
+import { useAccounts } from '@/hooks/useAccounts'
 
 // ── Mock recipient list ─────────────────────────────────────
 const MOCK_RECIPIENTS = [
@@ -30,8 +31,10 @@ function validateTransfer(params: {
   tujuan: string
   tujuanManual: string
   balance: number
+  accountReady: boolean
 }): { [key: string]: string } {
   const errors: { [key: string]: string } = {}
+  if (!params.accountReady) errors.account = 'Rekening sumber tidak valid'
   if (!params.tujuan) errors.tujuan = 'Pilih atau masukkan rekening tujuan'
   if (params.tujuan === 'other' && !params.tujuanManual.trim())
     errors.tujuanManual = 'Masukkan nomor rekening tujuan'
@@ -55,9 +58,25 @@ async function simulateTransfer(params: {
 // ── Main form ───────────────────────────────────────────────
 function TransferForm() {
   const sp = useSearchParams()
-  const accountId   = sp.get('accountId') ?? ''
-  const accountName = sp.get('accountName') ?? 'Rekening Saya'
-  const balance     = parseInt(sp.get('balance') ?? '0', 10)
+  const queryAccountId   = sp.get('accountId') ?? ''
+  const queryAccountName = sp.get('accountName') ?? 'Rekening Saya'
+  const queryProvider    = sp.get('providerName') ?? ''
+  const queryType        = sp.get('type') ?? ''
+  const queryBalance     = Number(sp.get('balance') ?? 0)
+  const { accounts, loading: accountsLoading } = useAccounts()
+
+  const selectedAccount = useMemo(
+    () => accounts.find(a => a.id === queryAccountId && (a.type === 'bank' || a.type === 'ewallet')) ?? null,
+    [accounts, queryAccountId]
+  )
+  const accountId   = selectedAccount?.id ?? queryAccountId
+  const accountName = selectedAccount?.name ?? queryAccountName
+  const provider    = selectedAccount?.providerName ?? queryProvider
+  const accountType = selectedAccount?.type ?? queryType
+  const rawBalance  = selectedAccount?.balance ?? queryBalance
+  const balance     = Number.isFinite(Number(rawBalance)) ? Number(rawBalance) : 0
+  const accountReady = Boolean(queryAccountId && selectedAccount)
+  const accountInvalid = Boolean(queryAccountId && !accountsLoading && !selectedAccount)
 
   const [nominal, setNominal]             = useState(0)
   const [tujuan, setTujuan]               = useState('')
@@ -71,14 +90,14 @@ function TransferForm() {
   // Live re-validate after first submit attempt
   const currentErrors = useMemo(() => {
     if (!submitted) return {}
-    return validateTransfer({ nominal, tujuan, tujuanManual, balance })
-  }, [submitted, nominal, tujuan, tujuanManual, balance])
+    return validateTransfer({ nominal, tujuan, tujuanManual, balance, accountReady })
+  }, [submitted, nominal, tujuan, tujuanManual, balance, accountReady])
 
-  const isValid = Object.keys(validateTransfer({ nominal, tujuan, tujuanManual, balance })).length === 0
+  const isValid = Object.keys(validateTransfer({ nominal, tujuan, tujuanManual, balance, accountReady })).length === 0
 
   async function handleSubmit() {
     setSubmitted(true)
-    const errs = validateTransfer({ nominal, tujuan, tujuanManual, balance })
+    const errs = validateTransfer({ nominal, tujuan, tujuanManual, balance, accountReady })
     if (Object.keys(errs).length > 0) { setErrors(errs); return }
     setLoading(true)
     try {
@@ -127,11 +146,34 @@ function TransferForm() {
         accountName={accountName}
         accountBalance={balance}
         ctaLabel="Kirim Transfer →"
-        ctaDisabled={!isValid && submitted}
+        ctaDisabled={accountsLoading || accountInvalid || !queryAccountId || (!isValid && submitted)}
         ctaLoading={loading}
         onSubmit={handleSubmit}
         accentIcon={<ArrowDownUp size={16} />}
       >
+        {(accountsLoading || accountInvalid || !queryAccountId) && (
+          <div
+            className="rounded-2xl px-4 py-3 text-[12px] leading-relaxed"
+            style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', color: 'var(--text-muted)' }}
+          >
+            {accountsLoading
+              ? 'Memuat rekening sumber...'
+              : 'Rekening sumber dari link tidak ditemukan. Buka detail akun lalu pilih Transfer lagi.'}
+          </div>
+        )}
+
+        {accountReady && (
+          <div
+            className="rounded-2xl px-4 py-3"
+            style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.16)' }}
+          >
+            <p className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>Rekening sumber terisi otomatis</p>
+            <p className="text-[13px] font-bold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+              {accountName}{provider ? ` | ${provider}` : ''}{accountType ? ` | ${accountType}` : ''}
+            </p>
+          </div>
+        )}
+
         {/* Tujuan */}
         <FormSection title="Rekening Tujuan">
           <StyledSelect

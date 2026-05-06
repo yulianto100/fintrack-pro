@@ -14,6 +14,7 @@ import { AnimatePresence } from 'framer-motion'
 import { ActionFormLayout, FormSection, StyledSelect } from '@/components/transactions/shared/ActionFormLayout'
 import { CurrencyInput, formatRp } from '@/components/transactions/shared/CurrencyInput'
 import { SuccessState } from '@/components/transactions/shared/SuccessState'
+import { useAccounts } from '@/hooks/useAccounts'
 
 // ── Options ─────────────────────────────────────────────────
 const SUMBER_OPTIONS = [
@@ -26,8 +27,9 @@ const SUMBER_OPTIONS = [
 ]
 
 // ── Validation ───────────────────────────────────────────────
-function validateDeposit(params: { nominal: number; sumber: string }) {
+function validateDeposit(params: { nominal: number; sumber: string; accountReady: boolean }) {
   const errors: Record<string, string> = {}
+  if (!params.accountReady) errors.account = 'Rekening tujuan tidak valid'
   if (params.nominal <= 0) errors.nominal = 'Nominal harus lebih dari Rp 0'
   if (params.nominal > 500_000_000) errors.nominal = 'Maksimal satu kali top-up Rp 500.000.000'
   if (!params.sumber) errors.sumber = 'Pilih sumber dana'
@@ -48,9 +50,25 @@ async function simulateDeposit(params: {
 // ── Main form ────────────────────────────────────────────────
 function DepositForm() {
   const sp = useSearchParams()
-  const accountId   = sp.get('accountId') ?? ''
-  const accountName = sp.get('accountName') ?? 'Rekening Saya'
-  const balance     = parseInt(sp.get('balance') ?? '0', 10)
+  const queryAccountId   = sp.get('accountId') ?? ''
+  const queryAccountName = sp.get('accountName') ?? 'Rekening Saya'
+  const queryProvider    = sp.get('providerName') ?? ''
+  const queryType        = sp.get('type') ?? ''
+  const queryBalance     = Number(sp.get('balance') ?? 0)
+  const { accounts, loading: accountsLoading } = useAccounts()
+
+  const selectedAccount = useMemo(
+    () => accounts.find(a => a.id === queryAccountId && (a.type === 'bank' || a.type === 'ewallet')) ?? null,
+    [accounts, queryAccountId]
+  )
+  const accountId   = selectedAccount?.id ?? queryAccountId
+  const accountName = selectedAccount?.name ?? queryAccountName
+  const provider    = selectedAccount?.providerName ?? queryProvider
+  const accountType = selectedAccount?.type ?? queryType
+  const rawBalance  = selectedAccount?.balance ?? queryBalance
+  const balance     = Number.isFinite(Number(rawBalance)) ? Number(rawBalance) : 0
+  const accountReady = Boolean(queryAccountId && selectedAccount)
+  const accountInvalid = Boolean(queryAccountId && !accountsLoading && !selectedAccount)
 
   const [nominal, setNominal]     = useState(0)
   const [sumber, setSumber]       = useState('')
@@ -61,14 +79,14 @@ function DepositForm() {
 
   const currentErrors = useMemo(() => {
     if (!submitted) return {}
-    return validateDeposit({ nominal, sumber })
-  }, [submitted, nominal, sumber])
+    return validateDeposit({ nominal, sumber, accountReady })
+  }, [submitted, nominal, sumber, accountReady])
 
-  const isValid = Object.keys(validateDeposit({ nominal, sumber })).length === 0
+  const isValid = Object.keys(validateDeposit({ nominal, sumber, accountReady })).length === 0
 
   async function handleSubmit() {
     setSubmitted(true)
-    const errs = validateDeposit({ nominal, sumber })
+    const errs = validateDeposit({ nominal, sumber, accountReady })
     if (Object.keys(errs).length > 0) return
     setLoading(true)
     try {
@@ -111,11 +129,34 @@ function DepositForm() {
         accountName={accountName}
         accountBalance={balance}
         ctaLabel="Tambah Saldo →"
-        ctaDisabled={!isValid && submitted}
+        ctaDisabled={accountsLoading || accountInvalid || !queryAccountId || (!isValid && submitted)}
         ctaLoading={loading}
         onSubmit={handleSubmit}
         accentIcon={<TrendingUp size={16} />}
       >
+        {(accountsLoading || accountInvalid || !queryAccountId) && (
+          <div
+            className="rounded-2xl px-4 py-3 text-[12px] leading-relaxed"
+            style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', color: 'var(--text-muted)' }}
+          >
+            {accountsLoading
+              ? 'Memuat rekening tujuan...'
+              : 'Rekening tujuan dari link tidak ditemukan. Buka detail akun lalu pilih Tambah Saldo lagi.'}
+          </div>
+        )}
+
+        {accountReady && (
+          <div
+            className="rounded-2xl px-4 py-3"
+            style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.16)' }}
+          >
+            <p className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>Rekening tujuan terisi otomatis</p>
+            <p className="text-[13px] font-bold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+              {accountName}{provider ? ` | ${provider}` : ''}{accountType ? ` | ${accountType}` : ''}
+            </p>
+          </div>
+        )}
+
         {/* Nominal */}
         <FormSection title="Jumlah Saldo">
           <CurrencyInput

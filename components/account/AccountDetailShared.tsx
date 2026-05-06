@@ -10,7 +10,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronRight, TrendingUp, TrendingDown,
-  Info, AlertTriangle, Zap,
+  Info, AlertTriangle, Zap, Loader2,
 } from 'lucide-react'
 
 // ─────────────────────────────────────────────────────────────
@@ -30,6 +30,9 @@ export interface QuickActionItem {
   icon: React.ReactNode
   primary?: boolean
   onClick?: () => void
+  ariaLabel?: string
+  loading?: boolean
+  disabled?: boolean
 }
 
 export interface InfoRowData {
@@ -259,23 +262,38 @@ export function QuickActionsRow({ actions }: { actions: QuickActionItem[] }) {
       {safeActions.map((action, i) => (
         <motion.button
           key={i}
-          onClick={action.onClick}
-          whileTap={{ scale: 0.97 }}
-          className="flex items-center justify-center gap-2 py-3 rounded-2xl text-[13px] font-bold"
+          onClick={action.disabled || action.loading ? undefined : action.onClick}
+          aria-label={action.ariaLabel ?? action.label}
+          disabled={action.disabled || action.loading}
+          whileHover={!action.disabled && !action.loading ? { y: -1 } : undefined}
+          whileTap={!action.disabled && !action.loading ? { scale: 0.97 } : undefined}
+          className="flex items-center justify-center gap-2 py-3 rounded-2xl text-[13px] font-bold disabled:cursor-not-allowed"
           style={
             action.primary
-              ? { background: 'var(--accent)', color: '#fff', border: 'none' }
-              : { background: 'var(--surface-card)', color: 'var(--text-primary)', border: '1px solid var(--border)' }
+              ? {
+                  background: action.disabled || action.loading ? 'rgba(255,255,255,0.08)' : 'var(--accent)',
+                  color: action.disabled || action.loading ? 'rgba(255,255,255,0.38)' : '#fff',
+                  border: 'none',
+                  boxShadow: action.disabled || action.loading ? 'none' : '0 10px 26px rgba(34,197,94,0.22)',
+                  transition: 'background 180ms ease, color 180ms ease, transform 180ms ease',
+                }
+              : {
+                  background: 'rgba(255,255,255,0.045)',
+                  color: action.disabled || action.loading ? 'rgba(255,255,255,0.38)' : 'var(--text-primary)',
+                  border: '1px solid var(--border)',
+                  boxShadow: action.disabled || action.loading ? 'none' : '0 8px 22px rgba(0,0,0,0.14)',
+                  transition: 'background 180ms ease, color 180ms ease, transform 180ms ease',
+                }
           }
         >
           <span
             className="flex items-center justify-center w-6 h-6 rounded-lg text-[13px]"
             style={{
-              background: action.primary ? 'rgba(255,255,255,0.18)' : 'var(--accent-dim)',
+              background: action.primary ? 'rgba(255,255,255,0.18)' : 'rgba(34,197,94,0.10)',
               color: action.primary ? '#fff' : 'var(--accent)',
             }}
           >
-            {action.icon}
+            {action.loading ? <Loader2 size={14} className="animate-spin" /> : action.icon}
           </span>
           {action.label}
         </motion.button>

@@ -76,7 +76,7 @@ export function AccountTransactionList({ accountId, accountType, hidden = false,
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {transactions.map((tx, i) => {
         const isIncome   = tx.type === 'income'
         const isTransfer = tx.type === 'transfer'
@@ -112,15 +112,16 @@ export function AccountTransactionList({ accountId, accountType, hidden = false,
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.035 }}
-            className="flex items-center gap-3.5 px-4 py-3.5 rounded-2xl"
+            className="flex items-center gap-3 px-3.5 py-3 rounded-2xl"
             style={{
-              background: 'var(--surface-card)',
+              background: 'rgba(255,255,255,0.045)',
               border:     '1px solid var(--border)',
+              boxShadow:  '0 8px 20px rgba(0,0,0,0.10)',
             }}
           >
             {/* Icon bubble */}
             <div
-              className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-[18px]"
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-[17px]"
               style={{ background: iconBg }}
             >
               {icon}
@@ -153,7 +154,7 @@ export function AccountTransactionList({ accountId, accountType, hidden = false,
 
             {/* Amount */}
             <div className="text-right flex-shrink-0">
-              <p className="text-[13px] font-bold" style={{ color: amountColor, fontFamily: 'var(--font-jetbrains)' }}>
+              <p className="text-[12px] font-bold" style={{ color: amountColor, fontFamily: 'var(--font-jetbrains)' }}>
                 {amountPrefix}{fmt(tx.amount)}
               </p>
             </div>
