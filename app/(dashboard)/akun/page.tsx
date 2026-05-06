@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import {
-  ChevronLeft, Trash2, ReceiptText, ArrowRight,
+  ChevronLeft, Trash2, ReceiptText, X,
   Building2, CreditCard as CreditCardIcon, Wallet,
   Hash, Calendar, TrendingUp,
   Phone, ShieldCheck, Repeat, AlertTriangle,
@@ -383,6 +383,7 @@ function SmartInsights({ summary, transactions, hidden }: {
   transactions: Transaction[]
   hidden: boolean
 }) {
+  const [isVisible, setIsVisible] = useState(true)
   const hasTransactions = transactions.length > 0
   const cashflowPositive = summary.net >= 0
   const insights = [
@@ -415,34 +416,103 @@ function SmartInsights({ summary, transactions, hidden }: {
     },
   ]
 
+  if (!isVisible) {
+    return (
+      <motion.button
+        type="button"
+        onClick={() => setIsVisible(true)}
+        aria-label="Tampilkan insight finansial"
+        whileTap={{ scale: 0.985 }}
+        className="mx-4 w-[calc(100%-2rem)] rounded-2xl px-4 py-3 flex items-center justify-between gap-3 text-left"
+        style={{
+          background: 'rgba(255,255,255,0.52)',
+          border: '1px solid rgba(34,197,94,0.13)',
+          boxShadow: '0 12px 26px rgba(15,23,42,0.06)',
+          backdropFilter: 'blur(14px)',
+        }}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <span
+            className="h-9 w-9 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)' }}
+          >
+            <Sparkles size={15} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>
+              Insight disembunyikan
+            </span>
+            <span className="block text-[11px] mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
+              Ketuk untuk menampilkan lagi.
+            </span>
+          </span>
+        </div>
+        <span className="text-[11px] font-bold flex-shrink-0" style={{ color: 'var(--accent)' }}>
+          Tampilkan
+        </span>
+      </motion.button>
+    )
+  }
+
   return (
     <div>
-      <SectionLabel title="Insight Finansial" />
-      <div className="px-4 grid gap-2.5">
-        {insights.map((insight, index) => (
-          <motion.div
-            key={insight.title}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.22, delay: index * 0.04 }}
-            className="flex items-start gap-3 rounded-2xl px-3.5 py-3"
-            style={{
-              background: 'rgba(255,255,255,0.58)',
-              border: '1px solid rgba(34,197,94,0.12)',
-              boxShadow: '0 12px 26px rgba(15,23,42,0.07)',
-              backdropFilter: 'blur(14px)',
-            }}
-          >
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: insight.bg, color: insight.color }}>
-              {insight.icon}
-            </div>
-            <div className="min-w-0">
-              <p className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>{insight.title}</p>
-              <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>{insight.description}</p>
-            </div>
-          </motion.div>
-        ))}
+      <div className="flex items-center justify-between px-4 mb-3">
+        <p
+          className="text-[10px] font-bold tracking-[0.15em] uppercase"
+          style={{ color: 'var(--text-muted)', opacity: 0.7 }}
+        >
+          Insight Finansial
+        </p>
+        <motion.button
+          type="button"
+          onClick={() => setIsVisible(false)}
+          aria-label="Sembunyikan insight finansial"
+          whileTap={{ scale: 0.94 }}
+          className="h-8 w-8 rounded-full flex items-center justify-center"
+          style={{
+            background: 'rgba(255,255,255,0.64)',
+            border: '1px solid rgba(34,197,94,0.12)',
+            color: 'var(--text-muted)',
+          }}
+        >
+          <X size={14} />
+        </motion.button>
       </div>
+      <AnimatePresence initial={false}>
+        <motion.div
+          key="smart-insight-list"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.2 }}
+          className="px-4 grid gap-2.5"
+        >
+          {insights.map((insight, index) => (
+            <motion.div
+              key={insight.title}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.22, delay: index * 0.04 }}
+              whileTap={{ scale: 0.99 }}
+              className="flex items-start gap-3 rounded-2xl px-3.5 py-3"
+              style={{
+                background: 'rgba(255,255,255,0.58)',
+                border: '1px solid rgba(34,197,94,0.12)',
+                boxShadow: '0 12px 26px rgba(15,23,42,0.07)',
+                backdropFilter: 'blur(14px)',
+              }}
+            >
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: insight.bg, color: insight.color }}>
+                {insight.icon}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>{insight.title}</p>
+                <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>{insight.description}</p>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </AnimatePresence>
     </div>
   )
 }
@@ -495,7 +565,6 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
   // Quick actions
   const quickActions: QuickActionItem[] = [
     { label: 'Bayar Sekarang', icon: <ReceiptText size={14} />, primary: true, onClick: onPay },
-    { label: 'Lihat Tagihan',  icon: <ArrowRight size={14} />,  primary: false },
   ]
 
   // Info groups

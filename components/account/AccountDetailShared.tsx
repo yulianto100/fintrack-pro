@@ -9,7 +9,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ChevronRight, TrendingUp, TrendingDown,
+  ChevronRight, ChevronDown, TrendingUp, TrendingDown,
   Info, AlertTriangle, Zap, Loader2,
 } from 'lucide-react'
 
@@ -433,52 +433,103 @@ export function BillingStatusCard({ dueLabel, daysLeft, urgent, minimumPayment, 
 // ─────────────────────────────────────────────────────────────
 export function InfoSection({ groups }: { groups: InfoGroupData[] }) {
   const safeGroups = Array.isArray(groups) ? groups : []
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
+
+  const isGroupOpen = (title: string) => openGroups[title] ?? true
+  const toggleGroup = (title: string) => {
+    setOpenGroups(current => ({
+      ...current,
+      [title]: !(current[title] ?? true),
+    }))
+  }
+
   return (
     <>
       {safeGroups.map((group, gi) => (
-        <div key={gi} className="mx-4 mb-5">
-          <p
-            className="text-[10px] font-bold tracking-[0.15em] uppercase mb-2 px-1"
-            style={{ color: 'var(--text-muted)', opacity: 0.7 }}
-          >
-            {group.title}
-          </p>
-          <div
-            className="rounded-3xl overflow-hidden"
+        <div key={group.title || gi} className="mx-4 mb-4">
+          <motion.button
+            type="button"
+            onClick={() => toggleGroup(group.title)}
+            aria-expanded={isGroupOpen(group.title)}
+            aria-label={`${isGroupOpen(group.title) ? 'Tutup' : 'Buka'} ${group.title}`}
+            whileTap={{ scale: 0.985 }}
+            className="w-full rounded-2xl px-4 py-3 flex items-center justify-between gap-3 text-left"
             style={{
-              background: 'color-mix(in srgb, var(--surface-card) 78%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--accent) 14%, var(--border))',
-              boxShadow: '0 14px 34px rgba(15,23,42,0.08)',
+              background: 'rgba(255,255,255,0.56)',
+              border: '1px solid rgba(34,197,94,0.13)',
+              boxShadow: '0 12px 26px rgba(15,23,42,0.06)',
               backdropFilter: 'blur(14px)',
             }}
           >
-            {(group.rows ?? []).map((row, ri) => (
-              <div
-                key={ri}
-                className="flex items-center gap-3 px-4 py-3.5"
-                style={{
-                  borderBottom:
-                    ri < (group.rows?.length ?? 0) - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-                }}
+            <div className="min-w-0">
+              <p
+                className="text-[10px] font-bold tracking-[0.15em] uppercase"
+                style={{ color: 'var(--text-muted)', opacity: 0.74 }}
+              >
+                {group.title}
+              </p>
+              <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)', opacity: 0.72 }}>
+                {(group.rows ?? []).length} detail
+              </p>
+            </div>
+            <motion.span
+              animate={{ rotate: isGroupOpen(group.title) ? 180 : 0 }}
+              transition={{ duration: 0.18 }}
+              className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)' }}
+            >
+              <ChevronDown size={15} />
+            </motion.span>
+          </motion.button>
+
+          <AnimatePresence initial={false}>
+            {isGroupOpen(group.title) && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+                className="overflow-hidden"
               >
                 <div
-                  className="w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)' }}
+                  className="rounded-3xl overflow-hidden mt-2"
+                  style={{
+                    background: 'color-mix(in srgb, var(--surface-card) 78%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--accent) 14%, var(--border))',
+                    boxShadow: '0 14px 34px rgba(15,23,42,0.08)',
+                    backdropFilter: 'blur(14px)',
+                  }}
                 >
-                  {row.icon}
+                  {(group.rows ?? []).map((row, ri) => (
+                    <div
+                      key={ri}
+                      className="flex items-center gap-3 px-4 py-3.5"
+                      style={{
+                        borderBottom:
+                          ri < (group.rows?.length ?? 0) - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                      }}
+                    >
+                      <div
+                        className="w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)' }}
+                      >
+                        {row.icon}
+                      </div>
+                      <span className="text-[12px] flex-1" style={{ color: 'var(--text-muted)' }}>
+                        {row.label}
+                      </span>
+                      <span
+                        className="text-[12px] font-semibold text-right"
+                        style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}
+                      >
+                        {row.value}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-                <span className="text-[12px] flex-1" style={{ color: 'var(--text-muted)' }}>
-                  {row.label}
-                </span>
-                <span
-                  className="text-[12px] font-semibold text-right"
-                  style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}
-                >
-                  {row.value}
-                </span>
-              </div>
-            ))}
-          </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       ))}
     </>
