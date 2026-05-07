@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Check, KeyRound } from 'lucide-react'
+import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Check, KeyRound, Camera } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface ProfileData {
@@ -28,6 +28,8 @@ export default function EditProfilePage() {
   const [showPass,    setShowPass   ] = useState(false)
   const [savingInfo,  setSavingInfo ] = useState(false)
   const [savingPass,  setSavingPass ] = useState(false)
+  const [avatarUri,   setAvatarUri  ] = useState<string | null>(null)
+  const avatarInputRef = useRef<HTMLInputElement | null>(null)
 
   // Fetch latest profile including hasPassword flag
   useEffect(() => {
@@ -44,6 +46,51 @@ export default function EditProfilePage() {
       })
       .catch(() => setName(session?.user?.name || ''))
   }, [session?.user?.id, session?.user?.name])
+
+  const showAvatarPickerError = () => {
+    window.alert('Gagal\nTidak dapat memilih foto. Silakan coba lagi.')
+  }
+
+  const handlePickAvatar = () => {
+    avatarInputRef.current?.click()
+  }
+
+  const handleAvatarFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      showAvatarPickerError()
+      event.currentTarget.value = ''
+      return
+    }
+
+    try {
+      const reader = new FileReader()
+
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          // TODO: upload avatar to backend/profile storage when API is available
+          setAvatarUri(reader.result)
+          return
+        }
+
+        showAvatarPickerError()
+      }
+
+      reader.onerror = () => {
+        showAvatarPickerError()
+      }
+
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('Failed to pick avatar:', error)
+      showAvatarPickerError()
+    } finally {
+      event.currentTarget.value = ''
+    }
+  }
 
   const handleUpdateInfo = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -130,7 +177,7 @@ export default function EditProfilePage() {
   const displayName  = name || profile?.name || session?.user?.name || ''
 
   return (
-    <div className="px-4 py-6 max-w-lg mx-auto space-y-5">
+    <div className="px-4 pt-6 pb-28 max-w-lg mx-auto space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={() => router.back()}
@@ -146,16 +193,71 @@ export default function EditProfilePage() {
       {/* Avatar */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
         className="glass-card p-6 flex flex-col items-center gap-3">
-        <div className="w-20 h-20 rounded-2xl overflow-hidden"
-          style={{ boxShadow: '0 0 0 3px var(--accent)' }}>
-          {profileImage ? (
-            <Image src={profileImage} alt="avatar" width={80} height={80} className="object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-3xl font-bold"
-              style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
-              {displayName?.[0]?.toUpperCase() || '?'}
-            </div>
-          )}
+        <div className="flex flex-col items-center">
+          <button
+            type="button"
+            onClick={handlePickAvatar}
+            aria-label="Ganti foto profil"
+            className="group relative w-24 h-24 rounded-3xl outline-none transition-transform duration-200 hover:scale-[1.02] active:scale-95 focus-visible:ring-2 focus-visible:ring-emerald-400/80"
+            style={{
+              background: 'var(--accent-dim)',
+              boxShadow: '0 0 0 3px var(--accent), 0 18px 40px rgba(0,0,0,0.22)',
+            }}
+          >
+            <span className="absolute inset-0 overflow-hidden rounded-3xl">
+              {avatarUri ? (
+                <Image
+                  src={avatarUri}
+                  alt="Foto profil"
+                  width={96}
+                  height={96}
+                  unoptimized
+                  className="w-full h-full object-cover"
+                />
+              ) : profileImage ? (
+                <Image
+                  src={profileImage}
+                  alt="Avatar profil"
+                  width={96}
+                  height={96}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="w-full h-full flex items-center justify-center text-4xl font-bold"
+                  style={{ color: 'var(--accent)' }}>
+                  {displayName?.[0]?.toUpperCase() || '?'}
+                </span>
+              )}
+            </span>
+
+            <span
+              className="absolute -right-2 -bottom-2 w-9 h-9 rounded-full flex items-center justify-center border-[3px] transition-transform duration-200 group-hover:scale-105"
+              style={{
+                background: 'var(--accent)',
+                borderColor: 'var(--surface)',
+                color: '#02130a',
+              }}
+            >
+              <Camera size={16} strokeWidth={2.4} />
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handlePickAvatar}
+            className="mt-3 text-xs font-semibold tracking-wide transition-colors hover:opacity-80"
+            style={{ color: 'var(--accent)' }}
+          >
+            Ganti Foto
+          </button>
+
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarFileChange}
+          />
         </div>
         <div className="text-center">
           <p className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
