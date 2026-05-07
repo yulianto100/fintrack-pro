@@ -16,6 +16,8 @@ interface ProfileData {
   isCredentials: boolean
 }
 
+const MAX_AVATAR_SIZE = 5 * 1024 * 1024
+
 export default function EditProfilePage() {
   const { data: session, update: updateSession } = useSession()
   const router = useRouter()
@@ -29,6 +31,7 @@ export default function EditProfilePage() {
   const [savingInfo,  setSavingInfo ] = useState(false)
   const [savingPass,  setSavingPass ] = useState(false)
   const [avatarUri,   setAvatarUri  ] = useState<string | null>(null)
+  const [avatarFile,  setAvatarFile ] = useState<File | null>(null)
   const avatarInputRef = useRef<HTMLInputElement | null>(null)
 
   // Fetch latest profile including hasPassword flag
@@ -66,12 +69,18 @@ export default function EditProfilePage() {
       return
     }
 
+    if (file.size > MAX_AVATAR_SIZE) {
+      showAvatarPickerError()
+      event.currentTarget.value = ''
+      return
+    }
+
     try {
       const reader = new FileReader()
 
       reader.onload = () => {
         if (typeof reader.result === 'string') {
-          // TODO: upload avatar to backend/profile storage when API is available
+          setAvatarFile(file)
           setAvatarUri(reader.result)
           return
         }
@@ -92,11 +101,29 @@ export default function EditProfilePage() {
     }
   }
 
+  const uploadAvatar = async (file: File) => {
+    const formData = new FormData()
+    formData.append('avatar', file)
+
+    const res = await fetch('/api/profile/avatar', {
+      method: 'POST',
+      body: formData,
+    })
+    const json = await res.json()
+
+    if (!json.success || !json.data?.image) {
+      throw new Error(json.error || 'Gagal menyimpan foto profil')
+    }
+
+    return json.data.image as string
+  }
+
   const handleUpdateInfo = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) { toast.error('Nama tidak boleh kosong'); return }
     setSavingInfo(true)
     try {
+      const uploadedImage = avatarFile ? await uploadAvatar(avatarFile) : null
       const res  = await fetch('/api/profile/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -104,9 +131,15 @@ export default function EditProfilePage() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
-      await updateSession({ name: name.trim() })
+      const nextImage = uploadedImage ?? profile?.image ?? session?.user?.image ?? null
+      await updateSession({ name: name.trim(), image: nextImage })
       await fetch('/api/auth/session', { method: 'GET' })
-      toast.success('Username berhasil diperbarui! ✓')
+      setProfile((prev) => prev ? { ...prev, name: name.trim(), image: nextImage || '' } : prev)
+      if (uploadedImage) {
+        setAvatarFile(null)
+        setAvatarUri(null)
+      }
+      toast.success(uploadedImage ? 'Profil dan foto berhasil diperbarui' : 'Username berhasil diperbarui')
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Gagal memperbarui profil')
     } finally { setSavingInfo(false) }
@@ -127,7 +160,7 @@ export default function EditProfilePage() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
-      toast.success('Password berhasil diubah! ✓')
+      toast.success('Password berhasil diubah')
       setCurrentPass(''); setNewPass(''); setConfirmPass('')
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Gagal mengubah password')
@@ -149,7 +182,7 @@ export default function EditProfilePage() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
-      toast.success('Password berhasil di-set! ✓ Sekarang kamu bisa login dengan email & password.')
+      toast.success('Password berhasil diset. Sekarang kamu bisa login dengan email & password.')
       setNewPass(''); setConfirmPass('')
       // Refresh profile data
       const updated = await fetch('/api/profile/me').then((r) => r.json())
@@ -250,6 +283,11 @@ export default function EditProfilePage() {
           >
             Ganti Foto
           </button>
+          {avatarFile && (
+            <p className="mt-1 text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
+              Foto siap disimpan. Klik Simpan untuk update.
+            </p>
+          )}
 
           <input
             ref={avatarInputRef}

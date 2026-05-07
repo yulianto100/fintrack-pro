@@ -25,8 +25,9 @@ export async function ensureUserSetup(uid: string, data: {
       await createDefaultCategories(uid)
     } else {
       const upd: Record<string, string> = { lastLogin: new Date().toISOString() }
+      const profile = snap.val() as { image?: string; avatarPath?: string } | null
       if (data.name)  upd.name  = data.name
-      if (data.image) upd.image = data.image
+      if (data.image && !profile?.image && !profile?.avatarPath) upd.image = data.image
       await ref.update(upd)
     }
   } catch (err) {
@@ -123,8 +124,9 @@ export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
 
   callbacks: {
-    async jwt({ token, user, account, trigger }) {
+    async jwt({ token, user, account, trigger, session }) {
       if (user?.id) token.uid = user.id
+      if (user?.image) token.picture = user.image
       if (account?.provider === 'google' && account.providerAccountId) {
         token.uid      = account.providerAccountId
         token.provider = 'google'
@@ -134,8 +136,12 @@ export const authOptions: NextAuthOptions = {
           try {
             const { getAdminDatabase } = await import('./firebase-admin')
             const db       = getAdminDatabase()
-            const profSnap = await db.ref(`users/${account.providerAccountId}/profile/profileCompleted`).get()
-            token.profileCompleted = profSnap.exists() ? profSnap.val() : false
+            const profSnap = await db.ref(`users/${account.providerAccountId}/profile`).get()
+            const profile = profSnap.exists() ? profSnap.val() as { profileCompleted?: boolean; name?: string; email?: string; image?: string } : {}
+            token.profileCompleted = profile.profileCompleted ?? false
+            if (profile.name) token.name = profile.name
+            if (profile.email) token.email = profile.email
+            if (profile.image) token.picture = profile.image
           } catch {
             token.profileCompleted = false
           }
@@ -143,8 +149,13 @@ export const authOptions: NextAuthOptions = {
       }
       // Allow update() calls from the client to refresh token fields
       if (trigger === 'update') {
+        const update = session as { name?: string | null; image?: string | null; user?: { name?: string | null; image?: string | null } } | undefined
+        const nextName = update?.name ?? update?.user?.name
+        const nextImage = update?.image ?? update?.user?.image
+
         token.profileCompleted = true
-        token.name = token.name // preserved
+        if (typeof nextName === 'string') token.name = nextName
+        if (typeof nextImage === 'string') token.picture = nextImage
       }
       return token
     },
@@ -152,6 +163,7 @@ export const authOptions: NextAuthOptions = {
       session.user.id               = (token.uid as string) || token.sub || ''
       session.user.profileCompleted = token.profileCompleted as boolean | undefined
       session.user.provider         = token.provider as string | undefined
+      session.user.image            = (token.picture as string | null | undefined) ?? session.user.image
       return session
     },
     async signIn({ user, account }) {
