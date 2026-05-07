@@ -10,7 +10,7 @@ const CARD_COLORS = [
 ]
 
 const BANK_SUGGESTIONS = [
-  'BCA', 'Mandiri', 'BRI', 'BNI', 'CIMB Niaga',
+  'BCA', 'Mandiri', 'BRI', 'BNI', 'UOB', 'CIMB Niaga',
   'Jago', 'Sinarmas', 'Danamon', 'Permata', 'BTN',
 ]
 

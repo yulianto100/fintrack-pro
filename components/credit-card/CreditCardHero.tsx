@@ -19,7 +19,7 @@ function usageColor(pct: number): { bar: string; glow: string; text: string } {
 function bankInitials(name: string): string {
   const map: Record<string, string> = {
     bca: 'BCA', bni: 'BNI', bri: 'BRI', mandiri: 'MDR',
-    cimb: 'CIMB', ocbc: 'OCBC', danamon: 'DNM', permata: 'PMT',
+    uob: 'UOB', cimb: 'CIMB', ocbc: 'OCBC', danamon: 'DNM', permata: 'PMT',
   }
   const key = name.toLowerCase().replace(/\s+/g, '')
   for (const [k, v] of Object.entries(map)) {

@@ -17,6 +17,7 @@ const BANK_PROVIDERS: ProviderInfo[] = [
   { name: 'Mandiri',    logoUrl: '/bank-icons/mandiri.png'   },
   { name: 'BRI',        logoUrl: '/bank-icons/bri.png'       },
   { name: 'BNI',        logoUrl: '/bank-icons/bni.png'       },
+  { name: 'UOB',        logoUrl: ''                          },
   { name: 'CIMB Niaga', logoUrl: '/bank-icons/cimb.png'      },
   { name: 'Jago',       logoUrl: '/bank-icons/jago.png'      },
   { name: 'Jenius',     logoUrl: '/bank-icons/jenius.png'    },
@@ -46,13 +47,16 @@ const CARD_COLORS = [
 // ── Provider Logo component ───────────────────────────────────
 function ProviderLogo({ logoUrl, name, size = 28 }: { logoUrl: string; name: string; size?: number }) {
   const [errored, setErrored] = useState(false)
-  if (errored) {
+  const compactName = name.replace(/[^a-z0-9]/gi, '').toUpperCase()
+  const fallbackText = compactName.length <= 3 ? compactName : compactName.slice(0, 2)
+
+  if (!logoUrl || errored) {
     return (
       <div
         className="rounded-lg flex items-center justify-center flex-shrink-0"
         style={{ width: size, height: size, background: 'var(--accent-dim)', fontSize: size * 0.35, fontWeight: 700, color: 'var(--accent)' }}
       >
-        {name.slice(0, 2).toUpperCase()}
+        {fallbackText}
       </div>
     )
   }

@@ -94,6 +94,7 @@ const PROVIDER_MAP: Record<string, ProviderInfo> = {
   mandiri:      { label: 'Mandiri',    abbr: 'MDR', color: '#003f80', bg: 'rgba(0,63,128,0.15)'    },
   bri:          { label: 'BRI',        abbr: 'BRI', color: '#00529b', bg: 'rgba(0,82,155,0.15)'    },
   bni:          { label: 'BNI',        abbr: 'BNI', color: '#f68b1e', bg: 'rgba(246,139,30,0.15)'  },
+  uob:          { label: 'UOB',        abbr: 'UOB', color: '#005eb8', bg: 'rgba(0,94,184,0.15)'    },
   cimbniaga:    { label: 'CIMB',       abbr: 'CMB', color: '#cc0001', bg: 'rgba(204,0,1,0.15)'     },
   cimb:         { label: 'CIMB',       abbr: 'CMB', color: '#cc0001', bg: 'rgba(204,0,1,0.15)'     },
   ocbc:         { label: 'OCBC',       abbr: 'OBC', color: '#e2231a', bg: 'rgba(226,35,26,0.15)'   },
