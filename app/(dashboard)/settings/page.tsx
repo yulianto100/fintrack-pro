@@ -16,36 +16,6 @@ import type { Category, RecurringTransaction, RecurringFrequency } from '@/types
 import { useDarkMode } from '@/hooks/useDarkMode'
 import toast from 'react-hot-toast'
 
-const LINK_ERROR_MESSAGE = 'Tidak dapat membuka link. Silakan coba lagi nanti.'
-
-const openExternalUrl = async (url: string) => {
-  try {
-    if (typeof window === 'undefined') return
-    if (url.startsWith('mailto:')) {
-      window.location.href = url
-      return
-    }
-
-    const opened = window.open(url, '_blank', 'noopener,noreferrer')
-    if (!opened) throw new Error('Unable to open link')
-  } catch {
-    window.alert(LINK_ERROR_MESSAGE)
-  }
-}
-
-const createMailtoUrl = ({
-  email,
-  subject,
-  body,
-}: {
-  email: string
-  subject: string
-  body?: string
-}) => {
-  const query = `subject=${encodeURIComponent(subject)}${body ? `&body=${encodeURIComponent(body)}` : ''}`
-  return `mailto:${email}?${query}`
-}
-
 function SettingSubItem({
   title,
   subtitle,
@@ -311,40 +281,6 @@ export default function SettingsPage() {
       )}
     </div>
   )
-
-  const bugReportBody = `Halo Tim Finuvo,
-
-Saya ingin melaporkan bug:
-
-Deskripsi:
--
-
-Langkah reproduksi:
-1.
-2.
-3.
-
-Terjadi di halaman:
--
-
-Device:
--
-
-Versi aplikasi:
-1.0.0`
-
-  const featureRequestBody = `Halo Tim Finuvo,
-
-Saya ingin mengusulkan fitur:
-
-Nama fitur:
--
-
-Alasan fitur ini dibutuhkan:
--
-
-Detail tambahan:
--`
 
   return (
     <div className="px-4 pt-6 pb-28 max-w-2xl mx-auto space-y-5">
@@ -760,38 +696,22 @@ Detail tambahan:
                 <SettingSubItem
                   title="Pusat Bantuan"
                   subtitle="Temukan artikel dan panduan penggunaan"
-                  onClick={() => openExternalUrl('https://finuvo.app/help')}
                 />
                 <SettingSubItem
                   title="FAQ"
                   subtitle="Pertanyaan yang sering diajukan"
-                  onClick={() => openExternalUrl('https://finuvo.app/faq')}
                 />
                 <SettingSubItem
                   title="Hubungi Support"
                   subtitle="Kirim pesan ke tim kami"
-                  onClick={() => openExternalUrl(createMailtoUrl({
-                    email: 'support@finuvo.app',
-                    subject: 'Bantuan Finuvo',
-                  }))}
                 />
                 <SettingSubItem
                   title="Laporkan Bug"
                   subtitle="Laporkan masalah atau error"
-                  onClick={() => openExternalUrl(createMailtoUrl({
-                    email: 'bugs@finuvo.app',
-                    subject: 'Laporan Bug Finuvo',
-                    body: bugReportBody,
-                  }))}
                 />
                 <SettingSubItem
                   title="Request Fitur"
                   subtitle="Sampaikan ide fitur untuk Finuvo"
-                  onClick={() => openExternalUrl(createMailtoUrl({
-                    email: 'feedback@finuvo.app',
-                    subject: 'Request Fitur Finuvo',
-                    body: featureRequestBody,
-                  }))}
                 />
               </div>
             </motion.div>
@@ -833,22 +753,18 @@ Detail tambahan:
                 <SettingSubItem
                   title="Tentang Finuvo"
                   subtitle="Informasi tentang aplikasi"
-                  onClick={() => openExternalUrl('https://finuvo.app/about')}
                 />
                 <SettingSubItem
                   title="Kebijakan Privasi"
                   subtitle="Cara kami melindungi data kamu"
-                  onClick={() => openExternalUrl('https://finuvo.app/privacy')}
                 />
                 <SettingSubItem
                   title="Syarat & Ketentuan"
                   subtitle="Aturan penggunaan aplikasi"
-                  onClick={() => openExternalUrl('https://finuvo.app/terms')}
                 />
                 <SettingSubItem
                   title="Lisensi Open Source"
                   subtitle="Daftar library pihak ketiga"
-                  onClick={() => openExternalUrl('https://finuvo.app/licenses')}
                 />
                 <SettingSubItem
                   title="Versi Aplikasi"
