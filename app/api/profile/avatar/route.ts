@@ -32,6 +32,10 @@ function getExtension(contentType: string) {
   }
 }
 
+function createAvatarImageUrl(version: number) {
+  return `/api/profile/avatar?v=${version}`
+}
+
 async function getUserId(): Promise<string | null> {
   try {
     const session = await getServerSession(authOptions)
@@ -64,7 +68,6 @@ export async function POST(request: Request) {
     }
 
     const db = getAdminDatabase()
-    const bucket = getAdminStorageBucket()
     const profileRef = db.ref(`users/${userId}/profile`)
     const profileSnap = await profileRef.get()
     const profile = profileSnap.exists() ? profileSnap.val() : {}
@@ -74,40 +77,91 @@ export async function POST(request: Request) {
     const avatarPath = `users/${userId}/profile/avatar-${Date.now()}.${extension}`
     const downloadToken = randomUUID()
     const buffer = Buffer.from(await upload.arrayBuffer())
-    const file = bucket.file(avatarPath)
 
-    await file.save(buffer, {
-      resumable: false,
-      metadata: {
-        contentType: upload.type,
-        cacheControl: 'public, max-age=31536000',
+    try {
+      const bucket = getAdminStorageBucket()
+      const file = bucket.file(avatarPath)
+
+      await file.save(buffer, {
+        resumable: false,
         metadata: {
-          firebaseStorageDownloadTokens: downloadToken,
+          contentType: upload.type,
+          cacheControl: 'public, max-age=31536000',
+          metadata: {
+            firebaseStorageDownloadTokens: downloadToken,
+          },
         },
-      },
-    })
+      })
 
-    const image = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(avatarPath)}?alt=media&token=${downloadToken}`
+      const image = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(avatarPath)}?alt=media&token=${downloadToken}`
+
+      await profileRef.update({
+        image,
+        avatarPath,
+        avatarData: null,
+        avatarContentType: null,
+        avatarStorage: 'firebase',
+        updatedAt: new Date().toISOString(),
+      })
+
+      if (
+        previousAvatarPath &&
+        previousAvatarPath !== avatarPath &&
+        previousAvatarPath.startsWith(`users/${userId}/profile/`)
+      ) {
+        bucket.file(previousAvatarPath).delete({ ignoreNotFound: true }).catch((error) => {
+          console.warn('[POST /api/profile/avatar] failed to delete old avatar', error)
+        })
+      }
+
+      return NextResponse.json({ success: true, data: { image } })
+    } catch (storageError) {
+      console.warn('[POST /api/profile/avatar] storage unavailable, saving avatar in database', storageError)
+    }
+
+    const version = Date.now()
+    const image = createAvatarImageUrl(version)
 
     await profileRef.update({
       image,
-      avatarPath,
+      avatarData: buffer.toString('base64'),
+      avatarContentType: upload.type,
+      avatarPath: null,
+      avatarStorage: 'database',
+      avatarUpdatedAt: version,
       updatedAt: new Date().toISOString(),
     })
-
-    if (
-      previousAvatarPath &&
-      previousAvatarPath !== avatarPath &&
-      previousAvatarPath.startsWith(`users/${userId}/profile/`)
-    ) {
-      bucket.file(previousAvatarPath).delete({ ignoreNotFound: true }).catch((error) => {
-        console.warn('[POST /api/profile/avatar] failed to delete old avatar', error)
-      })
-    }
 
     return NextResponse.json({ success: true, data: { image } })
   } catch (err) {
     console.error('[POST /api/profile/avatar]', err)
     return NextResponse.json({ success: false, error: 'Gagal menyimpan foto profil' }, { status: 500 })
+  }
+}
+
+export async function GET() {
+  const userId = await getUserId()
+  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+
+  try {
+    const db = getAdminDatabase()
+    const profileSnap = await db.ref(`users/${userId}/profile`).get()
+    const profile = profileSnap.exists() ? profileSnap.val() : {}
+    const avatarData = typeof profile?.avatarData === 'string' ? profile.avatarData : null
+    const avatarContentType = typeof profile?.avatarContentType === 'string' ? profile.avatarContentType : 'image/jpeg'
+
+    if (!avatarData) {
+      return NextResponse.json({ success: false, error: 'Foto profil tidak ditemukan' }, { status: 404 })
+    }
+
+    return new NextResponse(Buffer.from(avatarData, 'base64'), {
+      headers: {
+        'Content-Type': avatarContentType,
+        'Cache-Control': 'private, no-store, max-age=0',
+      },
+    })
+  } catch (err) {
+    console.error('[GET /api/profile/avatar]', err)
+    return NextResponse.json({ success: false, error: 'Gagal membuka foto profil' }, { status: 500 })
   }
 }

@@ -17,6 +17,68 @@ interface ProfileData {
 }
 
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024
+const AVATAR_IMAGE_SIZE = 512
+const AVATAR_IMAGE_QUALITY = 0.86
+const ALLOWED_AVATAR_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result)
+        return
+      }
+
+      reject(new Error('Preview foto tidak valid'))
+    }
+
+    reader.onerror = () => reject(new Error('Preview foto gagal dibuat'))
+    reader.readAsDataURL(file)
+  })
+}
+
+function loadImageFromFile(file: File) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file)
+    const image = document.createElement('img')
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      resolve(image)
+    }
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('Foto tidak dapat dibaca'))
+    }
+    image.src = objectUrl
+  })
+}
+
+async function prepareAvatarFile(file: File) {
+  const image = await loadImageFromFile(file)
+  const largestSide = Math.max(image.naturalWidth, image.naturalHeight)
+  const scale = largestSide > AVATAR_IMAGE_SIZE ? AVATAR_IMAGE_SIZE / largestSide : 1
+  const width = Math.max(1, Math.round(image.naturalWidth * scale))
+  const height = Math.max(1, Math.round(image.naturalHeight * scale))
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+
+  const context = canvas.getContext('2d')
+  if (!context) throw new Error('Foto tidak dapat diproses')
+
+  context.drawImage(image, 0, 0, width, height)
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, 'image/jpeg', AVATAR_IMAGE_QUALITY)
+  })
+
+  if (!blob) throw new Error('Foto tidak dapat diproses')
+
+  return new File([blob], 'avatar.jpg', { type: 'image/jpeg' })
+}
 
 export default function EditProfilePage() {
   const { data: session, update: updateSession } = useSession()
@@ -59,46 +121,34 @@ export default function EditProfilePage() {
     avatarInputRef.current?.click()
   }
 
-  const handleAvatarFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+  const handleAvatarFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget
+    const file = input.files?.[0]
 
     if (!file) return
 
-    if (!file.type.startsWith('image/')) {
+    if (!ALLOWED_AVATAR_TYPES.has(file.type)) {
       showAvatarPickerError()
-      event.currentTarget.value = ''
+      input.value = ''
       return
     }
 
     if (file.size > MAX_AVATAR_SIZE) {
       showAvatarPickerError()
-      event.currentTarget.value = ''
+      input.value = ''
       return
     }
 
     try {
-      const reader = new FileReader()
-
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          setAvatarFile(file)
-          setAvatarUri(reader.result)
-          return
-        }
-
-        showAvatarPickerError()
-      }
-
-      reader.onerror = () => {
-        showAvatarPickerError()
-      }
-
-      reader.readAsDataURL(file)
+      const preparedFile = await prepareAvatarFile(file)
+      const preview = await readFileAsDataUrl(preparedFile)
+      setAvatarFile(preparedFile)
+      setAvatarUri(preview)
     } catch (error) {
       console.error('Failed to pick avatar:', error)
       showAvatarPickerError()
     } finally {
-      event.currentTarget.value = ''
+      input.value = ''
     }
   }
 
@@ -235,6 +285,7 @@ export default function EditProfilePage() {
   const hasPassword  = profile?.hasPassword ?? false
   const profileImage = profile?.image || session?.user?.image || null
   const displayName  = name || profile?.name || session?.user?.name || ''
+  const shouldSkipImageOptimization = profileImage?.startsWith('/api/profile/avatar') || profileImage?.startsWith('data:image/')
 
   return (
     <div className="px-4 pt-6 pb-28 max-w-lg mx-auto space-y-5">
@@ -280,6 +331,7 @@ export default function EditProfilePage() {
                   alt="Avatar profil"
                   width={96}
                   height={96}
+                  unoptimized={shouldSkipImageOptimization}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -355,7 +407,7 @@ export default function EditProfilePage() {
           <input
             ref={avatarInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,image/gif"
             className="hidden"
             onChange={handleAvatarFileChange}
           />

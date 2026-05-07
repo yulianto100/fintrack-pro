@@ -92,6 +92,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!session) return null
 
+  const sessionAvatar = session.user?.image || ''
+  const shouldSkipAvatarOptimization = sessionAvatar.startsWith('/api/profile/avatar') || sessionAvatar.startsWith('data:image/')
+
   return (
     <div className="min-h-dvh flex flex-col" style={{ background: 'transparent' }}>
       {/* ── Top header — becomes more opaque + shadowed on scroll ── */}
@@ -138,8 +141,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               className="w-9 h-9 rounded-full overflow-hidden transition-transform duration-150 active:scale-95"
               style={{ boxShadow: '0 0 0 2px var(--accent)' }}
             >
-              {session.user?.image ? (
-                <Image src={session.user.image} alt="avatar" width={36} height={36} className="object-cover" />
+              {sessionAvatar ? (
+                <Image
+                  src={sessionAvatar}
+                  alt="avatar"
+                  width={36}
+                  height={36}
+                  unoptimized={shouldSkipAvatarOptimization}
+                  className="object-cover"
+                />
               ) : (
                 <div
                   className="w-full h-full flex items-center justify-center text-sm font-bold"
