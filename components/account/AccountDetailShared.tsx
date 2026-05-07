@@ -445,45 +445,60 @@ export function InfoSection({ groups }: { groups: InfoGroupData[] }) {
 
   return (
     <>
-      {safeGroups.map((group, gi) => (
-        <div key={group.title || gi} className="mx-4 mb-4">
-          <motion.button
-            type="button"
-            onClick={() => toggleGroup(group.title)}
-            aria-expanded={isGroupOpen(group.title)}
-            aria-label={`${isGroupOpen(group.title) ? 'Tutup' : 'Buka'} ${group.title}`}
-            whileTap={{ scale: 0.985 }}
-            className="w-full rounded-2xl px-4 py-3 flex items-center justify-between gap-3 text-left"
+      {safeGroups.map((group, gi) => {
+        const open = isGroupOpen(group.title)
+
+        return (
+          <motion.div
+            key={group.title || gi}
+            layout
+            className="mx-4 mb-4 overflow-hidden rounded-3xl"
             style={{
-              background: 'var(--account-panel-bg, var(--surface-card))',
+              background: 'var(--account-panel-elevated-bg, color-mix(in srgb, var(--surface-card) 82%, transparent))',
               border: '1px solid var(--account-panel-border, rgba(34,197,94,0.13))',
-              boxShadow: 'var(--account-panel-shadow, 0 12px 26px rgba(15,23,42,0.06))',
+              boxShadow: open
+                ? 'var(--account-panel-shadow, 0 18px 38px rgba(15,23,42,0.09))'
+                : 'var(--account-panel-shadow, 0 12px 26px rgba(15,23,42,0.06))',
               backdropFilter: 'blur(14px)',
             }}
           >
-            <div className="min-w-0">
-              <p
-                className="text-[10px] font-bold tracking-[0.15em] uppercase"
-                style={{ color: 'var(--account-section-label, var(--text-muted))' }}
-              >
-                {group.title}
-              </p>
-              <p className="text-[11px] mt-0.5" style={{ color: 'var(--account-muted, var(--text-muted))' }}>
-                {(group.rows ?? []).length} detail
-              </p>
-            </div>
-            <motion.span
-              animate={{ rotate: isGroupOpen(group.title) ? 180 : 0 }}
-              transition={{ duration: 0.18 }}
-              className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: 'var(--account-icon-pill-bg, rgba(34,197,94,0.10))', color: 'var(--accent)' }}
+            <motion.button
+              type="button"
+              onClick={() => toggleGroup(group.title)}
+              aria-expanded={open}
+              aria-label={`${open ? 'Tutup' : 'Buka'} ${group.title}`}
+              whileTap={{ scale: 0.985 }}
+              className="w-full px-4 py-3.5 flex items-center justify-between gap-3 text-left"
+              style={{
+                background: open
+                  ? 'color-mix(in srgb, var(--account-panel-bg, var(--surface-card)) 88%, var(--accent) 4%)'
+                  : 'var(--account-panel-bg, var(--surface-card))',
+                borderBottom: open ? '1px solid var(--account-row-border, rgba(255,255,255,0.05))' : 'none',
+              }}
             >
-              <ChevronDown size={15} />
-            </motion.span>
-          </motion.button>
+              <div className="min-w-0">
+                <p
+                  className="text-[10px] font-bold tracking-[0.15em] uppercase"
+                  style={{ color: 'var(--account-section-label, var(--text-muted))' }}
+                >
+                  {group.title}
+                </p>
+                <p className="text-[11px] mt-0.5" style={{ color: 'var(--account-muted, var(--text-muted))' }}>
+                  {(group.rows ?? []).length} detail
+                </p>
+              </div>
+              <motion.span
+                animate={{ rotate: open ? 180 : 0 }}
+                transition={{ duration: 0.18 }}
+                className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: 'var(--account-icon-pill-bg, rgba(34,197,94,0.10))', color: 'var(--accent)' }}
+              >
+                <ChevronDown size={15} />
+              </motion.span>
+            </motion.button>
 
           <AnimatePresence initial={false}>
-            {isGroupOpen(group.title) && (
+            {open && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
@@ -491,15 +506,7 @@ export function InfoSection({ groups }: { groups: InfoGroupData[] }) {
                 transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
                 className="overflow-hidden"
               >
-                <div
-                  className="rounded-3xl overflow-hidden mt-2"
-                  style={{
-                    background: 'var(--account-panel-elevated-bg, color-mix(in srgb, var(--surface-card) 78%, transparent))',
-                    border: '1px solid var(--account-panel-border, color-mix(in srgb, var(--accent) 14%, var(--border)))',
-                    boxShadow: 'var(--account-panel-shadow, 0 14px 34px rgba(15,23,42,0.08))',
-                    backdropFilter: 'blur(14px)',
-                  }}
-                >
+                <div className="overflow-hidden">
                   {(group.rows ?? []).map((row, ri) => (
                     <div
                       key={ri}
@@ -530,8 +537,9 @@ export function InfoSection({ groups }: { groups: InfoGroupData[] }) {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-      ))}
+          </motion.div>
+        )
+      })}
     </>
   )
 }
