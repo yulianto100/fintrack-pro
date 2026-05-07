@@ -70,6 +70,7 @@ export default function SettingsPage() {
   const { data: session } = useSession()
   const { supported, subscribed, loading: notifLoading, subscribe, unsubscribe } = usePushNotifications()
   const { isDark, toggle: toggleDark } = useDarkMode()
+  const [profileAvatarFailed, setProfileAvatarFailed] = useState(false)
 
   // Categories
   const { data: categories, refetch: refetchCats } = useApiList<Category>('/api/categories', { refreshMs: 5000 })
@@ -170,8 +171,13 @@ export default function SettingsPage() {
 
   const incomeCategories  = categories.filter((c) => c.type === 'income')
   const expenseCategories = categories.filter((c) => c.type === 'expense')
+  const profileAvatar = session?.user?.image || ''
+  const shouldShowProfileAvatar = profileAvatar && !profileAvatarFailed
+  const shouldSkipProfileAvatarOptimization =
+    profileAvatar.startsWith('/api/profile/avatar') || profileAvatar.startsWith('data:image/')
 
   useEffect(() => { if (recurringExpanded) fetchRecurring() }, [recurringExpanded])
+  useEffect(() => { setProfileAvatarFailed(false) }, [profileAvatar])
 
   // ── Export / Import ──
   const handleExport = () => {
@@ -290,13 +296,22 @@ export default function SettingsPage() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl overflow-hidden" style={{ boxShadow: '0 0 0 2px var(--accent)' }}>
-            {session?.user?.image
-              ? <Image src={session.user.image} alt="avatar" width={56} height={56}/>
-              : <div className="w-full h-full flex items-center justify-center text-2xl"
-                  style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
-                  {session?.user?.name?.[0]}
-                </div>
-            }
+            {shouldShowProfileAvatar ? (
+              <Image
+                src={profileAvatar}
+                alt="Foto profil"
+                width={56}
+                height={56}
+                unoptimized={shouldSkipProfileAvatarOptimization}
+                onError={() => setProfileAvatarFailed(true)}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-2xl font-bold"
+                style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
+                {session?.user?.name?.[0]?.toUpperCase() || '?'}
+              </div>
+            )}
           </div>
           <div>
             <p className="font-display font-bold" style={{ color: 'var(--text-primary)' }}>{session?.user?.name}</p>

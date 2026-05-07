@@ -95,6 +95,7 @@ export default function EditProfilePage() {
   const [savingAvatar, setSavingAvatar] = useState(false)
   const [avatarUri,   setAvatarUri  ] = useState<string | null>(null)
   const [avatarFile,  setAvatarFile ] = useState<File | null>(null)
+  const [profileImageFailed, setProfileImageFailed] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement | null>(null)
 
   // Fetch latest profile including hasPassword flag
@@ -112,6 +113,9 @@ export default function EditProfilePage() {
       })
       .catch(() => setName(session?.user?.name || ''))
   }, [session?.user?.id, session?.user?.name])
+  useEffect(() => {
+    setProfileImageFailed(false)
+  }, [profile?.image, session?.user?.image])
 
   const showAvatarPickerError = () => {
     window.alert('Gagal\nTidak dapat memilih foto. Silakan coba lagi.')
@@ -285,7 +289,9 @@ export default function EditProfilePage() {
   const hasPassword  = profile?.hasPassword ?? false
   const profileImage = profile?.image || session?.user?.image || null
   const displayName  = name || profile?.name || session?.user?.name || ''
-  const shouldSkipImageOptimization = profileImage?.startsWith('/api/profile/avatar') || profileImage?.startsWith('data:image/')
+  const effectiveProfileImage = profileImageFailed ? null : profileImage
+  const shouldSkipImageOptimization =
+    effectiveProfileImage?.startsWith('/api/profile/avatar') || effectiveProfileImage?.startsWith('data:image/')
 
   return (
     <div className="px-4 pt-6 pb-28 max-w-lg mx-auto space-y-5">
@@ -325,13 +331,14 @@ export default function EditProfilePage() {
                   unoptimized
                   className="w-full h-full object-cover"
                 />
-              ) : profileImage ? (
+              ) : effectiveProfileImage ? (
                 <Image
-                  src={profileImage}
+                  src={effectiveProfileImage}
                   alt="Avatar profil"
                   width={96}
                   height={96}
                   unoptimized={shouldSkipImageOptimization}
+                  onError={() => setProfileImageFailed(true)}
                   className="w-full h-full object-cover"
                 />
               ) : (

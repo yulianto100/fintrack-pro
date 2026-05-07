@@ -32,6 +32,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // ── Scroll-aware sticky header ─────────────────────────────────────────
   const [scrolled, setScrolled] = useState(false)
+  const [avatarFailed, setAvatarFailed] = useState(false)
   const mainRef = useRef<HTMLElement>(null)
 
   const handleScroll = useCallback(() => {
@@ -41,6 +42,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login')
   }, [status, router])
+  useEffect(() => {
+    setAvatarFailed(false)
+  }, [session?.user?.image])
 
   if (status === 'loading') {
     return (
@@ -92,7 +96,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!session) return null
 
-  const sessionAvatar = session.user?.image || ''
+  const sessionAvatar = avatarFailed ? '' : session.user?.image || ''
   const shouldSkipAvatarOptimization = sessionAvatar.startsWith('/api/profile/avatar') || sessionAvatar.startsWith('data:image/')
 
   return (
@@ -148,14 +152,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   width={36}
                   height={36}
                   unoptimized={shouldSkipAvatarOptimization}
-                  className="object-cover"
+                  onError={() => setAvatarFailed(true)}
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 <div
                   className="w-full h-full flex items-center justify-center text-sm font-bold"
                   style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
                 >
-                  {session.user?.name?.[0]?.toUpperCase()}
+                  {session.user?.name?.[0]?.toUpperCase() || '?'}
                 </div>
               )}
             </div>
