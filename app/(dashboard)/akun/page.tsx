@@ -246,10 +246,10 @@ function MonthlySummaryCards({ summary, hidden, loading }: {
   loading?: boolean
 }) {
   const cards = [
-    { label: 'Total Masuk', value: formatCurrencyIDR(summary.income, hidden), color: '#16a34a', marker: 'rgba(34,197,94,0.22)' },
-    { label: 'Total Keluar', value: formatCurrencyIDR(summary.expense, hidden), color: '#ef4444', marker: 'rgba(239,68,68,0.20)' },
-    { label: 'Net Flow', value: formatCurrencyIDR(summary.net, hidden), color: summary.net >= 0 ? '#16a34a' : '#ef4444', marker: summary.net >= 0 ? 'rgba(34,197,94,0.22)' : 'rgba(239,68,68,0.20)' },
-    { label: 'Transaksi', value: loading ? '...' : `${summary.count}x`, color: 'var(--text-primary)', marker: 'rgba(37,99,235,0.18)' },
+    { label: 'Total Masuk', value: formatCurrencyIDR(summary.income, hidden), color: 'var(--account-income)', marker: 'var(--account-income-marker)' },
+    { label: 'Total Keluar', value: formatCurrencyIDR(summary.expense, hidden), color: 'var(--account-expense)', marker: 'var(--account-expense-marker)' },
+    { label: 'Net Flow', value: formatCurrencyIDR(summary.net, hidden), color: summary.net >= 0 ? 'var(--account-income)' : 'var(--account-expense)', marker: summary.net >= 0 ? 'var(--account-income-marker)' : 'var(--account-expense-marker)' },
+    { label: 'Transaksi', value: loading ? '...' : `${summary.count}x`, color: 'var(--account-heading)', marker: 'var(--account-blue-marker)' },
   ]
 
   return (
@@ -262,16 +262,16 @@ function MonthlySummaryCards({ summary, hidden, loading }: {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.22, delay: index * 0.035 }}
-            className="rounded-2xl px-4 py-3.5"
+            className="account-detail-panel rounded-2xl px-4 py-3.5"
             style={{
-              background: 'rgba(255,255,255,0.58)',
-              border: '1px solid rgba(34,197,94,0.14)',
-              boxShadow: '0 14px 32px rgba(15,23,42,0.08)',
+              background: 'var(--account-panel-bg)',
+              border: '1px solid var(--account-panel-border)',
+              boxShadow: 'var(--account-panel-shadow)',
               backdropFilter: 'blur(14px)',
             }}
           >
             <div className="h-1.5 w-8 rounded-full mb-3" style={{ background: card.marker }} />
-            <p className="text-[10px] font-semibold mb-1" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[10px] font-semibold mb-1" style={{ color: 'var(--account-muted)' }}>
               {card.label}
             </p>
             <p
@@ -309,19 +309,19 @@ function AccountBalanceCard({
   return (
     <motion.div
       whileTap={{ scale: 0.995 }}
-      className="mx-4 rounded-3xl overflow-hidden relative"
+      className="account-balance-card mx-4 rounded-3xl overflow-hidden relative"
       style={{
-        background: 'linear-gradient(145deg, rgba(220,252,231,0.88) 0%, rgba(187,247,208,0.58) 42%, rgba(240,253,244,0.88) 100%)',
-        border: '1px solid rgba(134,239,172,0.48)',
+        background: 'var(--account-balance-bg)',
+        border: '1px solid var(--account-balance-border)',
         padding: '22px 22px 20px',
-        boxShadow: '0 24px 54px rgba(21,128,61,0.18), inset 0 1px 0 rgba(255,255,255,0.72)',
+        boxShadow: 'var(--account-balance-shadow)',
         backdropFilter: 'blur(18px) saturate(1.2)',
       }}
     >
       <div aria-hidden className="absolute inset-0 overflow-hidden">
-        <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full" style={{ background: 'radial-gradient(circle, rgba(34,197,94,0.32), transparent 68%)' }} />
-        <div className="absolute -left-10 bottom-[-70px] h-40 w-40 rounded-full" style={{ background: 'radial-gradient(circle, rgba(20,184,166,0.18), transparent 70%)' }} />
-        <div className="absolute inset-x-6 top-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent)' }} />
+        <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full" style={{ background: 'var(--account-balance-glow-1)' }} />
+        <div className="absolute -left-10 bottom-[-70px] h-40 w-40 rounded-full" style={{ background: 'var(--account-balance-glow-2)' }} />
+        <div className="absolute inset-x-6 top-0 h-px" style={{ background: 'var(--account-balance-highlight)' }} />
       </div>
 
       <div className="relative">
@@ -329,14 +329,14 @@ function AccountBalanceCard({
           <div className="flex items-center gap-3 min-w-0">
             <ProviderIcon providerId={account.providerId} providerName={providerName} size={46} />
             <div className="min-w-0">
-              <p className="text-[14px] font-bold truncate" style={{ color: '#13251b' }}>{account.name}</p>
-              <p className="text-[12px] mt-0.5 truncate" style={{ color: 'rgba(19,37,27,0.58)' }}>
+              <p className="text-[14px] font-bold truncate" style={{ color: 'var(--account-balance-heading)' }}>{account.name}</p>
+              <p className="text-[12px] mt-0.5 truncate" style={{ color: 'var(--account-balance-muted)' }}>
                 {isEwallet ? 'E-Wallet' : 'Rekening Bank'}{maskedAccount ? ` | ${maskedAccount}` : ''}
               </p>
             </div>
           </div>
           <div className="flex flex-col items-end gap-2 flex-shrink-0">
-            <div className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1" style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a' }}>
+            <div className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1" style={{ background: 'var(--account-chip-bg)', color: 'var(--account-chip-text)' }}>
               <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#4ade80', boxShadow: '0 0 10px rgba(74,222,128,0.8)' }} />
               <span className="text-[11px] font-semibold">Saldo sinkron</span>
             </div>
@@ -345,7 +345,7 @@ function AccountBalanceCard({
               onClick={onToggleHidden}
               aria-label={hidden ? 'Tampilkan saldo' : 'Sembunyikan saldo'}
               className="h-8 w-8 rounded-full flex items-center justify-center active:scale-95 transition-transform"
-              style={{ background: 'rgba(255,255,255,0.70)', color: '#15803d', border: '1px solid rgba(34,197,94,0.18)' }}
+              style={{ background: 'var(--account-balance-button-bg)', color: 'var(--account-balance-button-text)', border: '1px solid var(--account-balance-button-border)' }}
             >
               {hidden ? <Eye size={15} /> : <EyeOff size={15} />}
             </button>
@@ -354,21 +354,21 @@ function AccountBalanceCard({
 
         <div className="mt-7">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: 'rgba(19,37,27,0.46)' }}>
+            <p className="text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: 'var(--account-balance-label)' }}>
               Saldo tersedia
             </p>
-            <p className="text-[10px] font-semibold flex items-center gap-1" style={{ color: 'rgba(19,37,27,0.52)' }}>
+            <p className="text-[10px] font-semibold flex items-center gap-1" style={{ color: 'var(--account-balance-muted)' }}>
               <Clock3 size={11} /> {lastSyncText}
             </p>
           </div>
           <p
             className="mt-2 text-[36px] font-bold leading-none tracking-normal"
-            style={{ color: '#22c55e', fontFamily: 'var(--font-syne)', fontVariantNumeric: 'tabular-nums' }}
+            style={{ color: 'var(--account-balance-value)', fontFamily: 'var(--font-syne)', fontVariantNumeric: 'tabular-nums' }}
           >
             <CountUpBalance value={balance} hidden={hidden} />
           </p>
           {balance === 0 && !hidden && (
-            <p className="text-[12px] mt-3" style={{ color: 'rgba(19,37,27,0.58)' }}>
+            <p className="text-[12px] mt-3" style={{ color: 'var(--account-balance-muted)' }}>
               Belum ada saldo tercatat di akun ini.
             </p>
           )}
@@ -423,26 +423,26 @@ function SmartInsights({ summary, transactions, hidden }: {
         onClick={() => setIsVisible(true)}
         aria-label="Tampilkan insight finansial"
         whileTap={{ scale: 0.985 }}
-        className="mx-4 w-[calc(100%-2rem)] rounded-2xl px-4 py-3 flex items-center justify-between gap-3 text-left"
+        className="account-detail-panel mx-4 w-[calc(100%-2rem)] rounded-2xl px-4 py-3 flex items-center justify-between gap-3 text-left"
         style={{
-          background: 'rgba(255,255,255,0.52)',
-          border: '1px solid rgba(34,197,94,0.13)',
-          boxShadow: '0 12px 26px rgba(15,23,42,0.06)',
+          background: 'var(--account-panel-bg)',
+          border: '1px solid var(--account-panel-border)',
+          boxShadow: 'var(--account-panel-shadow)',
           backdropFilter: 'blur(14px)',
         }}
       >
         <div className="flex items-center gap-3 min-w-0">
           <span
             className="h-9 w-9 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)' }}
+            style={{ background: 'var(--account-icon-pill-bg)', color: 'var(--accent)' }}
           >
             <Sparkles size={15} />
           </span>
           <span className="min-w-0">
-            <span className="block text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>
+            <span className="block text-[12px] font-bold" style={{ color: 'var(--account-heading)' }}>
               Insight disembunyikan
             </span>
-            <span className="block text-[11px] mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
+            <span className="block text-[11px] mt-0.5 truncate" style={{ color: 'var(--account-muted)' }}>
               Ketuk untuk menampilkan lagi.
             </span>
           </span>
@@ -459,7 +459,7 @@ function SmartInsights({ summary, transactions, hidden }: {
       <div className="flex items-center justify-between px-4 mb-3">
         <p
           className="text-[10px] font-bold tracking-[0.15em] uppercase"
-          style={{ color: 'var(--text-muted)', opacity: 0.7 }}
+          style={{ color: 'var(--account-section-label)' }}
         >
           Insight Finansial
         </p>
@@ -470,9 +470,9 @@ function SmartInsights({ summary, transactions, hidden }: {
           whileTap={{ scale: 0.94 }}
           className="h-8 w-8 rounded-full flex items-center justify-center"
           style={{
-            background: 'rgba(255,255,255,0.64)',
-            border: '1px solid rgba(34,197,94,0.12)',
-            color: 'var(--text-muted)',
+            background: 'var(--account-panel-elevated-bg)',
+            border: '1px solid var(--account-panel-border)',
+            color: 'var(--account-muted)',
           }}
         >
           <X size={14} />
@@ -494,11 +494,11 @@ function SmartInsights({ summary, transactions, hidden }: {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.22, delay: index * 0.04 }}
               whileTap={{ scale: 0.99 }}
-              className="flex items-start gap-3 rounded-2xl px-3.5 py-3"
+              className="account-detail-panel flex items-start gap-3 rounded-2xl px-3.5 py-3"
               style={{
-                background: 'rgba(255,255,255,0.58)',
-                border: '1px solid rgba(34,197,94,0.12)',
-                boxShadow: '0 12px 26px rgba(15,23,42,0.07)',
+                background: 'var(--account-panel-bg)',
+                border: '1px solid var(--account-panel-border)',
+                boxShadow: 'var(--account-panel-shadow)',
                 backdropFilter: 'blur(14px)',
               }}
             >
@@ -506,8 +506,8 @@ function SmartInsights({ summary, transactions, hidden }: {
                 {insight.icon}
               </div>
               <div className="min-w-0">
-                <p className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>{insight.title}</p>
-                <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>{insight.description}</p>
+                <p className="text-[12px] font-bold" style={{ color: 'var(--account-heading)' }}>{insight.title}</p>
+                <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--account-muted)' }}>{insight.description}</p>
               </div>
             </motion.div>
           ))}
@@ -591,14 +591,15 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
     <motion.div key="detail-credit"
       initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }}
       transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-      className="absolute inset-0 overflow-y-auto pb-[calc(7rem+env(safe-area-inset-bottom))]"
+      className="account-detail-sheet account-detail-credit absolute inset-0 overflow-y-auto pb-[calc(7rem+env(safe-area-inset-bottom))]"
+      style={{ background: 'var(--account-page-bg)' }}
     >
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 pt-2 pb-3">
         <button onClick={onClose} className="flex items-center gap-1.5" style={{ color: 'var(--accent)' }}>
           <ChevronLeft size={18} /><span className="text-[13px] font-semibold">Akun</span>
         </button>
-        <button onClick={onDelete} className="p-2 rounded-xl" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.08)' }}>
+        <button onClick={onDelete} className="p-2 rounded-xl" style={{ color: 'var(--account-expense)', background: 'var(--account-danger-soft)' }}>
           <Trash2 size={16} />
         </button>
       </div>
@@ -612,7 +613,7 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
             <p className="text-[18px] font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
               {account.name}
             </p>
-            <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[12px] mt-0.5" style={{ color: 'var(--account-muted)' }}>
               {account.last4 ? `**** ${account.last4}` : ''} | {cardTypeLabel}
             </p>
             </div>
@@ -739,15 +740,12 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
     <motion.div key="detail-wallet"
       initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }}
       transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-      className="absolute inset-0 overflow-y-auto pb-[calc(8.5rem+env(safe-area-inset-bottom))]"
-      style={{
-        background:
-          'radial-gradient(circle at 82% 4%, rgba(34,197,94,0.22), transparent 32%), radial-gradient(circle at 4% 42%, rgba(20,184,166,0.12), transparent 34%), linear-gradient(180deg, rgba(240,253,244,0.82) 0%, rgba(248,250,252,0.52) 46%, transparent 100%)',
-      }}
+      className="account-detail-sheet account-detail-wallet absolute inset-0 overflow-y-auto pb-[calc(8.5rem+env(safe-area-inset-bottom))]"
+      style={{ background: 'var(--account-page-bg)' }}
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -right-24 top-14 h-64 w-64 rounded-full blur-3xl" style={{ background: 'rgba(34,197,94,0.16)' }} />
-        <div className="absolute -left-24 top-56 h-56 w-56 rounded-full blur-3xl" style={{ background: 'rgba(14,165,233,0.10)' }} />
+        <div className="absolute -right-24 top-14 h-64 w-64 rounded-full blur-3xl" style={{ background: 'var(--account-page-glow-1)' }} />
+        <div className="absolute -left-24 top-56 h-56 w-56 rounded-full blur-3xl" style={{ background: 'var(--account-page-glow-2)' }} />
       </div>
 
       {/* Top bar */}
@@ -755,7 +753,7 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
         <button onClick={onClose} className="flex items-center gap-1.5" style={{ color: 'var(--accent)' }}>
           <ChevronLeft size={18} /><span className="text-[13px] font-semibold">Akun</span>
         </button>
-        <button onClick={onDelete} className="p-2 rounded-xl" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.08)' }}>
+        <button onClick={onDelete} className="p-2 rounded-xl" style={{ color: 'var(--account-expense)', background: 'var(--account-danger-soft)' }}>
           <Trash2 size={16} />
         </button>
       </div>
@@ -769,7 +767,7 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
             <p className="text-[22px] font-bold truncate" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
               {account.name}
             </p>
-            <p className="text-[13px] mt-1 truncate" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[13px] mt-1 truncate" style={{ color: 'var(--account-muted)' }}>
               {isEwallet ? 'E-Wallet' : 'Rekening Bank'} | {providerName || '-'}
             </p>
             </div>
@@ -826,18 +824,20 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
 
 // â”€â”€ Empty state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function EmptyState({ type, onAdd }: { type: string; onAdd: () => void }) {
-  const config: Record<string, { emoji: string; label: string; hint: string }> = {
-    bank:    { emoji: 'ðŸ¦', label: 'rekening bank',  hint: 'Hubungkan rekening untuk mulai melacak saldo' },
-    credit:  { emoji: 'ðŸ’³', label: 'kartu kredit',   hint: 'Pantau limit dan tagihan kartu kamu' },
-    ewallet: { emoji: 'ðŸ“±', label: 'e-wallet',        hint: 'Tambah GoPay, OVO, DANA, dan lainnya' },
-    all:     { emoji: 'ðŸ’°', label: 'akun',            hint: 'Tambahkan akun untuk mulai melacak keuangan kamu' },
+  const config: Record<string, { label: string; hint: string }> = {
+    bank:    { label: 'rekening bank', hint: 'Hubungkan rekening untuk mulai melacak saldo' },
+    credit:  { label: 'kartu kredit',  hint: 'Pantau limit dan tagihan kartu kamu' },
+    ewallet: { label: 'e-wallet',      hint: 'Tambah GoPay, OVO, DANA, dan lainnya' },
+    all:     { label: 'akun',          hint: 'Tambahkan akun untuk mulai melacak keuangan kamu' },
   }
-  const { emoji, label, hint } = config[type] ?? config['all']
+  const { label, hint } = config[type] ?? config['all']
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
       className="flex flex-col items-center justify-center py-16 px-6 text-center">
       <div className="w-16 h-16 rounded-3xl flex items-center justify-center mb-4" style={{ background: 'var(--accent-dim)' }}>
-        <span className="text-3xl">{emoji}</span>
+        <span className="text-2xl font-bold" style={{ color: 'var(--accent)' }}>
+          {label.slice(0, 1).toUpperCase()}
+        </span>
       </div>
       <p className="text-[15px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Belum ada {label}</p>
       <p className="text-[12px] mb-5 max-w-xs" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>{hint}</p>

@@ -63,9 +63,9 @@ function getTransactionTone(tx: Transaction, accountId: string): TransactionTone
     return {
       name: 'transfer',
       label: incoming ? 'Transfer masuk' : 'Transfer keluar',
-      color: '#2563eb',
-      soft: 'rgba(37,99,235,0.09)',
-      border: 'rgba(37,99,235,0.18)',
+      color: 'var(--account-transfer)',
+      soft: 'var(--account-transfer-soft)',
+      border: 'var(--account-transfer-border)',
       Icon: ArrowLeftRight,
     }
   }
@@ -74,9 +74,9 @@ function getTransactionTone(tx: Transaction, accountId: string): TransactionTone
     return {
       name: 'investment',
       label: 'Investasi',
-      color: '#7c3aed',
-      soft: 'rgba(124,58,237,0.09)',
-      border: 'rgba(124,58,237,0.18)',
+      color: 'var(--account-investment)',
+      soft: 'var(--account-investment-soft)',
+      border: 'var(--account-investment-border)',
       Icon: TrendingUp,
     }
   }
@@ -85,9 +85,9 @@ function getTransactionTone(tx: Transaction, accountId: string): TransactionTone
     return {
       name: 'income',
       label: 'Pemasukan',
-      color: '#16a34a',
-      soft: 'rgba(34,197,94,0.10)',
-      border: 'rgba(34,197,94,0.18)',
+      color: 'var(--account-income)',
+      soft: 'var(--account-income-soft)',
+      border: 'var(--account-income-border)',
       Icon: ArrowDownLeft,
     }
   }
@@ -95,9 +95,9 @@ function getTransactionTone(tx: Transaction, accountId: string): TransactionTone
   return {
     name: 'expense',
     label: 'Pengeluaran',
-    color: '#ef4444',
-    soft: 'rgba(239,68,68,0.08)',
-    border: 'rgba(239,68,68,0.18)',
+    color: 'var(--account-expense)',
+    soft: 'var(--account-expense-soft)',
+    border: 'var(--account-expense-border)',
     Icon: ArrowUpRight,
   }
 }
@@ -139,8 +139,8 @@ export function AccountTransactionList({ accountId, accountType, hidden = false,
             key={index}
             className="h-[72px] rounded-2xl animate-pulse"
             style={{
-              background: 'linear-gradient(90deg, rgba(255,255,255,0.42), rgba(255,255,255,0.72), rgba(255,255,255,0.42))',
-              border: '1px solid rgba(34,197,94,0.10)',
+              background: 'var(--account-skeleton-bg)',
+              border: '1px solid var(--account-panel-border)',
             }}
           />
         ))}
@@ -163,19 +163,19 @@ export function AccountTransactionList({ accountId, accountType, hidden = false,
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-3xl py-9 px-6 flex flex-col items-center gap-2 text-center"
+        className="account-detail-panel rounded-3xl py-9 px-6 flex flex-col items-center gap-2 text-center"
         style={{
-          background: 'rgba(255,255,255,0.58)',
-          border: '1px solid rgba(34,197,94,0.14)',
-          boxShadow: '0 14px 34px rgba(15,23,42,0.08)',
+          background: 'var(--account-panel-bg)',
+          border: '1px solid var(--account-panel-border)',
+          boxShadow: 'var(--account-panel-shadow)',
           backdropFilter: 'blur(14px)',
         }}
       >
-        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-1" style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)' }}>
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-1" style={{ background: 'var(--account-icon-pill-bg)', color: 'var(--accent)' }}>
           <Sparkles size={20} />
         </div>
-        <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{copy.title}</p>
-        <p className="text-[11px] leading-relaxed max-w-[240px]" style={{ color: 'var(--text-muted)' }}>{copy.sub}</p>
+        <p className="text-[13px] font-bold" style={{ color: 'var(--account-heading)' }}>{copy.title}</p>
+        <p className="text-[11px] leading-relaxed max-w-[240px]" style={{ color: 'var(--account-muted)' }}>{copy.sub}</p>
       </motion.div>
     )
   }
@@ -196,11 +196,11 @@ export function AccountTransactionList({ accountId, accountType, hidden = false,
             transition={{ delay: index * 0.03, duration: 0.2 }}
             whileHover={{ y: -1 }}
             whileTap={{ scale: 0.992 }}
-            className="flex items-center gap-3 px-3.5 py-3 rounded-2xl"
+            className="account-detail-panel flex items-center gap-3 px-3.5 py-3 rounded-2xl"
             style={{
-              background: 'rgba(255,255,255,0.62)',
+              background: 'var(--account-panel-bg)',
               border: `1px solid ${tone.border}`,
-              boxShadow: '0 12px 30px rgba(15,23,42,0.08)',
+              boxShadow: 'var(--account-panel-shadow)',
               backdropFilter: 'blur(14px)',
             }}
           >
@@ -212,14 +212,14 @@ export function AccountTransactionList({ accountId, accountType, hidden = false,
             </div>
 
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+              <p className="text-[13px] font-bold truncate" style={{ color: 'var(--account-heading)' }}>
                 {title}
               </p>
               <div className="mt-1 flex items-center gap-1.5 min-w-0">
-                <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--account-muted)' }}>
                   {formatTransactionDate(tx.date || tx.createdAt)}
                 </span>
-                <span className="h-1 w-1 rounded-full flex-shrink-0" style={{ background: 'rgba(100,116,139,0.38)' }} />
+                <span className="h-1 w-1 rounded-full flex-shrink-0" style={{ background: 'var(--account-row-border)' }} />
                 <span
                   className="px-2 py-0.5 rounded-full text-[9px] font-bold truncate"
                   style={{ background: tone.soft, color: tone.color, maxWidth: 116 }}
@@ -233,7 +233,7 @@ export function AccountTransactionList({ accountId, accountType, hidden = false,
               <p className="text-[13px] font-extrabold tracking-normal" style={{ color: tone.color, fontFamily: 'var(--font-jetbrains)', fontVariantNumeric: 'tabular-nums' }}>
                 {getSignedAmount(tx, tone, hidden)}
               </p>
-              <p className="text-[9px] mt-1 font-semibold" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-[9px] mt-1 font-semibold" style={{ color: 'var(--account-muted)' }}>
                 {tone.label}
               </p>
             </div>

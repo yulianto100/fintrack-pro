@@ -707,3 +707,129 @@ nav a:active {
   ) !important;
   border-color: rgba(34, 197, 94, 0.24) !important;
 }
+
+/* Account detail sheets: tuned surfaces for light and dark mode */
+.account-detail-sheet {
+  --account-page-bg:
+    radial-gradient(circle at 82% 4%, rgba(34,197,94,0.22), transparent 32%),
+    radial-gradient(circle at 4% 42%, rgba(20,184,166,0.12), transparent 34%),
+    linear-gradient(180deg, rgba(240,253,244,0.82) 0%, rgba(248,250,252,0.52) 46%, transparent 100%);
+  --account-page-glow-1: rgba(34,197,94,0.16);
+  --account-page-glow-2: rgba(14,165,233,0.10);
+
+  --account-heading: #1f2937;
+  --account-muted: rgba(71,85,105,0.72);
+  --account-section-label: rgba(100,116,139,0.72);
+
+  --account-panel-bg: rgba(255,255,255,0.64);
+  --account-panel-elevated-bg: rgba(255,255,255,0.76);
+  --account-panel-border: rgba(34,197,94,0.14);
+  --account-panel-shadow: 0 14px 32px rgba(15,23,42,0.08);
+  --account-row-border: rgba(34,197,94,0.10);
+  --account-icon-pill-bg: rgba(34,197,94,0.10);
+  --account-danger-soft: rgba(239,68,68,0.08);
+  --account-progress-track: rgba(15,23,42,0.08);
+
+  --account-income: #16a34a;
+  --account-expense: #ef4444;
+  --account-transfer: #2563eb;
+  --account-investment: #7c3aed;
+  --account-income-soft: rgba(34,197,94,0.10);
+  --account-expense-soft: rgba(239,68,68,0.08);
+  --account-transfer-soft: rgba(37,99,235,0.09);
+  --account-investment-soft: rgba(124,58,237,0.09);
+  --account-income-border: rgba(34,197,94,0.18);
+  --account-expense-border: rgba(239,68,68,0.18);
+  --account-transfer-border: rgba(37,99,235,0.18);
+  --account-investment-border: rgba(124,58,237,0.18);
+  --account-income-marker: rgba(34,197,94,0.22);
+  --account-expense-marker: rgba(239,68,68,0.20);
+  --account-blue-marker: rgba(37,99,235,0.18);
+  --account-skeleton-bg: linear-gradient(90deg, rgba(255,255,255,0.42), rgba(255,255,255,0.72), rgba(255,255,255,0.42));
+
+  --account-strip-bg: rgba(6,27,16,0.94);
+  --account-strip-border: rgba(74,222,128,0.18);
+  --account-strip-text: #6ee7a0;
+  --account-live-text: rgba(255,255,255,0.62);
+
+  --account-balance-bg: linear-gradient(145deg, rgba(220,252,231,0.90) 0%, rgba(187,247,208,0.60) 42%, rgba(240,253,244,0.90) 100%);
+  --account-balance-border: rgba(134,239,172,0.48);
+  --account-balance-shadow: 0 24px 54px rgba(21,128,61,0.18), inset 0 1px 0 rgba(255,255,255,0.72);
+  --account-balance-heading: #13251b;
+  --account-balance-muted: rgba(19,37,27,0.58);
+  --account-balance-label: rgba(19,37,27,0.46);
+  --account-balance-value: #22c55e;
+  --account-balance-glow-1: radial-gradient(circle, rgba(34,197,94,0.32), transparent 68%);
+  --account-balance-glow-2: radial-gradient(circle, rgba(20,184,166,0.18), transparent 70%);
+  --account-balance-highlight: linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent);
+  --account-balance-button-bg: rgba(255,255,255,0.74);
+  --account-balance-button-text: #15803d;
+  --account-balance-button-border: rgba(34,197,94,0.18);
+  --account-chip-bg: rgba(34,197,94,0.12);
+  --account-chip-text: #16a34a;
+}
+
+.dark .account-detail-sheet {
+  --account-page-bg:
+    radial-gradient(circle at 78% 2%, rgba(34,197,94,0.16), transparent 34%),
+    radial-gradient(circle at 8% 44%, rgba(20,184,166,0.09), transparent 32%),
+    linear-gradient(180deg, #07140c 0%, #08130d 48%, #050b08 100%);
+  --account-page-glow-1: rgba(34,197,94,0.13);
+  --account-page-glow-2: rgba(20,184,166,0.08);
+
+  --account-heading: #f0fdf4;
+  --account-muted: rgba(209,250,229,0.68);
+  --account-section-label: rgba(134,239,172,0.66);
+
+  --account-panel-bg: rgba(9,22,14,0.76);
+  --account-panel-elevated-bg: rgba(12,29,18,0.86);
+  --account-panel-border: rgba(74,222,128,0.18);
+  --account-panel-shadow: 0 18px 38px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.035);
+  --account-row-border: rgba(134,239,172,0.12);
+  --account-icon-pill-bg: rgba(34,197,94,0.13);
+  --account-danger-soft: rgba(248,113,113,0.11);
+  --account-progress-track: rgba(134,239,172,0.12);
+
+  --account-income: #4ade80;
+  --account-expense: #f87171;
+  --account-transfer: #60a5fa;
+  --account-investment: #c084fc;
+  --account-income-soft: rgba(74,222,128,0.14);
+  --account-expense-soft: rgba(248,113,113,0.12);
+  --account-transfer-soft: rgba(96,165,250,0.13);
+  --account-investment-soft: rgba(192,132,252,0.13);
+  --account-income-border: rgba(74,222,128,0.22);
+  --account-expense-border: rgba(248,113,113,0.20);
+  --account-transfer-border: rgba(96,165,250,0.20);
+  --account-investment-border: rgba(192,132,252,0.20);
+  --account-income-marker: rgba(74,222,128,0.34);
+  --account-expense-marker: rgba(248,113,113,0.30);
+  --account-blue-marker: rgba(96,165,250,0.26);
+  --account-skeleton-bg: linear-gradient(90deg, rgba(9,22,14,0.62), rgba(18,40,25,0.86), rgba(9,22,14,0.62));
+
+  --account-strip-bg: rgba(4,17,10,0.88);
+  --account-strip-border: rgba(74,222,128,0.18);
+  --account-strip-text: rgba(187,247,208,0.92);
+  --account-live-text: rgba(187,247,208,0.72);
+
+  --account-balance-bg: linear-gradient(145deg, rgba(11,55,35,0.98) 0%, rgba(7,30,20,0.96) 52%, rgba(5,18,12,0.98) 100%);
+  --account-balance-border: rgba(74,222,128,0.24);
+  --account-balance-shadow: 0 26px 58px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.06);
+  --account-balance-heading: #ecfdf5;
+  --account-balance-muted: rgba(209,250,229,0.66);
+  --account-balance-label: rgba(167,243,208,0.62);
+  --account-balance-value: #4ade80;
+  --account-balance-glow-1: radial-gradient(circle, rgba(34,197,94,0.22), transparent 68%);
+  --account-balance-glow-2: radial-gradient(circle, rgba(20,184,166,0.14), transparent 70%);
+  --account-balance-highlight: linear-gradient(90deg, transparent, rgba(134,239,172,0.32), transparent);
+  --account-balance-button-bg: rgba(6,24,14,0.86);
+  --account-balance-button-text: #86efac;
+  --account-balance-button-border: rgba(74,222,128,0.22);
+  --account-chip-bg: rgba(34,197,94,0.15);
+  --account-chip-text: #86efac;
+}
+
+.account-detail-panel,
+.account-balance-card {
+  -webkit-backdrop-filter: blur(14px);
+}

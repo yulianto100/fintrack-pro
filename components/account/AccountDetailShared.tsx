@@ -147,7 +147,7 @@ export function LiveIndicator({ text }: { text: string }) {
         className="rounded-full flex-shrink-0"
         style={{ width: 6, height: 6, background: '#4ade80', animation: 'livePulse 2s infinite' }}
       />
-      <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.60)' }}>{text}</span>
+      <span className="text-[11px]" style={{ color: 'var(--account-live-text, var(--text-muted))' }}>{text}</span>
       <style>{`@keyframes livePulse{0%,100%{opacity:1}50%{opacity:0.35}}`}</style>
     </div>
   )
@@ -195,7 +195,7 @@ export function InsightStrip({ lines }: { lines: InsightLine[] }) {
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       className="mx-4 mb-3 rounded-2xl px-3.5 py-2.5"
-      style={{ background: 'var(--surface-card)', border: '1px solid var(--border)' }}
+      style={{ background: 'var(--account-strip-bg, var(--surface-card))', border: '1px solid var(--account-strip-border, var(--border))' }}
     >
       <AnimatePresence mode="wait">
         <motion.div
@@ -212,7 +212,7 @@ export function InsightStrip({ lines }: { lines: InsightLine[] }) {
             </span>
             <p
               className="text-[12px] font-medium leading-snug truncate"
-              style={{ color: 'var(--text-muted)' }}
+              style={{ color: 'var(--account-strip-text, var(--text-muted))' }}
               dangerouslySetInnerHTML={{ __html: current.text ?? '' }}
             />
           </div>
@@ -337,9 +337,9 @@ export function CreditUsageBar({ used, limit, hidden, billingStatus }: {
   const statusLabel = { safe: 'Aman', warn: 'Perlu perhatian', danger: 'Hampir habis' }[safeStatus]
 
   return (
-    <div className="mx-4 mb-3 rounded-2xl p-4" style={{ background: 'var(--surface-card)', border: '1px solid var(--border)' }}>
+    <div className="account-detail-panel mx-4 mb-3 rounded-2xl p-4" style={{ background: 'var(--account-panel-bg, var(--surface-card))', border: '1px solid var(--account-panel-border, var(--border))' }}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[12px] font-semibold" style={{ color: 'var(--text-muted)' }}>Limit Terpakai</span>
+        <span className="text-[12px] font-semibold" style={{ color: 'var(--account-muted, var(--text-muted))' }}>Limit Terpakai</span>
         <div className="flex items-center gap-2">
           <span className="text-[15px] font-bold" style={{ color: fillColor, fontFamily: 'var(--font-jetbrains)' }}>
             {pct.toFixed(0)}%
@@ -347,7 +347,7 @@ export function CreditUsageBar({ used, limit, hidden, billingStatus }: {
           <StatusBadge label={statusLabel} variant={safeStatus} />
         </div>
       </div>
-      <div className="h-2 rounded-full overflow-hidden mb-3" style={{ background: 'rgba(255,255,255,0.10)' }}>
+      <div className="h-2 rounded-full overflow-hidden mb-3" style={{ background: 'var(--account-progress-track, rgba(255,255,255,0.10))' }}>
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
@@ -359,13 +359,13 @@ export function CreditUsageBar({ used, limit, hidden, billingStatus }: {
       <div className="flex gap-4">
         {[
           { label: 'TERPAKAI',    val: safeUsed,     color: fillColor },
-          { label: 'SISA LIMIT',  val: remaining,    color: 'var(--text-muted)' },
-          { label: 'TOTAL LIMIT', val: safeLimit,    color: 'var(--text-muted)' },
+          { label: 'SISA LIMIT',  val: remaining,    color: 'var(--account-muted, var(--text-muted))' },
+          { label: 'TOTAL LIMIT', val: safeLimit,    color: 'var(--account-muted, var(--text-muted))' },
         ].map((s, i) => (
           <React.Fragment key={s.label}>
-            {i > 0 && <div className="w-px" style={{ background: 'var(--border)' }} />}
+            {i > 0 && <div className="w-px" style={{ background: 'var(--account-row-border, var(--border))' }} />}
             <div>
-              <p className="text-[9px] font-bold tracking-widest mb-0.5" style={{ color: 'var(--text-muted)' }}>{s.label}</p>
+              <p className="text-[9px] font-bold tracking-widest mb-0.5" style={{ color: 'var(--account-muted, var(--text-muted))' }}>{s.label}</p>
               <p className="text-[11px] font-bold" style={{ color: s.color, fontFamily: 'var(--font-jetbrains)' }}>
                 {fmtRp(s.val, hidden)}
               </p>
@@ -391,37 +391,37 @@ export function BillingStatusCard({ dueLabel, daysLeft, urgent, minimumPayment, 
   return (
     <div
       className="mx-4 mb-3 rounded-2xl overflow-hidden"
-      style={{ background: 'var(--surface-card)', border: '1px solid var(--border)' }}
+      style={{ background: 'var(--account-panel-bg, var(--surface-card))', border: '1px solid var(--account-panel-border, var(--border))' }}
     >
       <div
         className="flex items-center justify-between px-4 py-3"
         style={{
           background: urgent ? 'rgba(239,68,68,0.06)' : 'rgba(34,197,94,0.04)',
-          borderBottom: '1px solid var(--border)',
+          borderBottom: '1px solid var(--account-row-border, var(--border))',
         }}
       >
         <div>
           <p className="text-[10px] font-bold tracking-widest mb-0.5" style={{ color: urgent ? '#ef4444' : 'var(--accent)' }}>
             JATUH TEMPO
           </p>
-          <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>{dueLabel || '-'}</p>
+          <p className="text-[12px]" style={{ color: 'var(--account-muted, var(--text-muted))' }}>{dueLabel || '-'}</p>
         </div>
         <StatusBadge label={sl} variant={sv} />
       </div>
       <div className="flex px-4 py-3 gap-4">
         <div className="flex-1">
-          <p className="text-[9px] font-bold tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>TOTAL TAGIHAN</p>
-          <p className="text-[15px] font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
+          <p className="text-[9px] font-bold tracking-widest mb-1" style={{ color: 'var(--account-muted, var(--text-muted))' }}>TOTAL TAGIHAN</p>
+          <p className="text-[15px] font-bold" style={{ color: 'var(--account-heading, var(--text-primary))', fontFamily: 'var(--font-syne)' }}>
             {fmtRp(totalBill ?? 0, hidden)}
           </p>
         </div>
-        <div className="w-px" style={{ background: 'var(--border)' }} />
+        <div className="w-px" style={{ background: 'var(--account-row-border, var(--border))' }} />
         <div className="flex-1">
-          <p className="text-[9px] font-bold tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>BAYAR MINIMUM</p>
-          <p className="text-[15px] font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
+          <p className="text-[9px] font-bold tracking-widest mb-1" style={{ color: 'var(--account-muted, var(--text-muted))' }}>BAYAR MINIMUM</p>
+          <p className="text-[15px] font-bold" style={{ color: 'var(--account-heading, var(--text-primary))', fontFamily: 'var(--font-syne)' }}>
             {fmtRp(minimumPayment ?? 0, hidden)}
           </p>
-          <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>10% dari tagihan</p>
+          <p className="text-[10px] mt-0.5" style={{ color: 'var(--account-muted, var(--text-muted))' }}>10% dari tagihan</p>
         </div>
       </div>
     </div>
@@ -455,20 +455,20 @@ export function InfoSection({ groups }: { groups: InfoGroupData[] }) {
             whileTap={{ scale: 0.985 }}
             className="w-full rounded-2xl px-4 py-3 flex items-center justify-between gap-3 text-left"
             style={{
-              background: 'rgba(255,255,255,0.56)',
-              border: '1px solid rgba(34,197,94,0.13)',
-              boxShadow: '0 12px 26px rgba(15,23,42,0.06)',
+              background: 'var(--account-panel-bg, var(--surface-card))',
+              border: '1px solid var(--account-panel-border, rgba(34,197,94,0.13))',
+              boxShadow: 'var(--account-panel-shadow, 0 12px 26px rgba(15,23,42,0.06))',
               backdropFilter: 'blur(14px)',
             }}
           >
             <div className="min-w-0">
               <p
                 className="text-[10px] font-bold tracking-[0.15em] uppercase"
-                style={{ color: 'var(--text-muted)', opacity: 0.74 }}
+                style={{ color: 'var(--account-section-label, var(--text-muted))' }}
               >
                 {group.title}
               </p>
-              <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)', opacity: 0.72 }}>
+              <p className="text-[11px] mt-0.5" style={{ color: 'var(--account-muted, var(--text-muted))' }}>
                 {(group.rows ?? []).length} detail
               </p>
             </div>
@@ -476,7 +476,7 @@ export function InfoSection({ groups }: { groups: InfoGroupData[] }) {
               animate={{ rotate: isGroupOpen(group.title) ? 180 : 0 }}
               transition={{ duration: 0.18 }}
               className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)' }}
+              style={{ background: 'var(--account-icon-pill-bg, rgba(34,197,94,0.10))', color: 'var(--accent)' }}
             >
               <ChevronDown size={15} />
             </motion.span>
@@ -494,9 +494,9 @@ export function InfoSection({ groups }: { groups: InfoGroupData[] }) {
                 <div
                   className="rounded-3xl overflow-hidden mt-2"
                   style={{
-                    background: 'color-mix(in srgb, var(--surface-card) 78%, transparent)',
-                    border: '1px solid color-mix(in srgb, var(--accent) 14%, var(--border))',
-                    boxShadow: '0 14px 34px rgba(15,23,42,0.08)',
+                    background: 'var(--account-panel-elevated-bg, color-mix(in srgb, var(--surface-card) 78%, transparent))',
+                    border: '1px solid var(--account-panel-border, color-mix(in srgb, var(--accent) 14%, var(--border)))',
+                    boxShadow: 'var(--account-panel-shadow, 0 14px 34px rgba(15,23,42,0.08))',
                     backdropFilter: 'blur(14px)',
                   }}
                 >
@@ -506,21 +506,21 @@ export function InfoSection({ groups }: { groups: InfoGroupData[] }) {
                       className="flex items-center gap-3 px-4 py-3.5"
                       style={{
                         borderBottom:
-                          ri < (group.rows?.length ?? 0) - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                          ri < (group.rows?.length ?? 0) - 1 ? '1px solid var(--account-row-border, rgba(255,255,255,0.05))' : 'none',
                       }}
                     >
                       <div
                         className="w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0"
-                        style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)' }}
+                        style={{ background: 'var(--account-icon-pill-bg, rgba(34,197,94,0.10))', color: 'var(--accent)' }}
                       >
                         {row.icon}
                       </div>
-                      <span className="text-[12px] flex-1" style={{ color: 'var(--text-muted)' }}>
+                      <span className="text-[12px] flex-1" style={{ color: 'var(--account-muted, var(--text-muted))' }}>
                         {row.label}
                       </span>
                       <span
                         className="text-[12px] font-semibold text-right"
-                        style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}
+                        style={{ color: 'var(--account-heading, var(--text-primary))', fontVariantNumeric: 'tabular-nums' }}
                       >
                         {row.value}
                       </span>
@@ -548,7 +548,7 @@ export function SectionLabel({
     <div className="flex items-center justify-between px-4 mb-3">
       <p
         className="text-[10px] font-bold tracking-[0.15em] uppercase"
-        style={{ color: 'var(--text-muted)', opacity: 0.7 }}
+        style={{ color: 'var(--account-section-label, var(--text-muted))' }}
       >
         {title}
       </p>
@@ -591,7 +591,7 @@ export function EmptyTransactionState({
         className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3 text-3xl"
         style={{ background: 'var(--accent-dim)' }}
       >
-        {cfg.emoji}
+        {type.slice(0, 1).toUpperCase() || 'A'}
       </div>
       <p className="text-[14px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
         {cfg.title}
