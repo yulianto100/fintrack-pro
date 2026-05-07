@@ -14,6 +14,7 @@ import {
 
 import { useAccounts }        from '@/hooks/useAccounts'
 import { useApiList }         from '@/hooks/useApiData'
+import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import { AccountSummary }     from '@/components/account/AccountSummary'
 import { AccountInsights }    from '@/components/account/AccountInsights'
 import { AccountTabs, type AccountTab } from '@/components/account/AccountTabs'
@@ -855,7 +856,7 @@ function AkunContent() {
   const searchParams = useSearchParams()
   const router       = useRouter()
 
-  const [hidden,     setHidden]    = useState(false)
+  const { hidden, toggle: toggleHidden } = useBalanceVisibility()
   const [activeTab,  setActiveTab] = useState<AccountTab>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [addType,    setAddType]   = useState<AccountType | null | 'open'>(null)
@@ -922,7 +923,7 @@ function AkunContent() {
               account={selected} hidden={hidden}
               onClose={() => setSelectedId(null)}
               onDelete={() => handleDelete(selected)}
-              onToggleHidden={() => setHidden(v => !v)}
+              onToggleHidden={toggleHidden}
             />
           )
         ) : (
@@ -938,7 +939,7 @@ function AkunContent() {
             </div>
 
             <div className="mb-3">
-              <AccountSummary summary={summary} hidden={hidden} onToggleHidden={() => setHidden(v => !v)} />
+              <AccountSummary summary={summary} hidden={hidden} onToggleHidden={toggleHidden} />
             </div>
 
             {!loading && accounts.length > 0 && (

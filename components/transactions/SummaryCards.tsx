@@ -12,7 +12,10 @@ interface Props {
   allTransactions: Transaction[] // full unfiltered list for prev-period calc
   filters: TransactionFilters
   setFilters: (f: TransactionFilters) => void
+  hidden?: boolean
 }
+
+const MASKED_AMOUNT = '••••••'
 
 function getPrevMonth(yyyyMM: string) {
   const [y, m] = yyyyMM.split('-').map(Number)
@@ -25,7 +28,7 @@ function pctChange(curr: number, prev: number): number | null {
   return ((curr - prev) / prev) * 100
 }
 
-export function SummaryCards({ transactions, allTransactions, filters, setFilters }: Props) {
+export function SummaryCards({ transactions, allTransactions, filters, setFilters, hidden = false }: Props) {
   // Determine active month — default to current month if no filter set
   const activeMonth = useMemo(() => {
     if (filters.month) return filters.month
@@ -152,15 +155,20 @@ export function SummaryCards({ transactions, allTransactions, filters, setFilter
 
             {/* Value */}
             <p className="text-[11px] font-bold font-mono leading-tight"
-              style={{ color: card.color }}>
-              {formatCurrency(Math.abs(card.value))}
+              style={{ color: hidden ? 'var(--text-muted)' : card.color, letterSpacing: hidden ? 2 : 'normal' }}>
+              {hidden ? MASKED_AMOUNT : formatCurrency(Math.abs(card.value))}
             </p>
 
             {/* Period + change */}
             <p className="text-[8px] mt-1" style={{ color: 'var(--text-muted)' }}>
               Bulan ini
             </p>
-            {card.pct !== null && (
+            {card.pct !== null && hidden && (
+              <p className="text-[8px] font-semibold mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                ••% vs bln lalu
+              </p>
+            )}
+            {card.pct !== null && !hidden && (
               <p className="text-[8px] font-semibold mt-0.5" style={{ color: pctColor }}>
                 {isUp ? '↑' : '↓'} {Math.abs(card.pct).toFixed(0)}% vs bln lalu
               </p>

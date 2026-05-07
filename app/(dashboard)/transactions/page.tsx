@@ -348,6 +348,7 @@ export default function TransactionsPage() {
           allTransactions={allTransactions}
           filters={filters}
           setFilters={setFilters}
+          hidden={hidden}
         />
 
         {/* Smart insight */}

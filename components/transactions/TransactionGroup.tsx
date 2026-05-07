@@ -11,11 +11,12 @@ import type { Transaction } from '@/types'
 
 interface ConfirmDialogProps {
   transaction: Transaction
+  hidden?:     boolean
   onConfirm:  () => void
   onCancel:   () => void
 }
 
-function DeleteConfirmDialog({ transaction, onConfirm, onCancel }: ConfirmDialogProps) {
+function DeleteConfirmDialog({ transaction, hidden, onConfirm, onCancel }: ConfirmDialogProps) {
   const isExpense  = transaction.type === 'expense' || transaction.type === 'credit_expense'
   const isTransfer = transaction.type === 'transfer'
   const color      = isTransfer ? 'var(--blue)' : isExpense ? 'var(--red)' : 'var(--accent)'
@@ -72,7 +73,7 @@ function DeleteConfirmDialog({ transaction, onConfirm, onCancel }: ConfirmDialog
               )}
             </div>
             <p className="text-xs font-bold font-mono flex-shrink-0" style={{ color }}>
-              {sign}{formatCurrency(transaction.amount)}
+              {hidden ? '••••' : `${sign}${formatCurrency(transaction.amount)}`}
             </p>
           </div>
         </div>
@@ -316,6 +317,7 @@ export function TransactionGroup({ transactions, hidden, onEdit, onDelete }: Pro
         {pendingDelete && (
           <DeleteConfirmDialog
             transaction={pendingDelete}
+            hidden={hidden}
             onConfirm={handleConfirm}
             onCancel={handleCancel}
           />

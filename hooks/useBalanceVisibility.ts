@@ -3,6 +3,15 @@
 import { useState, useEffect, useCallback } from 'react'
 
 const STORAGE_KEY = 'finuvo_balance_hidden'
+const VISIBILITY_EVENT = 'finuvo:balance-visibility'
+
+function readStoredHidden() {
+  try {
+    return localStorage.getItem(STORAGE_KEY) !== 'false'
+  } catch {
+    return true
+  }
+}
 
 /**
  * Persists balance visibility preference in localStorage.
@@ -14,22 +23,33 @@ export function useBalanceVisibility() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      // If user previously revealed (stored === 'false'), restore that
-      if (stored === 'false') setHidden(false)
-      else setHidden(true)   // default: hidden
-    } catch { /* no localStorage in SSR */ }
+    const syncFromStorage = () => setHidden(readStoredHidden())
+    const syncFromEvent = (event: Event) => {
+      const next = (event as CustomEvent<{ hidden?: boolean }>).detail?.hidden
+      if (typeof next === 'boolean') setHidden(next)
+      else syncFromStorage()
+    }
+    const syncFromOtherTab = (event: StorageEvent) => {
+      if (event.key === STORAGE_KEY) syncFromStorage()
+    }
+
+    syncFromStorage()
     setMounted(true)
+    window.addEventListener(VISIBILITY_EVENT, syncFromEvent)
+    window.addEventListener('storage', syncFromOtherTab)
+
+    return () => {
+      window.removeEventListener(VISIBILITY_EVENT, syncFromEvent)
+      window.removeEventListener('storage', syncFromOtherTab)
+    }
   }, [])
 
   const toggle = useCallback(() => {
-    setHidden((prev) => {
-      const next = !prev
-      try { localStorage.setItem(STORAGE_KEY, String(next)) } catch { /* ignore */ }
-      return next
-    })
-  }, [])
+    const next = !hidden
+    setHidden(next)
+    try { localStorage.setItem(STORAGE_KEY, String(next)) } catch { /* ignore */ }
+    window.dispatchEvent(new CustomEvent(VISIBILITY_EVENT, { detail: { hidden: next } }))
+  }, [hidden])
 
   return { hidden: mounted ? hidden : true, toggle, mounted }
 }
