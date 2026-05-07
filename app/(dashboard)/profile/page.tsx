@@ -30,6 +30,7 @@ export default function EditProfilePage() {
   const [showPass,    setShowPass   ] = useState(false)
   const [savingInfo,  setSavingInfo ] = useState(false)
   const [savingPass,  setSavingPass ] = useState(false)
+  const [savingAvatar, setSavingAvatar] = useState(false)
   const [avatarUri,   setAvatarUri  ] = useState<string | null>(null)
   const [avatarFile,  setAvatarFile ] = useState<File | null>(null)
   const avatarInputRef = useRef<HTMLInputElement | null>(null)
@@ -116,6 +117,32 @@ export default function EditProfilePage() {
     }
 
     return json.data.image as string
+  }
+
+  const handleSaveAvatar = async () => {
+    if (!avatarFile) return
+
+    setSavingAvatar(true)
+    try {
+      const uploadedImage = await uploadAvatar(avatarFile)
+      const nextName = name.trim() || profile?.name || session?.user?.name || ''
+
+      await updateSession({ name: nextName, image: uploadedImage })
+      await fetch('/api/auth/session', { method: 'GET' })
+      setProfile((prev) => prev ? { ...prev, name: nextName || prev.name, image: uploadedImage } : prev)
+      setAvatarFile(null)
+      setAvatarUri(null)
+      toast.success('Foto profil berhasil disimpan')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Gagal menyimpan foto profil')
+    } finally {
+      setSavingAvatar(false)
+    }
+  }
+
+  const handleCancelAvatar = () => {
+    setAvatarFile(null)
+    setAvatarUri(null)
   }
 
   const handleUpdateInfo = async (e: React.FormEvent) => {
@@ -278,15 +305,51 @@ export default function EditProfilePage() {
           <button
             type="button"
             onClick={handlePickAvatar}
+            disabled={savingAvatar}
             className="mt-3 text-xs font-semibold tracking-wide transition-colors hover:opacity-80"
             style={{ color: 'var(--accent)' }}
           >
             Ganti Foto
           </button>
           {avatarFile && (
-            <p className="mt-1 text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
-              Foto siap disimpan. Klik Simpan untuk update.
-            </p>
+            <div className="mt-3 flex w-full flex-col items-center gap-2">
+              <p className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
+                Foto siap disimpan.
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSaveAvatar}
+                  disabled={savingAvatar}
+                  className="min-w-[132px] rounded-2xl px-4 py-2 text-sm font-bold transition-transform duration-150 active:scale-95 disabled:opacity-70"
+                  style={{
+                    background: 'var(--accent)',
+                    color: '#02130a',
+                    boxShadow: '0 14px 32px rgba(34,197,94,0.22)',
+                  }}
+                >
+                  {savingAvatar ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="h-4 w-4 rounded-full border-2 border-black/20 border-t-black animate-spin" />
+                      Simpan
+                    </span>
+                  ) : 'Simpan Foto'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelAvatar}
+                  disabled={savingAvatar}
+                  className="rounded-2xl px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-60"
+                  style={{
+                    background: 'rgba(255,255,255,0.06)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
           )}
 
           <input
@@ -346,7 +409,7 @@ export default function EditProfilePage() {
               style={{ ...inputStyle, opacity: 0.5, cursor: 'not-allowed' }} />
           </div>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Email tidak dapat diubah</p>
-          <button type="submit" disabled={savingInfo || !profile}
+          <button type="submit" disabled={savingInfo || savingAvatar || !profile}
             className="btn-primary w-full py-3 flex items-center justify-center gap-2">
             {savingInfo
               ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
