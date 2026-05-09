@@ -35,14 +35,20 @@ self.addEventListener('fetch', (event) => {
   // For navigation requests: network-first
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => caches.match('/'))
+      fetch(request).catch(async () => {
+        const cached = await caches.match('/')
+        return cached || new Response('Offline', {
+          status: 503,
+          headers: { 'Content-Type': 'text/plain' },
+        })
+      })
     )
     return
   }
 
   // For static assets: cache-first
   event.respondWith(
-    caches.match(request).then((cached) => cached || fetch(request))
+    caches.match(request).then((cached) => cached || fetch(request).catch(() => new Response('', { status: 504 })))
   )
 })
 

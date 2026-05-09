@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   description: 'Kelola keuangan & portofolio investasi Anda',
   manifest:    '/manifest.json',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Finuvo' },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
   icons: {
     icon:  [
       { url: '/favicon.ico',            sizes: 'any' },
