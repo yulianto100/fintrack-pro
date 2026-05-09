@@ -131,7 +131,7 @@ export default function TransactionsPage() {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col min-h-screen pb-32" style={{ background: 'var(--background)' }}>
+    <div className="flex flex-col min-h-full" style={{ background: 'var(--background)' }}>
 
       {/* ── Header ── */}
       <div

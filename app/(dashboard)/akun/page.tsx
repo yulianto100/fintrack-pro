@@ -908,7 +908,7 @@ function AkunContent() {
   const showAll = activeTab === 'all'
 
   return (
-    <div className="relative min-h-screen overflow-hidden" style={{ background: 'transparent' }}>
+    <div className="relative min-h-full overflow-hidden" style={{ background: 'transparent' }}>
       <AnimatePresence mode="popLayout" initial={false}>
         {selected ? (
           selected.type === 'credit' ? (
@@ -959,7 +959,7 @@ function AkunContent() {
             )}
 
             {!loading && (
-              <div className="flex flex-col gap-5 pb-32">
+              <div className="flex flex-col gap-5">
                 {(showAll || activeTab === 'bank') && banks.length > 0 && (
                   <AccountSection title="Rekening Bank" count={banks.length} delay={0}>
                     {banks.map((a, i) => (

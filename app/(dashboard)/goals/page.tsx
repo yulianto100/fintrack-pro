@@ -140,7 +140,7 @@ function GoalsContent() {
   }, [refetchBudgets])
 
   return (
-    <div className="px-4 py-5 max-w-2xl mx-auto pb-32">
+    <div className="px-4 py-5 max-w-2xl mx-auto">
 
       {/* Header */}
       <div className="flex items-center justify-between mb-5">

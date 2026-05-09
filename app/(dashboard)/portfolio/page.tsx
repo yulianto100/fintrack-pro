@@ -579,7 +579,7 @@ function PortfolioContent() {
   // MAIN PORTFOLIO VIEW
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="px-4 py-5 max-w-2xl mx-auto pb-32">
+    <div className="px-4 py-5 max-w-2xl mx-auto">
 
       {/* ── Header (UNCHANGED + Tambah Investasi button) ── */}
       <div className="flex items-center justify-between mb-5">

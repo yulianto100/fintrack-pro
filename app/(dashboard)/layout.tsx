@@ -100,7 +100,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const shouldSkipAvatarOptimization = sessionAvatar.startsWith('/api/profile/avatar') || sessionAvatar.startsWith('data:image/')
 
   return (
-    <div className="min-h-dvh flex flex-col" style={{ background: 'transparent' }}>
+    <div className="h-dvh overflow-hidden flex flex-col" style={{ background: 'transparent' }}>
       {/* ── Top header — becomes more opaque + shadowed on scroll ── */}
       <header
         className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4"
@@ -172,7 +172,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main
         ref={mainRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
         style={{
           paddingTop:    'calc(var(--nav-height) + env(safe-area-inset-top, 0px))',
           paddingBottom: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 44px)',
