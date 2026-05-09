@@ -8,7 +8,8 @@ import { useApiList } from '@/hooks/useApiData'
 import { useGoldPrices, useStockPrices } from '@/hooks/usePrices'
 import { formatCurrency, formatNumber, formatPercent, parseLotValue, calcProfitLoss } from '@/lib/utils'
 import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
-import type { GoldHolding, StockHolding, Deposit, WalletAccount, SBNHolding, ReksadanaHolding, Goal } from '@/types'
+import { isExpenseForWalletBalance } from '@/lib/transaction-rules'
+import type { GoldHolding, StockHolding, Deposit, WalletAccount, SBNHolding, ReksadanaHolding, Goal, Transaction } from '@/types'
 import { ArrowRight, RefreshCw, Wifi, WifiOff, Landmark, Wallet, X,
          TrendingUp, TrendingDown, Lightbulb, AlertTriangle, CheckCircle2,
          PlusCircle, Target } from 'lucide-react'
@@ -326,6 +327,7 @@ function PortfolioContent() {
   const { data: deposits }      = useApiList<Deposit>('/api/portfolio/deposits?status=all', { refreshMs: 30000 })
   const { data: sbnList }       = useApiList<SBNHolding>('/api/portfolio/sbn',              { refreshMs: 60000 })
   const { data: reksadanaList } = useApiList<ReksadanaHolding>('/api/portfolio/reksadana', { refreshMs: 60000 })
+  const { data: transactions }  = useApiList<Transaction>('/api/transactions?limit=500',    { refreshMs: 15000 })
 
   const [walletAccounts, setWalletAccounts] = useState<WalletAccount[]>([])
 
@@ -341,22 +343,12 @@ function PortfolioContent() {
 
   // ── New: Goals & wallet balances ─────────────────────────────────────────
   const [goals, setGoals] = useState<Goal[]>([])
-  const [walletBalances, setWalletBalances] = useState({ cash: 0, bank: 0, ewallet: 0 })
   const [investOpen, setInvestOpen] = useState(false)
   const [dismissedInsights, setDismissedInsights] = useState<string[]>([])
 
   useEffect(() => {
     fetch('/api/goals').then(r => r.json()).then(j => {
       if (j.success) setGoals(j.data || [])
-    }).catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    fetch('/api/wallet-balances').then(r => r.json()).then(j => {
-      if (j.data || j.cash !== undefined) {
-        const d = j.data || j
-        setWalletBalances({ cash: d.cash || 0, bank: d.bank || 0, ewallet: d.ewallet || 0 })
-      }
     }).catch(() => {})
   }, [])
 
@@ -433,12 +425,20 @@ function PortfolioContent() {
   const totalPnLPct = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0
 
   // ── New: Wallet total ───────────────────────────────────────────────────
-  const totalWalletBalance = useMemo(() => {
+  const walletBalances = useMemo(() => {
     const bankTotal    = bankAccounts.reduce((s, a) => s + (a.balance || 0), 0)
     const ewalletTotal = ewalletAccounts.reduce((s, a) => s + (a.balance || 0), 0)
-    const cashTotal    = walletBalances.cash
-    return bankTotal + ewalletTotal + cashTotal
-  }, [bankAccounts, ewalletAccounts, walletBalances])
+    const cashTotal    = transactions.reduce((sum, tx) => {
+      if (tx.wallet !== 'cash' || tx.walletAccountId) return sum
+      if (tx.type === 'income') return sum + tx.amount
+      if (isExpenseForWalletBalance(tx)) return sum - tx.amount
+      if (tx.type === 'transfer') return sum - tx.amount
+      return sum
+    }, 0)
+    return { cash: cashTotal, bank: bankTotal, ewallet: ewalletTotal }
+  }, [bankAccounts, ewalletAccounts, transactions])
+
+  const totalWalletBalance = walletBalances.cash + walletBalances.bank + walletBalances.ewallet
 
   // ── Existing investmentSections (UNCHANGED) ─────────────────────────────
   const investmentSections = [
