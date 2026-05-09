@@ -2,14 +2,13 @@
 
 import { useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { TrendingUp, TrendingDown, Wallet } from 'lucide-react'
+import { TrendingDown, TrendingUp, Wallet } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { isExpenseForSummary } from '@/lib/transaction-rules'
 import type { Transaction, TransactionFilters } from '@/types'
 
 interface Props {
-  transactions: Transaction[]   // current period (filtered by month, etc.)
-  allTransactions: Transaction[] // full unfiltered list for prev-period calc
+  allTransactions: Transaction[]
   filters: TransactionFilters
   setFilters: (f: TransactionFilters) => void
   hidden?: boolean
@@ -17,165 +16,128 @@ interface Props {
 
 const MASKED_AMOUNT = '••••••'
 
-function getPrevMonth(yyyyMM: string) {
-  const [y, m] = yyyyMM.split('-').map(Number)
-  const d = new Date(y, m - 2, 1) // month is 0-indexed, -2 = previous month
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+function getActiveMonth(month?: string) {
+  if (month) return month
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 }
 
-function pctChange(curr: number, prev: number): number | null {
-  if (prev === 0) return null
-  return ((curr - prev) / prev) * 100
+function getDisplayAmount(value: number, hidden: boolean, showSign = false) {
+  if (hidden) return MASKED_AMOUNT
+  const sign = showSign && value < 0 ? '-' : ''
+  return `${sign}${formatCurrency(Math.abs(value))}`
 }
 
-export function SummaryCards({ transactions, allTransactions, filters, setFilters, hidden = false }: Props) {
-  // Determine active month — default to current month if no filter set
-  const activeMonth = useMemo(() => {
-    if (filters.month) return filters.month
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  }, [filters.month])
+export function SummaryCards({ allTransactions, filters, setFilters, hidden = false }: Props) {
+  const activeMonth = useMemo(() => getActiveMonth(filters.month), [filters.month])
 
-  const prevMonth = useMemo(() => getPrevMonth(activeMonth), [activeMonth])
-
-  const curr = useMemo(() => {
+  const monthStats = useMemo(() => {
     const txs = allTransactions.filter(t => t.date?.startsWith(activeMonth))
-    const income  = txs.filter(t => t.type === 'income') .reduce((s, t) => s + t.amount, 0)
-    const expense = txs.filter(isExpenseForSummary).reduce((s, t) => s + t.amount, 0)
+    const income = txs
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0)
+    const expense = txs
+      .filter(isExpenseForSummary)
+      .reduce((sum, t) => sum + t.amount, 0)
+
     return { income, expense, balance: income - expense }
   }, [allTransactions, activeMonth])
 
-  const prev = useMemo(() => {
-    const txs = allTransactions.filter(t => t.date?.startsWith(prevMonth))
-    const income  = txs.filter(t => t.type === 'income') .reduce((s, t) => s + t.amount, 0)
-    const expense = txs.filter(isExpenseForSummary).reduce((s, t) => s + t.amount, 0)
-    return { income, expense, balance: income - expense }
-  }, [allTransactions, prevMonth])
-
-  const incomeChg  = pctChange(curr.income,  prev.income)
-  const expenseChg = pctChange(curr.expense, prev.expense)
-  const balanceChg = pctChange(curr.balance, Math.abs(prev.balance))
-
-  function handleClick(type: 'income' | 'expense' | undefined) {
-    if (!type) {
-      // Saldo → show all, clear type filter
-      setFilters({ ...filters, type: undefined })
-    } else {
-      // Toggle: if already filtering this type, clear it
-      setFilters({ ...filters, type: filters.type === type ? undefined : type })
-    }
-  }
-
   const cards = [
     {
-      key:    'income',
-      label:  'Pemasukan',
-      value:  curr.income,
-      prev:   prev.income,
-      pct:    incomeChg,
-      icon:   TrendingUp,
-      color:  'var(--accent)',
-      bg:     'rgba(34,197,94,0.08)',
-      border: 'rgba(34,197,94,0.18)',
+      key: 'income',
+      label: 'Pemasukan',
+      subLabel: 'Bulan ini',
+      value: monthStats.income,
+      icon: TrendingUp,
+      color: 'var(--income)',
+      bg: 'rgba(34,197,94,0.10)',
+      border: 'rgba(34,197,94,0.24)',
       active: filters.type === 'income',
-      type:   'income' as const,
-      positiveIsGood: true,
+      type: 'income' as const,
     },
     {
-      key:    'expense',
-      label:  'Pengeluaran',
-      value:  curr.expense,
-      prev:   prev.expense,
-      pct:    expenseChg,
-      icon:   TrendingDown,
-      color:  'var(--red)',
-      bg:     'rgba(239,68,68,0.08)',
-      border: 'rgba(239,68,68,0.18)',
+      key: 'expense',
+      label: 'Pengeluaran',
+      subLabel: 'Bulan ini',
+      value: monthStats.expense,
+      icon: TrendingDown,
+      color: 'var(--expenseNormal)',
+      bg: 'rgba(248,113,113,0.10)',
+      border: 'rgba(248,113,113,0.22)',
       active: filters.type === 'expense',
-      type:   'expense' as const,
-      positiveIsGood: false, // spending going up is bad
+      type: 'expense' as const,
     },
     {
-      key:    'balance',
-      label:  'Saldo',
-      value:  curr.balance,
-      prev:   prev.balance,
-      pct:    balanceChg,
-      icon:   Wallet,
-      color:  curr.balance >= 0 ? 'var(--accent)' : 'var(--red)',
-      bg:     curr.balance >= 0 ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
-      border: curr.balance >= 0 ? 'rgba(34,197,94,0.18)' : 'rgba(239,68,68,0.18)',
+      key: 'balance',
+      label: 'Saldo',
+      subLabel: 'Bulan ini',
+      value: monthStats.balance,
+      icon: Wallet,
+      color: monthStats.balance >= 0 ? 'var(--income)' : 'var(--warning)',
+      bg: monthStats.balance >= 0 ? 'rgba(34,197,94,0.10)' : 'rgba(251,191,36,0.10)',
+      border: monthStats.balance >= 0 ? 'rgba(34,197,94,0.24)' : 'rgba(251,191,36,0.22)',
       active: !filters.type,
-      type:   undefined,
-      positiveIsGood: true,
+      type: undefined,
     },
   ]
 
+  function handleClick(type: 'income' | 'expense' | undefined) {
+    if (!type) {
+      setFilters({ ...filters, type: undefined })
+      return
+    }
+
+    setFilters({ ...filters, type: filters.type === type ? undefined : type })
+  }
+
   return (
-    <div className="grid grid-cols-3 gap-2.5">
-      {cards.map((card, i) => {
-        const Icon = card.icon
-        const isUp = (card.pct ?? 0) >= 0
-        // For expense, up is bad; for others, up is good
-        const isPositive = card.positiveIsGood ? isUp : !isUp
-        const pctColor = isPositive ? 'var(--accent)' : 'var(--red)'
+    <div className="-mx-4 overflow-x-auto px-4 pb-1">
+      <div className="grid min-w-[336px] grid-cols-3 gap-2.5">
+        {cards.map((card, index) => {
+          const Icon = card.icon
 
-        return (
-          <motion.button
-            key={card.key}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            whileTap={{ scale: 0.96 }}
-            whileHover={{ scale: 1.02 }}
-            onClick={() => handleClick(card.type)}
-            className="flex flex-col items-start p-3 rounded-2xl text-left w-full"
-            style={{
-              background:  card.active ? card.bg : 'var(--surface-2)',
-              border:      `1px solid ${card.active ? card.border : 'var(--border)'}`,
-              boxShadow:   card.active
-                ? `0 8px 30px ${card.color}22`
-                : '0 2px 8px rgba(0,0,0,0.15)',
-              transition:  'all 0.18s ease',
-            }}
-          >
-            {/* Icon */}
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center mb-2"
-              style={{ background: card.bg, color: card.color }}
+          return (
+            <motion.button
+              key={card.key}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.04 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => handleClick(card.type)}
+              className="min-h-[72px] rounded-2xl px-3 py-2.5 text-left"
+              style={{
+                background: card.active ? card.bg : 'var(--surface-2)',
+                border: `1px solid ${card.active ? card.border : 'var(--border)'}`,
+                boxShadow: card.active
+                  ? `0 8px 24px ${card.border}`
+                  : '0 2px 10px rgba(0,0,0,0.14)',
+              }}
             >
-              <Icon size={14} strokeWidth={2.2} />
-            </div>
-
-            {/* Label */}
-            <p className="text-[9px] font-semibold uppercase tracking-wide mb-0.5"
-              style={{ color: 'var(--text-muted)' }}>
-              {card.label}
-            </p>
-
-            {/* Value */}
-            <p className="text-[11px] font-bold font-mono leading-tight"
-              style={{ color: hidden ? 'var(--text-muted)' : card.color, letterSpacing: hidden ? 2 : 'normal' }}>
-              {hidden ? MASKED_AMOUNT : formatCurrency(Math.abs(card.value))}
-            </p>
-
-            {/* Period + change */}
-            <p className="text-[8px] mt-1" style={{ color: 'var(--text-muted)' }}>
-              Bulan ini
-            </p>
-            {card.pct !== null && hidden && (
-              <p className="text-[8px] font-semibold mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                ••% vs bln lalu
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold leading-none" style={{ color: 'var(--text-muted)' }}>
+                  {card.label}
+                </p>
+                <div
+                  className="flex h-6 w-6 items-center justify-center rounded-lg"
+                  style={{ background: card.bg, color: card.color }}
+                >
+                  <Icon size={12} strokeWidth={2.3} />
+                </div>
+              </div>
+              <p
+                className="truncate text-[13px] font-bold leading-tight"
+                style={{ color: hidden ? 'var(--text-muted)' : card.color, letterSpacing: hidden ? 2 : 0 }}
+              >
+                {getDisplayAmount(card.value, hidden, card.key === 'balance')}
               </p>
-            )}
-            {card.pct !== null && !hidden && (
-              <p className="text-[8px] font-semibold mt-0.5" style={{ color: pctColor }}>
-                {isUp ? '↑' : '↓'} {Math.abs(card.pct).toFixed(0)}% vs bln lalu
+              <p className="mt-1 text-[10px] font-medium leading-none" style={{ color: 'var(--text-muted)' }}>
+                {card.subLabel}
               </p>
-            )}
-          </motion.button>
-        )
-      })}
+            </motion.button>
+          )
+        })}
+      </div>
     </div>
   )
 }

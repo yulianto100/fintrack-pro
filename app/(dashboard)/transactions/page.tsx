@@ -12,7 +12,6 @@ import { SummaryCards }        from '@/components/transactions/SummaryCards'
 import { SmartInsight }        from '@/components/transactions/SmartInsight'
 import { EmptyState }          from '@/components/transactions/EmptyState'
 import { FloatingActionButton } from '@/components/transactions/FloatingActionButton'
-import { getCurrentMonth }     from '@/lib/utils'
 import type { Transaction, Category, TransactionType } from '@/types'
 
 // ─── Month picker helper ──────────────────────────────────────────────────────
@@ -54,6 +53,80 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+function FilterButton({
+  active,
+  count,
+  onClick,
+}: {
+  active: boolean
+  count: number
+  onClick: () => void
+}) {
+  return (
+    <motion.button
+      whileTap={{ scale: 0.95 }}
+      onClick={onClick}
+      className="relative flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold"
+      style={{
+        background: active ? 'rgba(34,197,94,0.13)' : 'var(--surface-2)',
+        color: active ? 'var(--accent)' : 'var(--text-secondary)',
+        border: `1px solid ${active ? 'rgba(34,197,94,0.34)' : 'var(--border)'}`,
+        boxShadow: active ? '0 8px 22px rgba(34,197,94,0.10)' : 'none',
+        transition: 'all 0.15s',
+      }}
+    >
+      <SlidersHorizontal size={13} />
+      <span>{count > 0 ? `Filter · ${count}` : 'Filter'}</span>
+      {count > 0 && (
+        <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--accent)' }} />
+      )}
+    </motion.button>
+  )
+}
+
+function TransactionSearchBar({
+  value,
+  onChange,
+  onClear,
+}: {
+  value: string
+  onChange: (value: string) => void
+  onClear: () => void
+}) {
+  return (
+    <div className="relative">
+      <Search
+        size={14}
+        className="absolute left-3 top-1/2 -translate-y-1/2"
+        style={{ color: 'var(--text-muted)' }}
+      />
+      <input
+        type="text"
+        placeholder="Cari transaksi..."
+        value={value}
+        onChange={event => onChange(event.target.value)}
+        className="w-full rounded-xl py-2.5 pl-9 pr-9 text-sm"
+        style={{
+          background: 'var(--surface-2)',
+          border: '1px solid var(--border)',
+          color: 'var(--text-primary)',
+          outline: 'none',
+        }}
+      />
+      {value && (
+        <button
+          className="absolute right-3 top-1/2 -translate-y-1/2"
+          onClick={onClear}
+          style={{ color: 'var(--text-muted)' }}
+          aria-label="Hapus pencarian"
+        >
+          <X size={13} />
+        </button>
+      )}
+    </div>
+  )
+}
+
 export default function TransactionsPage() {
   const { hidden }   = useBalanceVisibility()
   const {
@@ -66,9 +139,7 @@ export default function TransactionsPage() {
     hasActiveFilter,
     searchQuery,
     setSearchQuery,
-    addTransaction,
     deleteTransaction,
-    updateTransaction,
   } = useTransactions()
 
   const { data: categories } = useApiList<Category>('/api/categories')
@@ -96,7 +167,7 @@ export default function TransactionsPage() {
     setModalOpen(true)
   }, [])
 
-  const handleModalClose = useCallback((updated?: Transaction) => {
+  const handleModalClose = useCallback(() => {
     setModalOpen(false)
     setEditTx(undefined)
   }, [])
@@ -114,7 +185,13 @@ export default function TransactionsPage() {
       chips.push({ key: 'month', label: opt?.label ?? filters.month, remove: () => setFilters({ ...filters, month: undefined }) })
     }
     if (filters.type) {
-      const label = filters.type === 'income' ? 'Pemasukan' : filters.type === 'expense' ? 'Pengeluaran' : 'Transfer'
+      const typeLabels: Record<TransactionType, string> = {
+        income: 'Pemasukan',
+        expense: 'Pengeluaran',
+        transfer: 'Transfer',
+        credit_expense: 'Kartu Kredit',
+      }
+      const label = typeLabels[filters.type]
       chips.push({ key: 'type', label, remove: () => setFilters({ ...filters, type: undefined }) })
     }
     if (filters.categoryId) {
@@ -128,82 +205,46 @@ export default function TransactionsPage() {
     return chips
   }, [filters, monthOptions, categories, setFilters])
 
+  const activeFilterCount = activeChips.length
+  const filterIsActive = filterOpen || activeFilterCount > 0
+
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col min-h-full" style={{ background: 'var(--background)' }}>
+    <div className="flex flex-col min-h-full" style={{ background: 'var(--surface-0)' }}>
 
       {/* ── Header ── */}
       <div
-        className="px-4 pt-4 pb-3"
+        className="px-4 pt-3 pb-3"
         style={{
-          background:         'var(--background)',
+          background:         'var(--surface-0)',
           borderBottom:       '1px solid var(--border)',
         }}
       >
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest mb-0.5"
+            <p className="text-[11px] font-semibold uppercase tracking-widest mb-0.5"
               style={{ color: 'var(--text-muted)' }}>
               Riwayat
             </p>
-            <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+            <h1 className="text-[22px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
               Transaksi
             </h1>
           </div>
 
-          {/* Filter toggle */}
-          <motion.button
-            whileTap={{ scale: 0.95 }}
+          <FilterButton
+            active={filterIsActive}
+            count={activeFilterCount}
             onClick={() => setFilterOpen(o => !o)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
-            style={{
-              background: filterOpen ? 'rgba(34,197,94,0.12)' : 'var(--surface-2)',
-              color:      filterOpen ? 'var(--accent)'        : 'var(--text-secondary)',
-              border:     `1px solid ${filterOpen ? 'rgba(34,197,94,0.25)' : 'var(--border)'}`,
-              transition: 'all 0.15s',
-            }}
-          >
-            <SlidersHorizontal size={13} />
-            Filter
-            {hasActiveFilter && (
-              <span
-                className="w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
-                style={{ background: 'var(--accent)', color: '#000' }}
-              >
-                {activeChips.length}
-              </span>
-            )}
-          </motion.button>
+          />
         </div>
 
         {/* Search bar */}
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2"
-            style={{ color: 'var(--text-muted)' }} />
-          <input
-            type="text"
-            placeholder="Cari transaksi..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm"
-            style={{
-              background: 'var(--surface-2)',
-              border:     '1px solid var(--border)',
-              color:      'var(--text-primary)',
-              outline:    'none',
-            }}
-          />
-          {searchQuery && (
-            <button
-              className="absolute right-3 top-1/2 -translate-y-1/2"
-              onClick={() => setSearchQuery('')}
-              style={{ color: 'var(--text-muted)' }}
-            >
-              <X size={13} />
-            </button>
-          )}
-        </div>
+        <TransactionSearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          onClear={() => setSearchQuery('')}
+        />
 
         {/* Filter panel */}
         <AnimatePresence>
@@ -305,6 +346,38 @@ export default function TransactionsPage() {
                   </div>
                 )}
 
+                {/* Wallet */}
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
+                    style={{ color: 'var(--text-muted)' }}>
+                    Wallet
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { value: 'cash' as const, label: 'Cash' },
+                      { value: 'bank' as const, label: 'Bank' },
+                      { value: 'ewallet' as const, label: 'E-Wallet' },
+                    ].map(wallet => {
+                      const active = filters.wallet === wallet.value
+                      return (
+                        <motion.button
+                          key={wallet.value}
+                          whileTap={{ scale: 0.94 }}
+                          onClick={() => setFilters({ ...filters, wallet: active ? undefined : wallet.value })}
+                          className="py-2 rounded-xl text-xs font-semibold transition-all"
+                          style={{
+                            background: active ? 'rgba(34,197,94,0.15)' : 'var(--surface-2)',
+                            border:     `1px solid ${active ? 'rgba(34,197,94,0.30)' : 'var(--border)'}`,
+                            color:      active ? 'var(--accent)' : 'var(--text-secondary)',
+                          }}
+                        >
+                          {wallet.label}
+                        </motion.button>
+                      )
+                    })}
+                  </div>
+                </div>
+
                 {/* Clear filters */}
                 {hasActiveFilter && (
                   <button
@@ -338,19 +411,15 @@ export default function TransactionsPage() {
       </div>
 
       {/* ── Body ── */}
-      <div className="flex flex-col gap-4 px-4 pt-4">
+      <div className="flex flex-col gap-3 px-4 pt-3 pb-8">
 
         {/* Summary cards */}
         <SummaryCards
-          transactions={transactions}
           allTransactions={allTransactions}
           filters={filters}
           setFilters={setFilters}
           hidden={hidden}
         />
-
-        {/* Smart insight */}
-        <SmartInsight transactions={allTransactions} />
 
         {/* Loading skeleton */}
         {loading && (
@@ -377,6 +446,7 @@ export default function TransactionsPage() {
             hidden={hidden}
             onEdit={openEdit}
             onDelete={handleDelete}
+            afterFirstGroup={<SmartInsight transactions={allTransactions} />}
           />
         )}
       </div>

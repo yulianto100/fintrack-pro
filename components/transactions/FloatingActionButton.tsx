@@ -33,9 +33,9 @@ const TX_ACTIONS = [
     type: 'expense' as TransactionType,
     label: 'Pengeluaran',
     icon: <TrendingDown size={18} strokeWidth={2.2} />,
-    color: '#fff',
-    bg: 'var(--red)',
-    shadow: 'rgba(239,68,68,0.40)',
+    color: '#06120A',
+    bg: 'var(--expenseNormal)',
+    shadow: 'rgba(248,113,113,0.32)',
   },
   {
     type: 'income' as TransactionType,
@@ -57,6 +57,10 @@ const TX_ACTIONS = [
 
 const fabPosition = {
   bottom: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom,0px) + 28px)',
+}
+
+const transactionFabPosition = {
+  bottom: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom,0px) + 36px)',
 }
 
 export function FloatingActionButton(props: Props) {
@@ -91,7 +95,7 @@ export function FloatingActionButton(props: Props) {
   }
 
   return (
-    <div ref={ref} className="fixed right-5 z-50 flex flex-col items-end gap-2.5" style={fabPosition}>
+    <div ref={ref} className="fixed right-5 z-50 flex flex-col items-end gap-2.5" style={transactionFabPosition}>
       <ActionList
         open={open}
         actions={TX_ACTIONS}
@@ -100,7 +104,7 @@ export function FloatingActionButton(props: Props) {
           props.onSelect(action.type)
         }}
       />
-      <MainFAB open={open} onToggle={() => setOpen((current) => !current)} />
+      <MainFAB compact open={open} onToggle={() => setOpen((current) => !current)} />
     </div>
   )
 }
@@ -155,7 +159,7 @@ function ActionList<T extends DashboardAction | (typeof TX_ACTIONS)[number]>({
   )
 }
 
-function MainFAB({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+function MainFAB({ compact = false, open, onToggle }: { compact?: boolean; open: boolean; onToggle: () => void }) {
   return (
     <motion.button
       type="button"
@@ -164,8 +168,8 @@ function MainFAB({ open, onToggle }: { open: boolean; onToggle: () => void }) {
       onClick={onToggle}
       className="relative z-10 flex items-center justify-center rounded-full"
       style={{
-        width: 52,
-        height: 52,
+        width: compact ? 48 : 52,
+        height: compact ? 48 : 52,
         background: open ? 'var(--surface-3)' : 'var(--accent)',
         color: open ? 'var(--text-primary)' : '#000',
         boxShadow: open ? '0 6px 20px rgba(0,0,0,0.35)' : '0 10px 26px rgba(34,197,94,0.42)',
@@ -175,7 +179,7 @@ function MainFAB({ open, onToggle }: { open: boolean; onToggle: () => void }) {
       aria-label={open ? 'Tutup menu cepat' : 'Buka menu cepat'}
     >
       <motion.div animate={{ rotate: open ? 45 : 0 }} transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}>
-        <Plus size={22} strokeWidth={2.6} />
+        <Plus size={compact ? 20 : 22} strokeWidth={2.6} />
       </motion.div>
     </motion.button>
   )

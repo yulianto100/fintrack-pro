@@ -16,12 +16,12 @@ import { useDarkMode } from '@/hooks/useDarkMode'
  * The /budget route still works (it redirects to /goals?tab=budget).
  */
 const NAV_TABS = [
-  { href: '/',             icon: LayoutDashboard, label: 'Dashboard'  },
+  { href: '/',             icon: LayoutDashboard, label: 'Home'       },
   { href: '/transactions', icon: ArrowLeftRight,  label: 'Transaksi'  },
-  { href: '/portfolio',    icon: TrendingUp,      label: 'Portofolio' },
+  { href: '/portfolio',    icon: TrendingUp,      label: 'Aset'       },
   { href: '/goals',        icon: Target,          label: 'Target'     },
   { href: '/akun',         icon: Wallet,          label: 'Akun'       },
-  { href: '/settings',     icon: Settings,        label: 'Pengaturan' },
+  { href: '/settings',     icon: Settings,        label: 'Atur'       },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -198,7 +198,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         aria-label="Navigasi utama"
       >
         <div
-          className="mx-auto flex items-center justify-around gap-1.5 rounded-[28px] px-2 py-2 pointer-events-auto"
+          className="mx-auto flex items-center justify-around gap-1 rounded-[28px] px-2 py-2 pointer-events-auto"
           style={{
             maxWidth: 430,
             minHeight: 76,
@@ -256,7 +256,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   >
                     <Icon size={20} strokeWidth={active ? 2.55 : 1.9} />
                   </div>
-                  <span className="text-[11px] font-semibold leading-none relative z-10 truncate max-w-full px-0.5">
+                  <span className="text-[11px] font-semibold leading-none relative z-10 whitespace-nowrap px-0.5">
                     {label}
                   </span>
                 </motion.div>
