@@ -289,7 +289,7 @@ export default function SettingsPage() {
   )
 
   return (
-    <div className="px-4 pt-6 pb-28 max-w-2xl mx-auto space-y-5">
+    <div className="px-4 pt-6 max-w-2xl mx-auto space-y-5">
       <h1 className="text-xl font-display font-bold" style={{ color: 'var(--text-primary)' }}>Pengaturan</h1>
 
       {/* Profile */}
