@@ -17,6 +17,10 @@ function todayStr(): string {
   return new Date().toISOString().split('T')[0]
 }
 
+function emptyStreak(userId: string): UserStreak {
+  return { userId, currentStreak: 0, bestStreak: 0, lastInputDate: '', updatedAt: '' }
+}
+
 // GET /api/streak — fetch current streak + check if txn exists today
 export async function GET() {
   const userId = await getUserId()
@@ -25,9 +29,7 @@ export async function GET() {
   try {
     const db         = getAdminDatabase()
     const streakSnap = await db.ref(`users/${userId}/streak`).get()
-    const streak: UserStreak = streakSnap.exists()
-      ? streakSnap.val()
-      : { userId, currentStreak: 0, bestStreak: 0, lastInputDate: '', updatedAt: '' }
+    const streak: UserStreak = streakSnap.exists() ? streakSnap.val() : emptyStreak(userId)
 
     // Check if user has any transaction today
     const today   = todayStr()
@@ -36,7 +38,12 @@ export async function GET() {
 
     return NextResponse.json({ success: true, data: { ...streak, hasToday } })
   } catch (err) {
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    console.error('[GET /api/streak]', err)
+    return NextResponse.json({
+      success: true,
+      data: { ...emptyStreak(userId), hasToday: false },
+      warning: 'Streak sementara tidak tersedia',
+    })
   }
 }
 
@@ -51,9 +58,7 @@ export async function POST() {
     const yesterday  = new Date(Date.now() - 86400000).toISOString().split('T')[0]
 
     const streakSnap = await db.ref(`users/${userId}/streak`).get()
-    const prev: UserStreak = streakSnap.exists()
-      ? streakSnap.val()
-      : { userId, currentStreak: 0, bestStreak: 0, lastInputDate: '', updatedAt: '' }
+    const prev: UserStreak = streakSnap.exists() ? streakSnap.val() : emptyStreak(userId)
 
     // Already counted today — no change
     if (prev.lastInputDate === today) {
@@ -76,6 +81,11 @@ export async function POST() {
     await db.ref(`users/${userId}/streak`).set(updated)
     return NextResponse.json({ success: true, data: updated })
   } catch (err) {
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    console.error('[POST /api/streak]', err)
+    return NextResponse.json({
+      success: true,
+      data: emptyStreak(userId),
+      warning: 'Streak tidak tersimpan sementara',
+    })
   }
 }

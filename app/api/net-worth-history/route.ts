@@ -31,7 +31,12 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ success: true, data: snaps.slice(-limit) })
   } catch (err) {
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    console.error('[GET /api/net-worth-history]', err)
+    return NextResponse.json({
+      success: true,
+      data: [],
+      warning: 'Riwayat net worth sementara tidak tersedia',
+    })
   }
 }
 
@@ -52,7 +57,8 @@ export async function POST(request: Request) {
     // Deduplicate: skip if we already saved a snapshot within the last hour
     const recentSnap = await ref.orderByChild('createdAt').limitToLast(1).get()
     if (recentSnap.exists()) {
-      const last: NetWorthSnapshot = Object.values(recentSnap.val())[0] as NetWorthSnapshot
+      const [lastKey, rawLast] = Object.entries(recentSnap.val())[0] as [string, NetWorthSnapshot]
+      const last: NetWorthSnapshot = { ...rawLast, id: rawLast.id || lastKey }
       const diffMs = Date.now() - new Date(last.createdAt).getTime()
       if (diffMs < 3600_000) {
         // Just update the latest value
@@ -65,6 +71,11 @@ export async function POST(request: Request) {
     await newRef.set(snapshot)
     return NextResponse.json({ success: true, data: snapshot }, { status: 201 })
   } catch (err) {
-    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
+    console.error('[POST /api/net-worth-history]', err)
+    return NextResponse.json({
+      success: true,
+      data: null,
+      warning: 'Snapshot net worth tidak tersimpan sementara',
+    })
   }
 }
