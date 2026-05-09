@@ -592,7 +592,7 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
     <motion.div key="detail-credit"
       initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }}
       transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-      className="account-detail-sheet account-detail-credit absolute inset-0 overflow-y-auto pb-[calc(7rem+env(safe-area-inset-bottom))]"
+      className="account-detail-sheet account-detail-credit relative min-h-full pb-[calc(7rem+env(safe-area-inset-bottom))]"
       style={{ background: 'var(--account-page-bg)' }}
     >
       {/* Top bar */}
@@ -741,7 +741,7 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
     <motion.div key="detail-wallet"
       initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }}
       transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-      className="account-detail-sheet account-detail-wallet absolute inset-0 overflow-y-auto pb-[calc(8.5rem+env(safe-area-inset-bottom))]"
+      className="account-detail-sheet account-detail-wallet relative min-h-full pb-[calc(8.5rem+env(safe-area-inset-bottom))]"
       style={{ background: 'var(--account-page-bg)' }}
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">

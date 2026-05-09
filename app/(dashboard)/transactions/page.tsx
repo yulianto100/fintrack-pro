@@ -135,11 +135,9 @@ export default function TransactionsPage() {
 
       {/* ── Header ── */}
       <div
-        className="sticky top-0 z-30 px-4 pt-12 pb-3"
+        className="px-4 pt-4 pb-3"
         style={{
           background:         'var(--background)',
-          backdropFilter:     'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
           borderBottom:       '1px solid var(--border)',
         }}
       >
