@@ -278,9 +278,8 @@ export function TransactionGroup({ transactions, hidden, onEdit, onDelete }: Pro
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: gi * 0.03, duration: 0.18 }}
             >
-              {/* Sticky date header */}
-              <div className="flex items-center justify-between px-1 mb-1 py-1.5"
-                style={{ position: 'sticky', top: 0, zIndex: 10, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+              {/* Date header */}
+              <div className="flex min-h-[32px] items-center justify-between px-1 mb-1 py-1.5">
                 <p className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{group.label}</p>
                 <p className="text-[11px] font-semibold font-mono" style={{ color: totalColor }}>
                   {hidden ? '••••' : `${isPositive ? '+' : ''}${formatCurrency(group.total)}`}
