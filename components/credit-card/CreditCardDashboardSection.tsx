@@ -1,13 +1,16 @@
 'use client'
 
-import Link       from 'next/link'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ArrowRight, CreditCard } from 'lucide-react'
 import { useCreditCards } from '@/hooks/useCreditCards'
+import { dashboardColors, dashboardRadius } from '@/components/dashboard/dashboardTokens'
 
 interface Props {
   hidden?: boolean
 }
+
+const MASKED = '******'
 
 export function CreditCardDashboardSection({ hidden = false }: Props) {
   const { cards, loading, totalDebt, totalLimit, overallUsagePercent } = useCreditCards()
@@ -16,88 +19,77 @@ export function CreditCardDashboardSection({ hidden = false }: Props) {
   if (cards.length === 0) return null
 
   const statusColor =
-    overallUsagePercent >= 80 ? '#ef4444' :
-    overallUsagePercent >= 50 ? '#f59e0b' :
-    '#22c55e'
+    overallUsagePercent >= 80 ? dashboardColors.expenseStrong :
+    overallUsagePercent >= 50 ? '#F59E0B' :
+    dashboardColors.accent
 
   const statusLabel =
-    overallUsagePercent >= 80 ? '⚠️ Perlu Perhatian' :
-    overallUsagePercent >= 50 ? '🔔 Cukup Tinggi' :
-    '✅ Aman'
+    overallUsagePercent >= 80 ? 'Perlu perhatian' :
+    overallUsagePercent >= 50 ? 'Cukup tinggi' :
+    'Aman'
 
-  const fmt = (n: number) =>
-    hidden ? '••••••' : `Rp ${n.toLocaleString('id-ID')}`
+  const fmt = (value: number) =>
+    hidden ? MASKED : `Rp ${value.toLocaleString('id-ID')}`
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-    >
-      {/* Section header */}
-      <div className="flex items-center justify-between mb-2 px-1">
-        <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-          KARTU KREDIT
-        </p>
+    <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+      <div className="flex items-center justify-between px-1">
+        <h2 className="text-[15px] font-semibold leading-tight" style={{ color: dashboardColors.text }}>
+          Kartu Kredit
+        </h2>
         <Link
-          href="/credit-card"
-          className="flex items-center gap-1 text-xs transition-opacity hover:opacity-70"
-          style={{ color: 'var(--accent)' }}
+          href="/akun?tab=kredit"
+          className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-70"
+          style={{ color: dashboardColors.accent }}
         >
-          Kelola <ArrowRight size={12} />
+          Kelola <ArrowRight size={13} />
         </Link>
       </div>
 
-      {/* Summary card */}
       <div
-        className="rounded-2xl p-4"
+        className="glass-card p-4"
         style={{
-          background: 'var(--surface-card)',
-          border:     '1px solid var(--border)',
+          borderRadius: dashboardRadius.cardSm,
         }}
       >
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center"
-              style={{ background: 'rgba(34,197,94,0.10)' }}
-            >
-              <CreditCard size={18} style={{ color: 'var(--accent)' }} />
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ background: dashboardColors.incomeSoft }}>
+              <CreditCard size={19} style={{ color: dashboardColors.accent }} />
             </div>
-            <div>
-              <p className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
+            <div className="min-w-0">
+              <p className="text-sm font-bold leading-snug" style={{ color: dashboardColors.text }}>
                 {cards.length} Kartu Aktif
               </p>
-              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+              <p className="mt-1 truncate text-xs leading-snug" style={{ color: dashboardColors.muted }}>
                 Total limit: {fmt(totalLimit)}
               </p>
             </div>
           </div>
+
           <span
-            className="text-[10px] font-semibold px-2 py-1 rounded-full"
-            style={{ background: `${statusColor}15`, color: statusColor }}
+            className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold leading-none"
+            style={{ background: `${statusColor}18`, color: statusColor }}
           >
             {statusLabel}
           </span>
         </div>
 
-        {/* Debt amount */}
-        <div className="flex items-end justify-between mb-2">
+        <div className="mb-2 flex items-end justify-between gap-3">
           <div>
-            <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Total Tagihan</p>
-            <p
-              className="text-lg font-bold font-mono"
-              style={{ color: totalDebt > 0 ? '#ef4444' : 'var(--accent)' }}
-            >
+            <p className="text-xs leading-snug" style={{ color: dashboardColors.muted }}>
+              Total tagihan bulan ini
+            </p>
+            <p className="mt-1 text-lg font-bold leading-tight font-mono" style={{ color: totalDebt > 0 ? dashboardColors.expense : dashboardColors.accent }}>
               {fmt(totalDebt)}
             </p>
           </div>
-          <p className="text-xs font-bold" style={{ color: statusColor }}>
+          <p className="text-sm font-bold" style={{ color: statusColor }}>
             {overallUsagePercent.toFixed(0)}%
           </p>
         </div>
 
-        {/* Progress bar */}
-        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+        <div className="h-1.5 overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,0.07)' }}>
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${Math.min(overallUsagePercent, 100)}%` }}
@@ -107,35 +99,31 @@ export function CreditCardDashboardSection({ hidden = false }: Props) {
           />
         </div>
 
-        {/* Individual cards */}
         {cards.length > 1 && (
-          <div className="mt-3 space-y-1.5">
+          <div className="mt-3 space-y-2">
             {cards.slice(0, 3).map((card) => {
-              const pct   = card.limit > 0 ? (card.used / card.limit) * 100 : 0
-              const cColor = pct >= 80 ? '#ef4444' : pct >= 50 ? '#f59e0b' : '#22c55e'
+              const pct = card.limit > 0 ? (card.used / card.limit) * 100 : 0
+              const cardColor = pct >= 80 ? dashboardColors.expenseStrong : pct >= 50 ? '#F59E0B' : dashboardColors.accent
               return (
                 <div key={card.id} className="flex items-center gap-2">
-                  <div
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ background: card.color || 'var(--accent)' }}
-                  />
-                  <p className="text-[11px] flex-1 truncate" style={{ color: 'var(--text-secondary)' }}>
+                  <div className="h-2 w-2 shrink-0 rounded-full" style={{ background: card.color || dashboardColors.accent }} />
+                  <p className="flex-1 truncate text-xs" style={{ color: dashboardColors.textSecondary }}>
                     {card.name}
                   </p>
-                  <p className="text-[11px] font-mono" style={{ color: cColor }}>
-                    {hidden ? '••••' : `Rp ${card.used.toLocaleString('id-ID')}`}
+                  <p className="text-xs font-mono" style={{ color: cardColor }}>
+                    {hidden ? MASKED : `Rp ${card.used.toLocaleString('id-ID')}`}
                   </p>
                 </div>
               )
             })}
             {cards.length > 3 && (
-              <p className="text-[10px] text-center" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-center text-xs" style={{ color: dashboardColors.muted }}>
                 +{cards.length - 3} kartu lainnya
               </p>
             )}
           </div>
         )}
       </div>
-    </motion.div>
+    </motion.section>
   )
 }

@@ -1,116 +1,269 @@
 'use client'
 
-import { useMemo, useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X } from 'lucide-react'
+import {
+  AlertTriangle,
+  BadgeCheck,
+  BarChart3,
+  Bell,
+  ClipboardList,
+  Lightbulb,
+  PieChart,
+  Rocket,
+  Scale,
+  Search,
+  ShieldAlert,
+  Sparkles,
+  TrendingUp,
+  WalletCards,
+  X,
+  type LucideIcon,
+} from 'lucide-react'
 import type { Transaction, GoldHolding, StockHolding, Deposit, Insight, BudgetStatus } from '@/types'
 import { generateAllInsights } from '@/lib/insight-engine'
+import { DashboardSectionHeader } from './DashboardSectionHeader'
+import { dashboardColors, dashboardRadius } from './dashboardTokens'
 
 interface Props {
   transactions: Transaction[]
   goldHoldings: GoldHolding[]
-  stocks:       StockHolding[]
-  deposits:     Deposit[]
-  totalWealth:  number
-  goldValue:    number
-  stockValue?:  number
+  stocks: StockHolding[]
+  deposits: Deposit[]
+  totalWealth: number
+  goldValue: number
+  stockValue?: number
   walletTotal?: number
-  budgets?:     BudgetStatus[]
+  budgets?: BudgetStatus[]
+}
+
+const STORAGE_KEY = 'finuvo_dismissed_insights'
+const INITIAL_LIMIT = 3
+
+const TONE: Record<Insight['type'], { label: string; bg: string; border: string; text: string; iconBg: string }> = {
+  success: {
+    label: 'Positif',
+    bg: 'rgba(34,197,94,0.08)',
+    border: 'rgba(34,197,94,0.22)',
+    text: '#4ADE80',
+    iconBg: 'rgba(34,197,94,0.14)',
+  },
+  info: {
+    label: 'Info',
+    bg: 'rgba(45,212,191,0.08)',
+    border: 'rgba(45,212,191,0.22)',
+    text: '#2DD4BF',
+    iconBg: 'rgba(45,212,191,0.13)',
+  },
+  warning: {
+    label: 'Perhatian',
+    bg: 'rgba(251,191,36,0.08)',
+    border: 'rgba(251,191,36,0.24)',
+    text: '#FBBF24',
+    iconBg: 'rgba(251,191,36,0.13)',
+  },
+  critical: {
+    label: 'Urgent',
+    bg: 'rgba(251,113,133,0.10)',
+    border: 'rgba(251,113,133,0.28)',
+    text: '#FB7185',
+    iconBg: 'rgba(251,113,133,0.15)',
+  },
+}
+
+const ICONS: Record<string, LucideIcon> = {
+  'alert-triangle': AlertTriangle,
+  'badge-check': BadgeCheck,
+  'bar-chart': BarChart3,
+  bell: Bell,
+  'circle-alert': AlertTriangle,
+  'clipboard-list': ClipboardList,
+  lightbulb: Lightbulb,
+  'pie-chart': PieChart,
+  rocket: Rocket,
+  scale: Scale,
+  search: Search,
+  'shield-alert': ShieldAlert,
+  sparkles: Sparkles,
+  'trend-up': TrendingUp,
+  wallet: WalletCards,
 }
 
 function toKey(title: string): string {
   return 'insight_dismissed_' + title.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 60)
 }
 
-const STYLE: Record<string, { bg: string; border: string; text: string }> = {
-  warning: { bg: 'rgba(252,129,129,0.06)', border: 'rgba(252,129,129,0.20)', text: '#F87171' },
-  info:    { bg: 'rgba(99,179,237,0.06)',  border: 'rgba(99,179,237,0.20)',  text: '#63b3ed' },
-  success: { bg: 'rgba(34,197,94,0.06)',  border: 'rgba(34,197,94,0.16)', text: '#22C55E' },
-}
-
-const STORAGE_KEY = 'finuvo_dismissed_insights'
 function loadDismissed(): Set<string> {
-  try { const r = localStorage.getItem(STORAGE_KEY); return new Set(r ? JSON.parse(r) : []) } catch { return new Set() }
-}
-function saveDismissed(s: Set<string>) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...s])) } catch { /* noop */ }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return new Set(raw ? JSON.parse(raw) : [])
+  } catch {
+    return new Set()
+  }
 }
 
-export function SmartInsights(props: Props) {
-  const allInsights = useMemo(() => generateAllInsights(props), [props])
+function saveDismissed(keys: Set<string>) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...keys]))
+  } catch {
+    // Ignore storage failures; insights should still render.
+  }
+}
+
+function getIcon(insight: Insight): LucideIcon {
+  if (ICONS[insight.icon]) return ICONS[insight.icon]
+  if (insight.type === 'critical') return ShieldAlert
+  if (insight.type === 'warning') return AlertTriangle
+  if (insight.type === 'success') return BadgeCheck
+  return Lightbulb
+}
+
+export function SmartInsights({
+  transactions,
+  goldHoldings,
+  stocks,
+  deposits,
+  totalWealth,
+  goldValue,
+  stockValue,
+  walletTotal,
+  budgets,
+}: Props) {
+  const allInsights = useMemo(
+    () => generateAllInsights({
+      transactions,
+      goldHoldings,
+      stocks,
+      deposits,
+      totalWealth,
+      goldValue,
+      stockValue,
+      walletTotal,
+      budgets,
+    }),
+    [transactions, goldHoldings, stocks, deposits, totalWealth, goldValue, stockValue, walletTotal, budgets],
+  )
+
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
+  const [showAll, setShowAll] = useState(false)
 
-  useEffect(() => { setDismissed(loadDismissed()) }, [])
+  useEffect(() => {
+    setDismissed(loadDismissed())
+  }, [])
 
   const dismiss = useCallback((title: string) => {
     setDismissed((prev) => {
-      const next = new Set(prev); next.add(toKey(title)); saveDismissed(next); return next
+      const next = new Set(prev)
+      next.add(toKey(title))
+      saveDismissed(next)
+      return next
     })
   }, [])
 
   const visible = useMemo(
-    () => allInsights.filter((ins) => !dismissed.has(toKey(ins.title))),
-    [allInsights, dismissed]
+    () => allInsights.filter((insight) => !dismissed.has(toKey(insight.title))),
+    [allInsights, dismissed],
   )
 
-  const hiddenCount = allInsights.length - visible.length
+  const shownInsights = showAll ? visible : visible.slice(0, INITIAL_LIMIT)
+  const dismissedCount = allInsights.length - visible.length
 
   const restoreAll = useCallback(() => {
     const next = new Set(dismissed)
-    allInsights.forEach((ins) => next.delete(toKey(ins.title)))
-    setDismissed(next); saveDismissed(next)
+    allInsights.forEach((insight) => next.delete(toKey(insight.title)))
+    setDismissed(next)
+    saveDismissed(next)
   }, [dismissed, allInsights])
 
   if (allInsights.length === 0) return null
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between px-1">
-        <p className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>INSIGHTS</p>
-        {hiddenCount > 0 && hiddenCount === allInsights.length && (
-          <button onClick={restoreAll}
-            className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-            style={{ color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid rgba(34,197,94,0.16)' }}>
-            Tampilkan ({hiddenCount})
+    <section className="space-y-3">
+      <DashboardSectionHeader
+        title="Insight Penting"
+        actionLabel={visible.length > INITIAL_LIMIT ? (showAll ? 'Ringkas' : 'Lihat semua insight') : undefined}
+        onAction={() => setShowAll((current) => !current)}
+      />
+
+      {visible.length === 0 && (
+        <div className="glass-card p-4 text-center" style={{ borderRadius: dashboardRadius.cardSm }}>
+          <p className="text-sm font-semibold" style={{ color: dashboardColors.text }}>Semua insight disembunyikan</p>
+          <button type="button" onClick={restoreAll} className="mt-2 text-xs font-semibold" style={{ color: dashboardColors.accent }}>
+            Tampilkan insight
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       <AnimatePresence initial={false}>
-        {visible.map((ins) => {
-          const s = STYLE[ins.type]
+        {shownInsights.map((insight) => {
+          const tone = TONE[insight.type]
+          const Icon = getIcon(insight)
+
           return (
-            <motion.div key={ins.title} layout
-              initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+            <motion.article
+              key={insight.title}
+              layout
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0, scale: 0.97, transition: { duration: 0.2 } }}
-              transition={{ duration: 0.22, ease: 'easeOut' }} className="overflow-hidden">
-              <div className="flex items-start gap-3 p-3.5 rounded-2xl relative"
-                style={{ background: s.bg, border: `1px solid ${s.border}` }}>
-                <span className="text-xl flex-shrink-0 mt-0.5">{ins.icon}</span>
-                <div className="flex-1 min-w-0 pr-5">
-                  <p className="text-sm font-semibold leading-tight" style={{ color: s.text }}>{ins.title}</p>
-                  <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>{ins.message}</p>
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+              className="overflow-hidden"
+            >
+              <div
+                className="relative flex items-start gap-3 rounded-2xl p-4"
+                style={{ background: tone.bg, border: `1px solid ${tone.border}` }}
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ background: tone.iconBg, color: tone.text }}>
+                  <Icon size={19} strokeWidth={2.2} />
                 </div>
-                <button onClick={() => dismiss(ins.title)} aria-label="Tutup"
-                  className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center transition-all"
-                  style={{ background: s.border, color: s.text, opacity: 0.7 }}
-                  onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                  onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}>
-                  <X size={10} strokeWidth={2.5} />
+
+                <div className="min-w-0 flex-1 pr-5">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold leading-none" style={{ background: tone.iconBg, color: tone.text }}>
+                      {tone.label}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-semibold leading-snug" style={{ color: tone.text }}>
+                    {insight.title}
+                  </h3>
+                  <p className="mt-1 text-[13px] leading-relaxed" style={{ color: dashboardColors.muted }}>
+                    {insight.message}
+                  </p>
+
+                  {insight.actionLabel && insight.actionHref && (
+                    <Link
+                      href={insight.actionHref}
+                      className="mt-3 inline-flex rounded-full px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-75"
+                      style={{ background: tone.iconBg, color: tone.text, border: `1px solid ${tone.border}` }}
+                    >
+                      {insight.actionLabel}
+                    </Link>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => dismiss(insight.title)}
+                  aria-label="Tutup insight"
+                  className="absolute right-2.5 top-2.5 flex h-6 w-6 items-center justify-center rounded-full transition-opacity hover:opacity-100"
+                  style={{ background: tone.iconBg, color: tone.text, opacity: 0.76 }}
+                >
+                  <X size={12} strokeWidth={2.4} />
                 </button>
               </div>
-            </motion.div>
+            </motion.article>
           )
         })}
       </AnimatePresence>
 
-      {hiddenCount > 0 && hiddenCount < allInsights.length && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-end px-1">
-          <button onClick={restoreAll} className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>
-            + {hiddenCount} insight disembunyikan · Tampilkan
+      {dismissedCount > 0 && visible.length > 0 && (
+        <div className="flex justify-end px-1">
+          <button type="button" onClick={restoreAll} className="text-xs font-medium" style={{ color: dashboardColors.muted }}>
+            {dismissedCount} insight disembunyikan - Tampilkan
           </button>
-        </motion.div>
+        </div>
       )}
-    </div>
+    </section>
   )
 }

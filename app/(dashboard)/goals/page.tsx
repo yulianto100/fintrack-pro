@@ -148,14 +148,14 @@ function GoalsContent() {
           <h1 className="text-xl font-display font-bold" style={{ color: 'var(--text-primary)' }}>
             Perencanaan Keuangan
           </h1>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Goals & Budget</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Target & Budget</p>
         </div>
       </div>
 
       {/* Tab switcher */}
       <div className="flex gap-1 p-1 rounded-2xl mb-5"
         style={{ background: 'var(--surface-3)', border: '1px solid var(--border)' }}>
-        {([['goals', '🎯', 'Goals'], ['budget', '📊', 'Budget']] as const).map(([tab, icon, label]) => (
+        {([['goals', '🎯', 'Target'], ['budget', '📊', 'Budget']] as const).map(([tab, icon, label]) => (
           <button key={tab} onClick={() => setTab(tab)}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all"
             style={{

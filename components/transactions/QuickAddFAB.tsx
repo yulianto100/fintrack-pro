@@ -1,34 +1,67 @@
 'use client'
 
-import { useState }               from 'react'
-import { AnimatePresence }         from 'framer-motion'
-import { PlusCircle, TrendingUp }  from 'lucide-react'
-import { FloatingActionButton }    from '@/components/transactions/FloatingActionButton'
-import { TransactionModal }        from '@/components/transactions/TransactionModal'
-import { InvestasiModal }          from '@/components/investment/InvestasiModal'
+import { useMemo, useState } from 'react'
+import { AnimatePresence } from 'framer-motion'
+import { useRouter } from 'next/navigation'
+import { ArrowLeftRight, CreditCard, TrendingDown, TrendingUp } from 'lucide-react'
+import { FloatingActionButton } from '@/components/transactions/FloatingActionButton'
+import { TransactionModal } from '@/components/transactions/TransactionModal'
+import { PayCreditCardModal } from '@/components/credit-card/PayCreditCardModal'
+import { useCreditCards } from '@/hooks/useCreditCards'
+import type { CreditCard as CreditCardType, TransactionType } from '@/types'
 
-interface Props {
-  walletBalances: { cash: number; bank: number; ewallet: number }
-}
+export function QuickAddFAB() {
+  const router = useRouter()
+  const { cards, refetch } = useCreditCards()
+  const [txType, setTxType] = useState<TransactionType | null>(null)
+  const [payTarget, setPayTarget] = useState<CreditCardType | null>(null)
 
-export function QuickAddFAB({ walletBalances }: Props) {
-  const [txOpen,     setTxOpen    ] = useState(false)
-  const [investOpen, setInvestOpen] = useState(false)
+  const suggestedPayCard = useMemo(
+    () => [...cards].sort((a, b) => b.used - a.used)[0],
+    [cards],
+  )
+
+  const openPayCreditCard = () => {
+    if (suggestedPayCard) {
+      setPayTarget(suggestedPayCard)
+      return
+    }
+
+    router.push('/akun?tab=kredit')
+  }
 
   const dashboardActions = [
     {
-      label:   'Tambah Transaksi',
-      icon:    <PlusCircle size={18} strokeWidth={2.2} />,
-      color:   '#000',
-      bg:      'var(--accent)',
-      onClick: () => setTxOpen(true),
+      label: 'Catat Pengeluaran',
+      icon: <TrendingDown size={17} strokeWidth={2.2} />,
+      color: '#06120A',
+      bg: '#FCA5A5',
+      shadow: 'rgba(252,165,165,0.32)',
+      onClick: () => setTxType('expense'),
     },
     {
-      label:   'Investasi',
-      icon:    <TrendingUp size={18} strokeWidth={2.2} />,
-      color:   '#fff',
-      bg:      'var(--blue, #3b82f6)',
-      onClick: () => setInvestOpen(true),
+      label: 'Catat Pemasukan',
+      icon: <TrendingUp size={17} strokeWidth={2.2} />,
+      color: '#06120A',
+      bg: 'var(--accent)',
+      shadow: 'rgba(34,197,94,0.38)',
+      onClick: () => setTxType('income'),
+    },
+    {
+      label: 'Transfer',
+      icon: <ArrowLeftRight size={17} strokeWidth={2.2} />,
+      color: '#ECFDF5',
+      bg: 'var(--blue, #60A5FA)',
+      shadow: 'rgba(96,165,250,0.34)',
+      onClick: () => setTxType('transfer'),
+    },
+    {
+      label: 'Bayar Kartu Kredit',
+      icon: <CreditCard size={17} strokeWidth={2.2} />,
+      color: '#06120A',
+      bg: '#FBBF24',
+      shadow: 'rgba(251,191,36,0.32)',
+      onClick: openPayCreditCard,
     },
   ]
 
@@ -37,20 +70,21 @@ export function QuickAddFAB({ walletBalances }: Props) {
       <FloatingActionButton variant="dashboard" actions={dashboardActions} />
 
       <AnimatePresence>
-        {txOpen && (
+        {txType && (
           <TransactionModal
-            defaultType="expense"
-            onClose={() => setTxOpen(false)}
+            defaultType={txType}
+            onClose={() => setTxType(null)}
           />
         )}
       </AnimatePresence>
 
       <AnimatePresence>
-        {investOpen && (
-          <InvestasiModal
-            walletBalances={walletBalances}
-            onClose={() => setInvestOpen(false)}
+        {payTarget && (
+          <PayCreditCardModal
+            card={payTarget}
+            onClose={() => setPayTarget(null)}
             onSuccess={() => {
+              refetch()
               window.dispatchEvent(new CustomEvent('fintrack:wallet-updated'))
               window.dispatchEvent(new CustomEvent('fintrack:transactions-updated'))
             }}

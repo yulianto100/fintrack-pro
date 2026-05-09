@@ -8,6 +8,7 @@ import {
 import type { Transaction } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { isExpenseForSummary } from '@/lib/transaction-rules'
+import { dashboardColors, dashboardRadius } from '@/components/dashboard/dashboardTokens'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ const EnhancedTip = ({ active, payload }: any) => {
       </p>
       {hasChange && (
         <div className="flex items-center gap-1 text-[10px] font-semibold"
-          style={{ color: isUp ? '#22C55E' : 'var(--red, #EF4444)' }}>
+          style={{ color: isUp ? dashboardColors.income : dashboardColors.expenseStrong }}>
           <span>{isUp ? '↑' : '↓'}</span>
           <span>{isUp ? '+' : ''}{formatCurrency(Math.abs(change))}</span>
           <span style={{ opacity: 0.65 }}>
@@ -158,19 +159,23 @@ export function NetWorthChart({
   return (
     <div>
       {/* Header row */}
-      <div className="flex justify-between items-center mb-3 px-1"
+      <div className="flex justify-between items-start gap-3 mb-3 px-1"
         style={{ position: 'relative', zIndex: 2 }}>
-        <p className="text-[11px] font-semibold tracking-wider"
-          style={{ color: 'var(--text-muted)' }}>
-          KEKAYAAN BERSIH
-        </p>
+        <div>
+          <h2 className="text-[15px] font-semibold leading-tight" style={{ color: dashboardColors.text }}>
+            Grafik Kekayaan Bersih
+          </h2>
+          <p className="mt-1 text-xs leading-snug" style={{ color: dashboardColors.muted }}>
+            Perubahan dari bulan lalu
+          </p>
+        </div>
 
-        <div className="flex items-center gap-0.5">
+        <div className="flex flex-wrap justify-end gap-1">
           {RANGES.map(r => (
             <button
               key={r}
               onClick={(e) => { e.stopPropagation(); setRange(r) }}
-              className="px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all duration-150 active:scale-95"
+              className="px-2 py-1 rounded-lg text-[11px] font-bold transition-all duration-150 active:scale-95"
               style={{
                 background:    range === r ? 'rgba(34,197,94,0.15)' : 'transparent',
                 color:         range === r ? '#22C55E' : 'var(--text-muted)',
@@ -187,26 +192,31 @@ export function NetWorthChart({
           ))}
 
           <div
-            className="ml-1.5 text-[11px] font-bold px-2 py-1 rounded-lg"
+            className="ml-0.5 px-2 py-1 rounded-lg text-right"
             style={{
-              background: isUp ? 'rgba(34,197,94,0.10)' : 'rgba(239,68,68,0.10)',
-              color:      isUp ? '#16A34A' : '#EF4444',
+              background: isUp ? dashboardColors.incomeSoft : dashboardColors.expenseSoft,
+              color:      isUp ? dashboardColors.income : dashboardColors.expenseStrong,
             }}
           >
-            {isUp ? '+' : ''}{growth.toFixed(1)}%
+            <span className="block text-[10px] leading-none" style={{ color: dashboardColors.muted }}>
+              Bulan lalu
+            </span>
+            <span className="block text-[12px] font-bold leading-tight">
+              {isUp ? '+' : ''}{growth.toFixed(1)}%
+            </span>
           </div>
         </div>
       </div>
 
       {/* Chart area — overflow:hidden prevents Recharts SVG overlay from escaping into button zone */}
       <div className="glass-card p-4"
-        style={{ height: 180, overflow: 'hidden', isolation: 'isolate', position: 'relative' }}>
+        style={{ height: 190, overflow: 'hidden', isolation: 'isolate', position: 'relative', borderRadius: dashboardRadius.cardSm }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 18, right: 12, left: 12, bottom: 0 }}>
             <defs>
               <linearGradient id="gwGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"   stopColor={isUp ? '#22C55E' : '#ef4444'} stopOpacity={0.32} />
-                <stop offset="100%" stopColor={isUp ? '#22C55E' : '#ef4444'} stopOpacity={0}    />
+                <stop offset="0%"   stopColor={isUp ? '#22C55E' : '#F87171'} stopOpacity={0.32} />
+                <stop offset="100%" stopColor={isUp ? '#22C55E' : '#F87171'} stopOpacity={0}    />
               </linearGradient>
             </defs>
 
@@ -217,7 +227,7 @@ export function NetWorthChart({
             />
             <XAxis
               dataKey="month"
-              tick={{ fill: '#9CA3AF', fontSize: 10 }}
+              tick={{ fill: '#9CA3AF', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
             />
@@ -228,24 +238,24 @@ export function NetWorthChart({
             <Area
               type="natural"
               dataKey="worth"
-              stroke={isUp ? '#22C55E' : '#EF4444'}
+              stroke={isUp ? '#22C55E' : '#F87171'}
               strokeWidth={2.5}
               fill="url(#gwGrad)"
               dot={false}
               activeDot={(props: any) => (
                 <circle
                   cx={props.cx} cy={props.cy} r={5}
-                  fill={isUp ? '#22C55E' : '#EF4444'}
+                  fill={isUp ? '#22C55E' : '#F87171'}
                   style={{
                     filter: `drop-shadow(0 0 5px ${
-                      isUp ? 'rgba(34,197,94,0.70)' : 'rgba(239,68,68,0.70)'
+                      isUp ? 'rgba(34,197,94,0.70)' : 'rgba(248,113,113,0.55)'
                     })`,
                   }}
                 />
               )}
               style={{
                 filter: `drop-shadow(0 0 6px ${
-                  isUp ? 'rgba(34,197,94,0.45)' : 'rgba(239,68,68,0.55)'
+                  isUp ? 'rgba(34,197,94,0.45)' : 'rgba(248,113,113,0.40)'
                 })`,
               }}
               isAnimationActive
@@ -269,7 +279,7 @@ export function NetWorthChart({
               <ReferenceDot
                 x={trough.month} y={trough.worth}
                 r={4}
-                fill="#EF4444"
+                fill="#F87171"
                 stroke="rgba(255,255,255,0.90)"
                 strokeWidth={2}
               />
@@ -284,15 +294,15 @@ export function NetWorthChart({
           {peak && (
             <div className="flex items-center gap-1">
               <span className="inline-block w-2 h-2 rounded-full" style={{ background: '#22C55E' }} />
-              <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+              <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
                 Tertinggi · {peak.month}
               </span>
             </div>
           )}
           {trough && (
             <div className="flex items-center gap-1">
-              <span className="inline-block w-2 h-2 rounded-full" style={{ background: '#EF4444' }} />
-              <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+              <span className="inline-block w-2 h-2 rounded-full" style={{ background: '#F87171' }} />
+              <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
                 Terendah · {trough.month}
               </span>
             </div>

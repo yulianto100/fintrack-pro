@@ -605,7 +605,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
                     {creditCards.length === 0 ? (
                       <p className="text-xs py-2 text-center" style={{ color: 'var(--text-muted)' }}>
                         Belum ada kartu kredit. Tambah di halaman{' '}
-                        <a href="/credit-card" style={{ color: 'var(--accent)' }}>Kartu Kredit</a>.
+                        <a href="/akun?tab=kredit" style={{ color: 'var(--accent)' }}>Kartu Kredit</a>.
                       </p>
                     ) : (
                       <div className="flex flex-col gap-1.5">

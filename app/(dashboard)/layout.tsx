@@ -19,7 +19,7 @@ const NAV_TABS = [
   { href: '/',             icon: LayoutDashboard, label: 'Dashboard'  },
   { href: '/transactions', icon: ArrowLeftRight,  label: 'Transaksi'  },
   { href: '/portfolio',    icon: TrendingUp,      label: 'Portofolio' },
-  { href: '/goals',        icon: Target,          label: 'Goals'      },
+  { href: '/goals',        icon: Target,          label: 'Target'     },
   { href: '/akun',         icon: Wallet,          label: 'Akun'       },
   { href: '/settings',     icon: Settings,        label: 'Pengaturan' },
 ]
@@ -78,8 +78,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </div>
         <p
-          className="mt-6 text-xl font-display font-bold tracking-tight"
-          style={{ color: 'var(--accent)', letterSpacing: '-0.02em' }}
+          className="mt-6 text-xl font-display font-bold"
+          style={{ color: 'var(--accent)', letterSpacing: 0 }}
         >
           Finuvo
         </p>
@@ -130,8 +130,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             />
           </div>
           <span
-            className="font-display font-bold text-base tracking-tight"
-            style={{ color: 'var(--accent)', letterSpacing: '-0.02em' }}
+            className="font-display font-bold text-base"
+            style={{ color: 'var(--accent)', letterSpacing: 0 }}
           >
             Finuvo
           </span>
@@ -175,7 +175,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
         style={{
           paddingTop:    'calc(var(--nav-height) + env(safe-area-inset-top, 0px))',
-          paddingBottom: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 44px)',
+          paddingBottom: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 72px)',
         }}
       >
         <AnimatePresence mode="popLayout">
@@ -201,7 +201,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           className="mx-auto flex items-center justify-around gap-1.5 rounded-[28px] px-2 py-2 pointer-events-auto"
           style={{
             maxWidth: 430,
-            minHeight: 74,
+            minHeight: 76,
             background: 'color-mix(in srgb, var(--surface-nav) 82%, transparent)',
             border: '1px solid rgba(34,197,94,0.16)',
             boxShadow: '0 18px 48px rgba(15,23,42,0.16), inset 0 1px 0 rgba(255,255,255,0.36)',
@@ -233,7 +233,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <motion.div
                   whileHover={{ y: -1 }}
                   whileTap={{ scale: 0.94 }}
-                  className="relative h-[58px] rounded-2xl flex flex-col items-center justify-center gap-1 overflow-hidden"
+                  className="relative h-[60px] rounded-2xl flex flex-col items-center justify-center gap-1 overflow-hidden"
                   style={{ color: active ? 'var(--accent)' : 'var(--text-muted)' }}
                 >
                   {active && (
@@ -256,7 +256,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   >
                     <Icon size={20} strokeWidth={active ? 2.55 : 1.9} />
                   </div>
-                  <span className="text-[9px] font-semibold leading-none relative z-10 truncate max-w-full px-0.5">
+                  <span className="text-[11px] font-semibold leading-none relative z-10 truncate max-w-full px-0.5">
                     {label}
                   </span>
                 </motion.div>

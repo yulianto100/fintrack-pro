@@ -174,10 +174,13 @@ export interface PortfolioSummary {
 
 // ---- SMART INSIGHTS ----
 export interface Insight {
-  type:    'warning' | 'info' | 'success'
+  type:    'warning' | 'info' | 'success' | 'critical'
   icon:    string
   title:   string
   message: string
+  actionLabel?: string
+  actionHref?: string
+  priority?: number
 }
 
 // ---- NOTIFICATIONS ----

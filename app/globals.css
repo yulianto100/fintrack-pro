@@ -74,8 +74,8 @@
   --font-jetbrains: 'JetBrains Mono', monospace;
 
   --nav-height:        56px;
-  --bottom-nav-height: 68px;
-  --fab-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 16px);
+  --bottom-nav-height: 84px;
+  --fab-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 24px);
 }
 
 /* ─────────────────────────────────────────
