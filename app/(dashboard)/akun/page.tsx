@@ -908,7 +908,7 @@ function AkunContent() {
   const showAll = activeTab === 'all'
 
   return (
-    <div className="relative min-h-full overflow-hidden" style={{ background: 'transparent' }}>
+    <div className="relative min-h-full" style={{ background: 'transparent' }}>
       <AnimatePresence mode="popLayout" initial={false}>
         {selected ? (
           selected.type === 'credit' ? (
