@@ -435,11 +435,11 @@ export function InfoSection({ groups }: { groups: InfoGroupData[] }) {
   const safeGroups = Array.isArray(groups) ? groups : []
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
 
-  const isGroupOpen = (title: string) => openGroups[title] ?? true
+  const isGroupOpen = (title: string) => openGroups[title] ?? false
   const toggleGroup = (title: string) => {
     setOpenGroups(current => ({
       ...current,
-      [title]: !(current[title] ?? true),
+      [title]: !(current[title] ?? false),
     }))
   }
 
