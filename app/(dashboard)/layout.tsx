@@ -241,8 +241,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       layoutId="nav-pill"
                       className="absolute inset-0 rounded-2xl"
                       style={{
-                        background: 'linear-gradient(180deg, rgba(34,197,94,0.20), rgba(34,197,94,0.10))',
-                        boxShadow: '0 10px 24px rgba(34,197,94,0.20)',
+                        background: 'linear-gradient(180deg, rgba(34,197,94,0.13), rgba(34,197,94,0.07))',
+                        boxShadow: '0 8px 18px rgba(34,197,94,0.12)',
                       }}
                       transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                     />
@@ -250,11 +250,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <div
                     className="relative z-10 h-7 w-7 rounded-xl flex items-center justify-center"
                     style={{
-                      background: active ? 'rgba(34,197,94,0.14)' : 'transparent',
+                      background: active ? 'rgba(34,197,94,0.10)' : 'transparent',
                       color: active ? 'var(--accent)' : 'currentColor',
                     }}
                   >
-                    <Icon size={20} strokeWidth={active ? 2.55 : 1.9} />
+                    <Icon size={20} strokeWidth={active ? 2.25 : 1.9} />
                   </div>
                   <span className="text-[11px] font-semibold leading-none relative z-10 whitespace-nowrap px-0.5">
                     {label}

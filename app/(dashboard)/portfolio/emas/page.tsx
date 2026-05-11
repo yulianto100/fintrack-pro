@@ -1,14 +1,15 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApiList } from '@/hooks/useApiData'
 import { useGoldPrices } from '@/hooks/usePrices'
 import { formatCurrency, formatNumber, formatDate } from '@/lib/utils'
 import type { GoldHolding, GoldSource, GoldType } from '@/types'
-import { Plus, Trash2, RefreshCw, X, Wifi, WifiOff, TrendingUp, TrendingDown, DollarSign, Pencil } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, X, Wifi, WifiOff, TrendingUp, TrendingDown, DollarSign, Pencil, ChevronDown, MoreHorizontal, Activity, Award, BadgePercent, LineChart, Sparkles } from 'lucide-react'
 import { EmasSellModal } from '@/components/sell-modal'
 import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
+import { useCountUp } from '@/hooks/useCountUp'
 import toast from 'react-hot-toast'
 
 // ─── Provider config — Emasku dihapus ──────────────────────────────────────
@@ -26,75 +27,131 @@ const GOLD_TYPES: { value: GoldType; label: string; icon: string }[] = [
 ]
 
 // ─── Fintech-style price card ───────────────────────────────────────────────
-function PriceCard({ source, price, selected, onClick }: {
+const SECTION_LABEL = 'text-[11px] font-semibold px-1 uppercase tracking-[0.08em]'
+
+function signedCurrency(value: number) {
+  const sign = value > 0 ? '+' : ''
+  return `${sign}${formatCurrency(value)}`
+}
+
+function signedPercent(value: number) {
+  const sign = value > 0 ? '+' : ''
+  return `${sign}${formatNumber(value, 2)}%`
+}
+
+function compactCurrency(value: number) {
+  if (Math.abs(value) >= 1_000_000_000) return `${value >= 0 ? '' : '-'}Rp${formatNumber(Math.abs(value) / 1_000_000_000, 1)} M`
+  if (Math.abs(value) >= 1_000_000) return `${value >= 0 ? '' : '-'}Rp${formatNumber(Math.abs(value) / 1_000_000, 1)} jt`
+  if (Math.abs(value) >= 1_000) return `${value >= 0 ? '' : '-'}Rp${formatNumber(Math.abs(value) / 1_000, 0)} rb`
+  return formatCurrency(value)
+}
+
+function MiniSparkline({ values, color }: { values: number[]; color: string }) {
+  const safeValues = values.length >= 2 ? values : [1, 1.01, 1.005, 1.018, 1.014, 1.026]
+  const min = Math.min(...safeValues)
+  const max = Math.max(...safeValues)
+  const range = max - min || 1
+  const points = safeValues.map((value, index) => {
+    const x = (index / Math.max(1, safeValues.length - 1)) * 80
+    const y = 24 - ((value - min) / range) * 20
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+
+  return (
+    <svg viewBox="0 0 80 28" className="h-7 w-20 overflow-visible" aria-hidden="true">
+      <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+      <polyline points={`0,28 ${points} 80,28`} fill={color} opacity="0.08" />
+    </svg>
+  )
+}
+
+function PriceCard({ source, price, selected, onClick, history = [] }: {
   source: string
-  price: { buyPrice: number; sellPrice: number; isLive?: boolean }
+  price: { buyPrice: number; sellPrice: number; isLive?: boolean; updatedAt?: string }
   selected?: boolean
   onClick?: () => void
+  history?: number[]
 }) {
   const cfg = PROVIDERS[source]
   if (!cfg) return null
   const spread = price.buyPrice - price.sellPrice
+  const spreadPct = price.buyPrice > 0 ? (spread / price.buyPrice) * 100 : 0
+  const firstPoint = history[0] || price.sellPrice
+  const movement = price.sellPrice - firstPoint
+  const movementPct = firstPoint > 0 ? (movement / firstPoint) * 100 : 0
+  const positive = movement >= 0
+  const updatedAt = price.updatedAt ? new Date(price.updatedAt) : null
+  const secondsAgo = updatedAt ? Math.max(0, Math.round((Date.now() - updatedAt.getTime()) / 1000)) : null
 
   return (
     <motion.div
       whileTap={{ scale: 0.97 }}
       onClick={onClick}
-      className="relative rounded-2xl p-3.5 cursor-pointer transition-all"
+      className="relative rounded-2xl p-3.5 cursor-pointer transition-all overflow-hidden"
       style={{
         background: selected
           ? `linear-gradient(135deg, ${cfg.color}22, ${cfg.color}0a)`
-          : 'var(--surface-btn)',
+          : `linear-gradient(145deg, var(--surface-btn), ${cfg.color}08)`,
         border: `1px solid ${selected ? cfg.color + '55' : 'var(--border)'}`,
-        boxShadow: selected ? `0 0 16px ${cfg.color}18` : 'none',
+        boxShadow: selected ? `0 0 16px ${cfg.color}18` : `0 8px 22px rgba(0,0,0,0.08)`,
       }}
     >
-      {selected && (
-        <div className="absolute top-2 right-2 w-4 h-4 rounded-full flex items-center justify-center"
-          style={{ background: cfg.color }}>
-          <svg width="8" height="8" viewBox="0 0 8 8">
-            <path d="M1.5 4L3 5.5L6.5 2.5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-          </svg>
+      <div className="absolute inset-x-0 top-0 h-px" style={{ background:`linear-gradient(90deg, transparent, ${cfg.color}88, transparent)` }} />
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xl leading-none">{cfg.icon}</span>
+          <div className="min-w-0">
+            <p className="text-xs font-bold leading-tight truncate" style={{ color: selected ? cfg.color : 'var(--text-primary)' }}>
+              {cfg.label}
+            </p>
+            <p className="text-[9px] capitalize" style={{ color: 'var(--text-muted)' }}>{cfg.type}</p>
+          </div>
         </div>
-      )}
-      <div className="flex items-center gap-2 mb-2.5">
-        <span className="text-xl">{cfg.icon}</span>
-        <div>
-          <p className="text-xs font-bold leading-tight" style={{ color: selected ? cfg.color : 'var(--text-primary)' }}>
-            {cfg.label}
-          </p>
-          <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{cfg.type}</p>
+        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full"
+          style={{
+            background: positive ? 'rgba(34,197,94,0.10)' : 'rgba(248,113,113,0.12)',
+            color: positive ? 'var(--accent)' : 'var(--red)',
+          }}>
+          {positive ? <TrendingUp size={10}/> : <TrendingDown size={10}/>}
+          <span className="text-[9px] font-bold">{signedPercent(movementPct)}</span>
         </div>
       </div>
-      <div className="space-y-1">
-        <div className="flex justify-between items-center">
-          <p className="text-[9px] font-medium" style={{ color: 'var(--text-muted)' }}>BELI</p>
-          <p className="text-xs font-bold font-mono" style={{ color: 'var(--text-primary)' }}>
-            {formatCurrency(price.buyPrice)}
-          </p>
-        </div>
-        <div className="h-px" style={{ background: 'var(--border)' }} />
-        <div className="flex justify-between items-center">
-          <p className="text-[9px] font-medium" style={{ color: 'var(--text-muted)' }}>BUYBACK</p>
-          <p className="text-xs font-mono" style={{ color: cfg.color }}>
+
+      <div className="flex items-end justify-between gap-2 mb-2">
+        <div>
+          <p className="text-[9px] font-semibold uppercase tracking-[0.08em]" style={{ color: 'var(--text-muted)' }}>Buyback</p>
+          <p className="text-sm font-bold font-mono leading-tight" style={{ color: cfg.color }}>
             {formatCurrency(price.sellPrice)}
           </p>
         </div>
-        <div className="mt-1.5">
-          <div className="flex justify-between items-center mb-0.5">
-            <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Spread</p>
-            <p className="text-[9px] font-mono" style={{ color: 'var(--text-muted)' }}>
-              {formatCurrency(spread)}
-            </p>
-          </div>
-          {/* Spread bar */}
-          <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
-            <div className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${Math.min(100, (spread / 200000) * 100)}%`,
-                background: `linear-gradient(90deg, ${cfg.color}, ${cfg.color}88)`,
-              }} />
-          </div>
+        <MiniSparkline values={history} color={cfg.color} />
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="flex justify-between items-center">
+          <p className="text-[9px] font-medium" style={{ color: 'var(--text-muted)' }}>Harga beli</p>
+          <p className="text-[11px] font-semibold font-mono" style={{ color: 'var(--text-primary)' }}>
+            {formatCurrency(price.buyPrice)}
+          </p>
+        </div>
+        <div className="flex justify-between items-center">
+          <p className="text-[9px] font-medium" style={{ color: 'var(--text-muted)' }}>Spread</p>
+          <p className="text-[9px] font-mono" style={{ color: 'var(--text-muted)' }}>
+            {formatCurrency(spread)} / {formatNumber(spreadPct, 1)}%
+          </p>
+        </div>
+        <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+          <div className="h-full rounded-full transition-all duration-500"
+            style={{
+              width: `${Math.min(100, spreadPct * 12)}%`,
+              background: `linear-gradient(90deg, ${cfg.color}, ${cfg.color}88)`,
+            }} />
+        </div>
+        <div className="flex items-center gap-1 pt-1">
+          <span className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: price.isLive ? 'var(--accent)' : 'var(--text-muted)' }} />
+          <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+            {secondsAgo === null ? 'Menunggu update' : `Updated ${secondsAgo}s ago`}
+          </p>
         </div>
       </div>
     </motion.div>
@@ -115,6 +172,23 @@ export default function EmasPage() {
     buyPrice: '', buyDate: new Date().toISOString().split('T')[0], notes: '',
   })
   const [sellTarget, setSellTarget] = useState<GoldHolding | null>(null)
+  const [expandedSources, setExpandedSources] = useState<Record<string, boolean>>({})
+  const [priceHistory, setPriceHistory] = useState<Record<string, number[]>>({})
+
+  useEffect(() => {
+    if (!prices) return
+    setPriceHistory((current) => {
+      const next = { ...current }
+      Object.entries(prices).forEach(([source, price]) => {
+        const history = next[source] || []
+        const last = history[history.length - 1]
+        next[source] = last === price.sellPrice
+          ? history
+          : [...history, price.sellPrice].slice(-12)
+      })
+      return next
+    })
+  }, [prices])
 
   // ── Edit modal ──
   const [editEmasTarget, setEditEmasTarget] = useState<GoldHolding | null>(null)
@@ -161,6 +235,17 @@ export default function EmasPage() {
   const totalValue = holdings.reduce((s, h) => s + h.grams * (prices?.[h.source]?.sellPrice || 0), 0)
   const totalCost  = holdings.filter((h) => h.buyPrice).reduce((s, h) => s + h.grams * (h.buyPrice || 0), 0)
   const totalPnl   = totalCost > 0 ? totalValue - totalCost : null
+  const totalCostGrams = holdings.filter((h) => h.buyPrice).reduce((s, h) => s + h.grams, 0)
+  const avgBuyPrice = totalCostGrams > 0 ? totalCost / totalCostGrams : null
+  const totalPnlPercent = totalPnl !== null && totalCost > 0 ? (totalPnl / totalCost) * 100 : null
+  const snapshotValue = holdings.reduce((s, h) => {
+    const history = priceHistory[h.source]
+    return s + h.grams * (history?.[0] || prices?.[h.source]?.sellPrice || 0)
+  }, 0)
+  const marketMove = snapshotValue > 0 ? totalValue - snapshotValue : 0
+  const marketMovePercent = snapshotValue > 0 ? (marketMove / snapshotValue) * 100 : 0
+  const animatedTotalValue = useCountUp(totalValue, 700, !hidden)
+  const animatedTotalPnl = useCountUp(totalPnl || 0, 700, !hidden)
 
   const handleAdd = async () => {
     if (!form.grams || parseFloat(form.grams) <= 0) {
@@ -208,20 +293,39 @@ export default function EmasPage() {
 
   // Grouped holdings for display
   const holdingsBySource = useMemo(() => {
-    const groups: Record<string, { grams: number; value: number; pnl: number | null; entries: GoldHolding[] }> = {}
+    const groups: Record<string, { grams: number; value: number; cost: number; costGrams: number; pnl: number | null; entries: GoldHolding[] }> = {}
     holdings.forEach((h) => {
       const price = prices?.[h.source]?.sellPrice || 0
-      if (!groups[h.source]) groups[h.source] = { grams: 0, value: 0, pnl: null, entries: [] }
+      if (!groups[h.source]) groups[h.source] = { grams: 0, value: 0, cost: 0, costGrams: 0, pnl: null, entries: [] }
       groups[h.source].grams += h.grams
       groups[h.source].value += h.grams * price
       if (h.buyPrice) {
         const thisPnl = h.grams * (price - h.buyPrice)
         groups[h.source].pnl = (groups[h.source].pnl || 0) + thisPnl
+        groups[h.source].cost += h.grams * h.buyPrice
+        groups[h.source].costGrams += h.grams
       }
       groups[h.source].entries.push(h)
     })
     return groups
   }, [holdings, prices])
+
+  const groupedEntries = Object.entries(holdingsBySource)
+  const bestPerformer = groupedEntries
+    .filter(([, group]) => group.pnl !== null && group.cost > 0)
+    .map(([src, group]) => ({ src, pnlPct: ((group.pnl || 0) / group.cost) * 100 }))
+    .sort((a, b) => b.pnlPct - a.pnlPct)[0]
+  const topHolding = groupedEntries.sort((a, b) => b[1].value - a[1].value)[0]
+  const highestSpread = prices
+    ? Object.entries(prices)
+        .map(([src, price]) => ({ src, spreadPct: price.buyPrice > 0 ? ((price.buyPrice - price.sellPrice) / price.buyPrice) * 100 : 0 }))
+        .sort((a, b) => b.spreadPct - a.spreadPct)[0]
+    : null
+  const allocationSegments = groupedEntries.map(([src, group]) => ({
+    src,
+    width: totalValue > 0 ? (group.value / totalValue) * 100 : 0,
+    color: PROVIDERS[src]?.color || 'var(--accent)',
+  }))
 
   return (
     <div className="px-4 py-5 max-w-2xl mx-auto">
@@ -251,53 +355,124 @@ export default function EmasPage() {
       </div>
 
       {/* Summary hero */}
-      <div className="glass-hero p-5 mb-4" style={{ borderColor:'rgba(246,204,96,0.22)' }}>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-xs mb-0.5" style={{ color:'var(--text-muted)' }}>Total Kepemilikan</p>
-            <p className="text-2xl font-display font-bold" style={{ color:'#f6cc60', letterSpacing: hidden ? 2 : 'normal' }}>
-              {hidden ? MASKED : <>{formatNumber(totalGrams, 3)} <span className="text-base font-normal">gram</span></>}
+      <div className="glass-hero p-5 mb-4" style={{
+        borderColor: totalPnl !== null && totalPnl >= 0 ? 'rgba(34,197,94,0.28)' : 'rgba(246,204,96,0.22)',
+        boxShadow: totalPnl !== null && totalPnl >= 0 ? '0 16px 42px rgba(34,197,94,0.13), 0 8px 30px rgba(0,0,0,0.30)' : undefined,
+      }}>
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: isLive ? 'var(--accent)' : 'var(--gold)' }} />
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color:'var(--text-muted)' }}>
+                Nilai Portofolio
+              </p>
+            </div>
+            <p className="text-3xl font-display font-bold leading-tight" style={{ color:'var(--text-primary)', letterSpacing: hidden ? 2 : 'normal' }}>
+              {hidden ? MASKED : formatCurrency(animatedTotalValue)}
+            </p>
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              <span className="text-xs font-bold" style={{ color:'#f6cc60', letterSpacing: hidden ? 1 : 'normal' }}>
+                {hidden ? MASKED : `${formatNumber(totalGrams, 3)} gram`}
+              </span>
+              {totalPnl !== null && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
+                  style={{
+                    background: totalPnl >= 0 ? 'rgba(34,197,94,0.12)' : 'rgba(248,113,113,0.14)',
+                    border: `1px solid ${totalPnl >= 0 ? 'rgba(34,197,94,0.22)' : 'rgba(248,113,113,0.22)'}`,
+                    color: totalPnl >= 0 ? 'var(--accent)' : 'var(--red)',
+                  }}>
+                  {totalPnl >= 0 ? <TrendingUp size={12}/> : <TrendingDown size={12}/>}
+                  {hidden ? MASKED : `${signedCurrency(animatedTotalPnl)} (${signedPercent(totalPnlPercent || 0)})`}
+                </span>
+              )}
+            </div>
+          </div>
+          {totalPnlPercent !== null && totalPnlPercent >= 20 && (
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-2xl"
+              style={{ background:'rgba(34,197,94,0.10)', border:'1px solid rgba(34,197,94,0.18)', color:'var(--accent)' }}>
+              <Sparkles size={14}/>
+              <span className="text-xs font-bold">Profit kuat</span>
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="rounded-2xl p-3" style={{ background:'rgba(255,255,255,0.045)', border:'1px solid var(--border)' }}>
+            <p className="text-[10px] mb-1" style={{ color:'var(--text-muted)' }}>Avg beli/gr</p>
+            <p className="text-xs font-bold font-mono" style={{ color:'var(--text-primary)', letterSpacing: hidden ? 1 : 'normal' }}>
+              {hidden ? MASKED : avgBuyPrice ? formatCurrency(avgBuyPrice) : 'Belum ada'}
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-xs mb-0.5" style={{ color:'var(--text-muted)' }}>Nilai Pasar</p>
-            <p className="text-lg font-bold font-mono" style={{ color:'var(--text-primary)', letterSpacing: hidden ? 2 : 'normal' }}>
-              {hidden ? MASKED : formatCurrency(totalValue)}
+          <div className="rounded-2xl p-3" style={{ background:'rgba(255,255,255,0.045)', border:'1px solid var(--border)' }}>
+            <p className="text-[10px] mb-1" style={{ color:'var(--text-muted)' }}>Pergerakan</p>
+            <p className="text-xs font-bold" style={{ color: marketMove >= 0 ? 'var(--accent)' : 'var(--red)', letterSpacing: hidden ? 1 : 'normal' }}>
+              {hidden ? MASKED : `${signedCurrency(marketMove)} (${signedPercent(marketMovePercent)})`}
+            </p>
+          </div>
+          <div className="rounded-2xl p-3" style={{ background:'rgba(255,255,255,0.045)', border:'1px solid var(--border)' }}>
+            <p className="text-[10px] mb-1" style={{ color:'var(--text-muted)' }}>Modal</p>
+            <p className="text-xs font-bold font-mono" style={{ color:'var(--text-primary)', letterSpacing: hidden ? 1 : 'normal' }}>
+              {hidden ? MASKED : totalCost > 0 ? compactCurrency(totalCost) : '-'}
             </p>
           </div>
         </div>
-        {totalPnl !== null && (
-          <div className="flex items-center gap-2 pt-3"
-            style={{ borderTop: '1px solid var(--border)' }}>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
-              style={{
-                background: totalPnl >= 0 ? 'rgba(34,197,94,0.10)' : 'rgba(252,129,129,0.12)',
-                border: `1px solid ${totalPnl >= 0 ? 'rgba(34,197,94,0.18)' : 'rgba(252,129,129,0.25)'}`,
-              }}>
-              {totalPnl >= 0 ? <TrendingUp size={13} color="var(--accent)"/> : <TrendingDown size={13} color="var(--red)"/>}
-              <p className="text-xs font-bold" style={{ color: totalPnl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
-                {hidden ? MASKED : <>{totalPnl >= 0 ? '+' : ''}{formatCurrency(totalPnl)} P&L</>}
-              </p>
+
+        {allocationSegments.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color:'var(--text-muted)' }}>Alokasi</p>
+              <p className="text-[10px]" style={{ color:'var(--text-muted)' }}>{allocationSegments.length} issuer</p>
             </div>
-            <p className="text-xs" style={{ color:'var(--text-muted)', letterSpacing: hidden ? 1 : 'normal' }}>
-              {hidden ? `dari ${MASKED} modal` : `dari ${formatCurrency(totalCost)} modal`}
-            </p>
+            <div className="h-2 rounded-full overflow-hidden flex" style={{ background:'var(--border)' }}>
+              {allocationSegments.map((segment) => (
+                <div key={segment.src} className="h-full" style={{ width:`${segment.width}%`, background:segment.color }} />
+              ))}
+            </div>
           </div>
         )}
       </div>
 
+      {/* Quick insights */}
+      {holdings.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+          {[
+            { label:'Hari ini', value: hidden ? MASKED : signedCurrency(marketMove), tone: marketMove >= 0 ? 'var(--accent)' : 'var(--red)', icon: Activity },
+            { label:'7D lokal', value: hidden ? MASKED : signedPercent(marketMovePercent), tone: marketMove >= 0 ? 'var(--accent)' : 'var(--red)', icon: LineChart },
+            { label:'Terbaik', value: bestPerformer ? `${PROVIDERS[bestPerformer.src]?.label} ${signedPercent(bestPerformer.pnlPct)}` : 'Belum ada', tone: 'var(--accent)', icon: Award },
+            { label:'Spread tinggi', value: highestSpread ? `${PROVIDERS[highestSpread.src]?.label} ${formatNumber(highestSpread.spreadPct, 1)}%` : '-', tone: '#f6cc60', icon: BadgePercent },
+            { label:'Top holding', value: topHolding ? PROVIDERS[topHolding[0]]?.label : '-', tone: '#f6cc60', icon: Sparkles },
+          ].map((item) => {
+            const Icon = item.icon
+            return (
+              <div key={item.label} className="rounded-2xl p-3" style={{ background:'var(--surface-btn)', border:'1px solid var(--border)' }}>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Icon size={12} style={{ color:item.tone }} />
+                  <p className="text-[10px] font-semibold" style={{ color:'var(--text-muted)' }}>{item.label}</p>
+                </div>
+                <p className="text-xs font-bold truncate" style={{ color:'var(--text-primary)', letterSpacing: hidden ? 1 : 'normal' }}>{item.value}</p>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       {/* Live price cards — fintech style grid */}
       {prices && (
         <div className="mb-4">
-          <p className="text-[11px] font-semibold px-1 mb-2.5" style={{ color:'var(--text-muted)' }}>
-            HARGA REAL-TIME / GRAM
-          </p>
+          <div className="flex items-center justify-between px-1 mb-2.5">
+            <p className={SECTION_LABEL} style={{ color:'var(--text-muted)' }}>
+              Harga real-time / gram
+            </p>
+            <p className="text-[10px]" style={{ color:'var(--text-muted)' }}>
+              {lastUpdated ? `Sync ${lastUpdated.toLocaleTimeString('id-ID')}` : 'Menunggu sync'}
+            </p>
+          </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {(Object.entries(PROVIDERS) as [string, typeof PROVIDERS.antam][]).map(([src]) => {
               const p = prices[src]
               if (!p) return null
               return (
-                <PriceCard key={src} source={src} price={p} />
+                <PriceCard key={src} source={src} price={p} history={priceHistory[src] || []} />
               )
             })}
           </div>
@@ -317,56 +492,119 @@ export default function EmasPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-[11px] font-semibold px-1" style={{ color:'var(--text-muted)' }}>
-            KEPEMILIKAN ({holdings.length} entri)
+          <p className={SECTION_LABEL} style={{ color:'var(--text-muted)' }}>
+            Kepemilikan ({groupedEntries.length} aset / {holdings.length} entri)
           </p>
           {Object.entries(holdingsBySource).map(([src, group]) => {
             const cfg = PROVIDERS[src]
             if (!cfg) return null
+            const expanded = !!expandedSources[src]
+            const pnlPct = group.pnl !== null && group.cost > 0 ? (group.pnl / group.cost) * 100 : null
+            const avgSourceBuy = group.costGrams > 0 ? group.cost / group.costGrams : null
+            const isTopHolding = topHolding?.[0] === src
+            const isBest = bestPerformer?.src === src
             return (
-              <motion.div key={src} initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
-                className="glass-card overflow-hidden">
+              <motion.div key={src} layout initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
+                className="glass-card overflow-hidden"
+                style={{
+                  borderColor: group.pnl !== null && group.pnl >= 0 ? 'rgba(34,197,94,0.18)' : 'var(--border)',
+                  boxShadow: group.pnl !== null && group.pnl >= 0 ? '0 12px 30px rgba(34,197,94,0.08), 0 4px 24px rgba(0,0,0,0.24)' : undefined,
+                }}>
                 {/* Group header */}
-                <div className="flex items-center justify-between px-4 py-3"
-                  style={{ borderBottom: group.entries.length > 1 ? '1px solid var(--border)' : 'none' }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-                      style={{ background:`${cfg.color}18` }}>
+                <button
+                  type="button"
+                  onClick={() => setExpandedSources((current) => ({ ...current, [src]: !current[src] }))}
+                  className="w-full text-left flex items-start justify-between gap-3 px-4 py-3.5"
+                  style={{ borderBottom: expanded ? '1px solid var(--border)' : 'none' }}
+                >
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
+                      style={{ background:`${cfg.color}18`, boxShadow:`inset 0 0 0 1px ${cfg.color}22` }}>
                       {cfg.icon}
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <p className="font-semibold text-sm" style={{ color:'var(--text-primary)' }}>{cfg.label}</p>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium"
+                        <p className="font-semibold text-sm truncate" style={{ color:'var(--text-primary)' }}>{cfg.label}</p>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium capitalize"
                           style={{ background:`${cfg.color}18`, color:cfg.color }}>{cfg.type}</span>
                       </div>
-                      <p className="text-xs font-bold" style={{ color:'#f6cc60', letterSpacing: hidden ? 1 : 'normal' }}>
-                        {hidden ? MASKED : `${formatNumber(group.grams, 3)} gr`}
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                        <span className="text-xs font-bold" style={{ color:'#f6cc60', letterSpacing: hidden ? 1 : 'normal' }}>
+                          {hidden ? MASKED : `${formatNumber(group.grams, 3)} gr`}
+                        </span>
+                        {isTopHolding && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background:'rgba(246,204,96,0.12)', color:'#f6cc60' }}>
+                            Top holding
+                          </span>
+                        )}
+                        {isBest && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background:'rgba(34,197,94,0.12)', color:'var(--accent)' }}>
+                            Best performer
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] mt-1" style={{ color:'var(--text-muted)', letterSpacing: hidden ? 1 : 'normal' }}>
+                        {hidden ? MASKED : `${group.entries.length} transaksi${avgSourceBuy ? ` · avg ${formatCurrency(avgSourceBuy)}/gr` : ''}`}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right shrink-0">
                     <p className="text-sm font-bold font-mono" style={{ color:'var(--text-primary)', letterSpacing: hidden ? 1 : 'normal' }}>
                       {hidden ? MASKED : formatCurrency(group.value)}
                     </p>
                     {group.pnl !== null && (
-                      <p className="text-xs font-medium"
-                        style={{ color: group.pnl >= 0 ? 'var(--accent)' : 'var(--red)', letterSpacing: hidden ? 1 : 'normal' }}>
-                        {hidden ? MASKED : <>{group.pnl >= 0 ? '+' : ''}{formatCurrency(group.pnl)}</>}
-                      </p>
+                      <div className="flex justify-end mt-1">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                          style={{
+                            background: group.pnl >= 0 ? 'rgba(34,197,94,0.10)' : 'rgba(248,113,113,0.12)',
+                            color: group.pnl >= 0 ? 'var(--accent)' : 'var(--red)',
+                          }}>
+                          {hidden ? MASKED : `${signedCurrency(group.pnl)}${pnlPct !== null ? ` (${signedPercent(pnlPct)})` : ''}`}
+                        </span>
+                      </div>
                     )}
+                    <div className="flex justify-end mt-2">
+                      <ChevronDown
+                        size={16}
+                        className="transition-transform"
+                        style={{ color:'var(--text-muted)', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                      />
+                    </div>
                   </div>
-                </div>
+                </button>
 
                 {/* Individual entries */}
+                <AnimatePresence initial={false}>
+                  {expanded && (
+                    <motion.div
+                      initial={{ height:0, opacity:0 }}
+                      animate={{ height:'auto', opacity:1 }}
+                      exit={{ height:0, opacity:0 }}
+                      transition={{ duration:0.22, ease:[0.16,1,0.3,1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="grid grid-cols-3 gap-2 px-4 py-3" style={{ borderBottom:'1px solid var(--border)', background:'rgba(255,255,255,0.018)' }}>
+                        <div className="rounded-xl p-2" style={{ background:'rgba(255,255,255,0.035)', border:'1px solid var(--border)' }}>
+                          <p className="text-[9px]" style={{ color:'var(--text-muted)' }}>Market</p>
+                          <p className="text-[11px] font-bold font-mono" style={{ color:'var(--text-primary)' }}>{hidden ? MASKED : formatCurrency(group.value)}</p>
+                        </div>
+                        <div className="rounded-xl p-2" style={{ background:'rgba(255,255,255,0.035)', border:'1px solid var(--border)' }}>
+                          <p className="text-[9px]" style={{ color:'var(--text-muted)' }}>Avg beli</p>
+                          <p className="text-[11px] font-bold font-mono" style={{ color:'var(--text-primary)' }}>{hidden ? MASKED : avgSourceBuy ? formatCurrency(avgSourceBuy) : '-'}</p>
+                        </div>
+                        <div className="rounded-xl p-2" style={{ background:'rgba(255,255,255,0.035)', border:'1px solid var(--border)' }}>
+                          <p className="text-[9px]" style={{ color:'var(--text-muted)' }}>P&L %</p>
+                          <p className="text-[11px] font-bold" style={{ color:(group.pnl || 0) >= 0 ? 'var(--accent)' : 'var(--red)' }}>{hidden ? MASKED : pnlPct !== null ? signedPercent(pnlPct) : '-'}</p>
+                        </div>
+                      </div>
                 {group.entries.map((h, i) => (
                   <div key={h.id}
-                    className="flex items-center justify-between px-4 py-2.5"
+                    className="flex items-center justify-between gap-3 px-4 py-2.5"
                     style={{
                       borderBottom: i < group.entries.length - 1 ? '1px solid var(--border)' : 'none',
                       background: 'rgba(255,255,255,0.015)',
                     }}>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-xs font-mono" style={{ color:'var(--text-secondary)', letterSpacing: hidden ? 1 : 'normal' }}>
                         {hidden
                           ? MASKED
@@ -378,25 +616,35 @@ export default function EmasPage() {
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button onClick={() => setSellTarget(h)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                        className="h-8 px-2.5 rounded-xl flex items-center gap-1 text-xs font-bold flex-shrink-0"
                         style={{ background:'rgba(34,197,94,0.10)', color:'var(--accent)', border:'1px solid rgba(34,197,94,0.16)' }}>
-                        <DollarSign size={12}/>
+                        <DollarSign size={12}/> Jual
                       </button>
                       <button onClick={() => openEditEmas(h)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ background:'rgba(246,204,96,0.10)', color:'#d97706', border:'1px solid rgba(246,204,96,0.25)' }}>
+                        className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background:'rgba(246,204,96,0.08)', color:'#d97706', border:'1px solid rgba(246,204,96,0.18)' }}>
                         <Pencil size={12}/>
                       </button>
                       <button onClick={() => handleDelete(h.id)}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ background:'var(--red-dim)', color:'var(--red)' }}>
+                        className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background:'rgba(248,113,113,0.07)', color:'var(--red)', border:'1px solid rgba(248,113,113,0.12)' }}>
                         <Trash2 size={12}/>
                       </button>
                     </div>
                   </div>
                 ))}
+                      <div className="px-4 pb-3" style={{ background:'rgba(255,255,255,0.018)' }}>
+                        <button type="button"
+                          className="w-full h-9 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold"
+                          style={{ background:'var(--surface-btn)', border:'1px solid var(--border)', color:'var(--text-muted)' }}>
+                          <MoreHorizontal size={14}/> Riwayat transaksi ringkas
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )
           })}
