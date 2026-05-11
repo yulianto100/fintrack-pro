@@ -173,6 +173,7 @@ export default function EmasPage() {
   })
   const [sellTarget, setSellTarget] = useState<GoldHolding | null>(null)
   const [expandedSources, setExpandedSources] = useState<Record<string, boolean>>({})
+  const [entryActionsOpen, setEntryActionsOpen] = useState<Record<string, boolean>>({})
   const [priceHistory, setPriceHistory] = useState<Record<string, number[]>>({})
 
   useEffect(() => {
@@ -622,26 +623,29 @@ export default function EmasPage() {
                         style={{ background:'rgba(34,197,94,0.10)', color:'var(--accent)', border:'1px solid rgba(34,197,94,0.16)' }}>
                         <DollarSign size={12}/> Jual
                       </button>
-                      <button onClick={() => openEditEmas(h)}
+                      {entryActionsOpen[h.id] ? (
+                        <>
+                          <button onClick={() => openEditEmas(h)}
+                            className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                            style={{ background:'rgba(246,204,96,0.08)', color:'#d97706', border:'1px solid rgba(246,204,96,0.18)' }}>
+                            <Pencil size={12}/>
+                          </button>
+                          <button onClick={() => handleDelete(h.id)}
+                            className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                            style={{ background:'rgba(248,113,113,0.07)', color:'var(--red)', border:'1px solid rgba(248,113,113,0.12)' }}>
+                            <Trash2 size={12}/>
+                          </button>
+                        </>
+                      ) : (
+                        <button onClick={() => setEntryActionsOpen((current) => ({ ...current, [h.id]: true }))}
                         className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ background:'rgba(246,204,96,0.08)', color:'#d97706', border:'1px solid rgba(246,204,96,0.18)' }}>
-                        <Pencil size={12}/>
-                      </button>
-                      <button onClick={() => handleDelete(h.id)}
-                        className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ background:'rgba(248,113,113,0.07)', color:'var(--red)', border:'1px solid rgba(248,113,113,0.12)' }}>
-                        <Trash2 size={12}/>
-                      </button>
+                        style={{ background:'var(--surface-btn)', color:'var(--text-muted)', border:'1px solid var(--border)' }}>
+                          <MoreHorizontal size={13}/>
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
-                      <div className="px-4 pb-3" style={{ background:'rgba(255,255,255,0.018)' }}>
-                        <button type="button"
-                          className="w-full h-9 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold"
-                          style={{ background:'var(--surface-btn)', border:'1px solid var(--border)', color:'var(--text-muted)' }}>
-                          <MoreHorizontal size={14}/> Riwayat transaksi ringkas
-                        </button>
-                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
