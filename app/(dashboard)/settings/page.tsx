@@ -94,6 +94,7 @@ export default function SettingsPage() {
   const [expandExport,    setExpandExport   ] = useState(false)
   const [expandSupport,   setExpandSupport  ] = useState(false)
   const [expandLegal,     setExpandLegal    ] = useState(false)
+  const [showPdfMonths,   setShowPdfMonths  ] = useState(false)
 
   // ── Recurring transactions ──
   const [recurringItems,   setRecurringItems  ] = useState<RecurringTransaction[]>([])
@@ -233,6 +234,25 @@ export default function SettingsPage() {
     URL.revokeObjectURL(url)
     toast.success('Backup JSON berhasil!')
   }
+  const handleDownloadPdf = (month: string) => {
+    const a = document.createElement('a')
+    a.href = `/api/export/pdf?month=${month}`
+    a.download = `finuvo-${month}.pdf`
+    a.click()
+    setShowPdfMonths(false)
+    toast.success(`Mengunduh laporan ${month}...`)
+  }
+  const pdfMonthOptions = (() => {
+    const opts: { value: string; label: string }[] = []
+    const now = new Date()
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const label = d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+      opts.push({ value: val, label })
+    }
+    return opts
+  })()
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -677,6 +697,7 @@ export default function SettingsPage() {
                 {[
                   { label: 'Export ke Excel (.xlsx)', onClick: handleExport,     color: 'var(--accent)',         bg: 'var(--accent-dim)' },
                   { label: 'Backup JSON',             onClick: handleExportJSON, color: 'var(--text-secondary)', bg: 'var(--surface-3)' },
+                  { label: 'Laporan PDF (per bulan)', onClick: () => setShowPdfMonths(true), color: 'var(--accent)', bg: 'var(--accent-dim)' },
                 ].map((b) => (
                   <button key={b.label} onClick={b.onClick}
                     className="w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2"
@@ -700,6 +721,47 @@ export default function SettingsPage() {
           )}
         </AnimatePresence>
       </motion.div>
+
+      <AnimatePresence>
+        {showPdfMonths && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0"
+              style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
+              onClick={() => setShowPdfMonths(false)}
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+              className="relative w-full max-w-md mx-auto rounded-t-3xl sm:rounded-3xl p-5"
+              style={{ background: 'var(--surface-modal)', border: '1px solid var(--border)' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="font-display font-bold text-lg mb-3" style={{ color: 'var(--text-primary)' }}>
+                Pilih bulan untuk laporan
+              </h2>
+              <div className="space-y-2">
+                {pdfMonthOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleDownloadPdf(opt.value)}
+                    className="w-full flex items-center justify-between p-3 rounded-xl"
+                    style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
+                  >
+                    <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{opt.label}</span>
+                    <Download size={14} style={{ color: 'var(--accent)' }} />
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Accent Color */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.17 }}
