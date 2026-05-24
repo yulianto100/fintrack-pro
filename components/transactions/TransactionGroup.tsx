@@ -359,6 +359,7 @@ function SwipeableRow({
 
   return (
     <div
+      data-tx-id={t.id}
       className="relative overflow-hidden"
       style={!isLast ? { borderBottom: '1px solid rgba(34,197,94,0.10)' } : undefined}
     >

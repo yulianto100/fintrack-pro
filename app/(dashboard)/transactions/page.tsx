@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, SlidersHorizontal, X, ChevronDown, Tag, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -137,6 +138,8 @@ function TransactionSearchBar({
 export default function TransactionsPage() {
   const { hidden }   = useBalanceVisibility()
   const { setHandler } = useRefreshContext()
+  const searchParams = useSearchParams()
+  const focusId = searchParams.get('focus')
   const {
     transactions,
     allTransactions,
@@ -182,6 +185,18 @@ export default function TransactionsPage() {
       : transactions,
     [transactions, optimisticHiddenIds],
   )
+
+  useEffect(() => {
+    if (!focusId) return
+    const element = Array.from(document.querySelectorAll<HTMLElement>('[data-tx-id]'))
+      .find((node) => node.dataset.txId === focusId)
+    if (!element) return
+
+    element.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    element.classList.add('finuvo-focus-flash')
+    const timer = window.setTimeout(() => element.classList.remove('finuvo-focus-flash'), 1500)
+    return () => window.clearTimeout(timer)
+  }, [displayedTransactions, focusId])
 
   // ── FAB handlers ─────────────────────────────────────────────────────────────
 

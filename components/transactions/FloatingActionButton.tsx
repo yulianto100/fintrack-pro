@@ -66,6 +66,7 @@ const transactionFabPosition = {
 export function FloatingActionButton(props: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const transactionSelect = props.variant === 'transaction' ? props.onSelect : null
 
   useEffect(() => {
     if (!open) return
@@ -77,6 +78,13 @@ export function FloatingActionButton(props: Props) {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
+
+  useEffect(() => {
+    if (!transactionSelect) return
+    const handler = () => transactionSelect('expense')
+    window.addEventListener('finuvo:open-add-transaction', handler)
+    return () => window.removeEventListener('finuvo:open-add-transaction', handler)
+  }, [transactionSelect])
 
   if (props.variant === 'dashboard') {
     return (

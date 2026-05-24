@@ -853,3 +853,12 @@ nav a:active {
 .account-balance-card {
   -webkit-backdrop-filter: blur(14px);
 }
+
+.finuvo-focus-flash {
+  animation: finuvo-flash 1.4s ease-out;
+}
+
+@keyframes finuvo-flash {
+  0% { background: rgba(34,197,94,0.30); }
+  100% { background: transparent; }
+}

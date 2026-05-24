@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { ArrowLeftRight, CreditCard, TrendingDown, TrendingUp } from 'lucide-react'
@@ -20,6 +20,12 @@ export function QuickAddFAB() {
     () => [...cards].sort((a, b) => b.used - a.used)[0],
     [cards],
   )
+
+  useEffect(() => {
+    const handler = () => setTxType('expense')
+    window.addEventListener('finuvo:open-add-transaction', handler)
+    return () => window.removeEventListener('finuvo:open-add-transaction', handler)
+  }, [])
 
   const openPayCreditCard = () => {
     if (suggestedPayCard) {
