@@ -203,6 +203,7 @@ export interface TransactionFilters {
   month?: string; year?: string; categoryId?: string
   type?: TransactionType; wallet?: WalletType; search?: string
   tags?: string[]
+  date?: string
 }
 
 // ---- EXPORT ----

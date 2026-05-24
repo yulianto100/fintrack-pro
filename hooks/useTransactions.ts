@@ -47,6 +47,9 @@ export function useTransactions() {
         (t) => t.description?.toLowerCase().includes(q) || t.categoryName?.toLowerCase().includes(q)
       )
     }
+    if (filters.date) {
+      list = list.filter((t) => (t.date || '').split('T')[0] === filters.date)
+    }
 
     switch (sortBy) {
       case 'date_asc':
@@ -68,7 +71,7 @@ export function useTransactions() {
     }
 
     return list
-  }, [transactions, searchQuery, sortBy])
+  }, [transactions, searchQuery, sortBy, filters.date])
 
   const stats = useMemo(() => {
     const income = transactions
@@ -85,7 +88,7 @@ export function useTransactions() {
 
   // Helper: true when any filter is active
   const hasActiveFilter = useMemo(() =>
-    !!(filters.month || filters.categoryId || filters.type || filters.wallet || (filters.tags && filters.tags.length > 0)),
+    !!(filters.month || filters.categoryId || filters.type || filters.wallet || filters.date || (filters.tags && filters.tags.length > 0)),
     [filters]
   )
 

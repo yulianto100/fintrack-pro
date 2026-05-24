@@ -11,6 +11,7 @@ import { TransactionModal }    from '@/components/transactions/TransactionModal'
 import { TransactionGroup }    from '@/components/transactions/TransactionGroup'
 import { SummaryCards }        from '@/components/transactions/SummaryCards'
 import { SmartInsight }        from '@/components/transactions/SmartInsight'
+import { SpendingHeatmap }     from '@/components/transactions/SpendingHeatmap'
 import { EmptyState }          from '@/components/transactions/EmptyState'
 import { FloatingActionButton } from '@/components/transactions/FloatingActionButton'
 import { ChatInput } from '@/components/transactions/ChatInput'
@@ -300,6 +301,14 @@ export default function TransactionsPage() {
     if (filters.wallet) {
       const walletLabel = filters.wallet === 'cash' ? 'Cash' : filters.wallet === 'bank' ? 'Bank' : 'E-Wallet'
       chips.push({ key: 'wallet', label: walletLabel, remove: () => setFilters({ ...filters, wallet: undefined }) })
+    }
+    if (filters.date) {
+      const formatted = new Date(filters.date).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+      chips.push({ key: 'date', label: formatted, remove: () => setFilters({ ...filters, date: undefined }) })
     }
     if (filters.tags && filters.tags.length > 0) {
       filters.tags.forEach((tag) => {
@@ -649,6 +658,12 @@ export default function TransactionsPage() {
 
       {/* ── Body ── */}
       <div className="flex flex-col gap-3 px-4 pt-3 pb-8">
+        <SpendingHeatmap
+          transactions={allTransactions}
+          hidden={hidden}
+          selectedDate={filters.date}
+          onSelectDate={(date) => setFilters({ ...filters, date })}
+        />
 
         {/* Summary cards */}
         <SummaryCards
