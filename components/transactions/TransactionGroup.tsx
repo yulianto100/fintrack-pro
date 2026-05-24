@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState, useRef, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import { AnimatePresence, motion, useAnimation, useMotionValue, useTransform } from 'framer-motion'
-import { ArrowLeftRight, Paperclip, Trash2 } from 'lucide-react'
+import { ArrowLeftRight, Check, Paperclip, Trash2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import {
   getTransactionMethodLabel,
@@ -44,6 +44,10 @@ interface RowProps {
   onEdit: (t: Transaction) => void
   onDeleteStart: (t: Transaction) => void
   isLast: boolean
+  selectionMode?: boolean
+  selected?: boolean
+  onToggleSelect?: (id: string) => void
+  onEnterSelectMode?: (firstId: string) => void
 }
 
 interface Props {
@@ -52,6 +56,10 @@ interface Props {
   onEdit: (t: Transaction) => void
   onDelete: (id: string) => void
   afterFirstGroup?: ReactNode
+  selectionMode?: boolean
+  selectedIds?: Set<string>
+  onToggleSelect?: (id: string) => void
+  onEnterSelectMode?: (firstId: string) => void
 }
 
 interface DayGroup {
@@ -265,10 +273,22 @@ function DeleteConfirmDialog({ transaction, hidden, onConfirm, onCancel }: Confi
   )
 }
 
-function SwipeableRow({ transaction: t, hidden, onEdit, onDeleteStart, isLast }: RowProps) {
+function SwipeableRow({
+  transaction: t,
+  hidden,
+  onEdit,
+  onDeleteStart,
+  isLast,
+  selectionMode,
+  selected,
+  onToggleSelect,
+  onEnterSelectMode,
+}: RowProps) {
   const x = useMotionValue(0)
   const controls = useAnimation()
   const isDragging = useRef(false)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressed = useRef(false)
 
   const amountMeta = getAmountMeta(t)
   const title = getTransactionTitle(t)
@@ -281,8 +301,35 @@ function SwipeableRow({ transaction: t, hidden, onEdit, onDeleteStart, isLast }:
     controls.start({ x: 0, transition: { type: 'spring', damping: 25, stiffness: 400 } })
   }, [controls])
 
+  const clearLongPressTimer = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }, [])
+
+  const handlePointerDown = useCallback(() => {
+    if (selectionMode) return
+    longPressed.current = false
+    clearLongPressTimer()
+    longPressTimer.current = setTimeout(() => {
+      longPressed.current = true
+      onEnterSelectMode?.(t.id)
+      navigator.vibrate?.(15)
+    }, 500)
+  }, [clearLongPressTimer, onEnterSelectMode, selectionMode, t.id])
+
+  const handlePointerUp = useCallback(() => {
+    clearLongPressTimer()
+  }, [clearLongPressTimer])
+
   const handleDragEnd = useCallback(() => {
+    clearLongPressTimer()
     isDragging.current = false
+    if (selectionMode) {
+      snapBack()
+      return
+    }
     const currentX = x.get()
     if (currentX < -SWIPE_THRESHOLD) {
       controls.start({
@@ -296,11 +343,19 @@ function SwipeableRow({ transaction: t, hidden, onEdit, onDeleteStart, isLast }:
     }
 
     snapBack()
-  }, [x, controls, t, onDeleteStart, snapBack])
+  }, [x, controls, t, onDeleteStart, snapBack, selectionMode, clearLongPressTimer])
 
   const handleClick = useCallback(() => {
+    if (longPressed.current) {
+      longPressed.current = false
+      return
+    }
+    if (selectionMode) {
+      onToggleSelect?.(t.id)
+      return
+    }
     if (!isDragging.current && Math.abs(x.get()) < 5) onEdit(t)
-  }, [x, t, onEdit])
+  }, [x, t, onEdit, selectionMode, onToggleSelect])
 
   return (
     <div
@@ -320,17 +375,37 @@ function SwipeableRow({ transaction: t, hidden, onEdit, onDeleteStart, isLast }:
       </motion.div>
 
       <motion.div
-        drag="x"
+        drag={selectionMode ? false : 'x'}
         dragDirectionLock
         dragConstraints={{ left: -DELETE_BTN_WIDTH, right: 0 }}
         dragElastic={{ left: 0.08, right: 0 }}
-        style={{ x, background: 'var(--surface-2)', touchAction: 'pan-y' }}
-        onDragStart={() => { isDragging.current = true }}
+        style={{
+          x,
+          background: selected ? 'rgba(34,197,94,0.08)' : 'var(--surface-2)',
+          touchAction: 'pan-y',
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onDragStart={() => { clearLongPressTimer(); isDragging.current = true }}
         onDragEnd={handleDragEnd}
         animate={controls}
         onClick={handleClick}
         className="relative flex min-h-[68px] cursor-pointer items-center gap-3 px-3.5 py-2.5"
       >
+        {selectionMode && (
+          <div
+            className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md"
+            style={{
+              background: selected ? 'var(--accent)' : 'transparent',
+              border: `2px solid ${selected ? 'var(--accent)' : 'var(--border)'}`,
+            }}
+          >
+            {selected && <Check size={12} color="#000" strokeWidth={3} />}
+          </div>
+        )}
+
         <div
           className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-[15px]"
           style={{ background: amountMeta.bg, color: amountMeta.color }}
@@ -361,7 +436,17 @@ function SwipeableRow({ transaction: t, hidden, onEdit, onDeleteStart, isLast }:
   )
 }
 
-export function TransactionGroup({ transactions, hidden, onEdit, onDelete, afterFirstGroup }: Props) {
+export function TransactionGroup({
+  transactions,
+  hidden,
+  onEdit,
+  onDelete,
+  afterFirstGroup,
+  selectionMode,
+  selectedIds,
+  onToggleSelect,
+  onEnterSelectMode,
+}: Props) {
   const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null)
 
   const groups = useMemo<DayGroup[]>(() => {
@@ -423,6 +508,7 @@ export function TransactionGroup({ transactions, hidden, onEdit, onDelete, after
                       color: totalMeta.color,
                       background: totalMeta.bg,
                       border: `1px solid ${totalMeta.border}`,
+                      opacity: selectionMode ? 0.45 : 1,
                     }}
                   >
                     {hidden ? '••••' : `${totalMeta.sign}${formatCurrency(Math.abs(group.total))}`}
@@ -452,6 +538,10 @@ export function TransactionGroup({ transactions, hidden, onEdit, onDelete, after
                           onEdit={onEdit}
                           onDeleteStart={handleDeleteStart}
                           isLast={transactionIndex === group.items.length - 1}
+                          selectionMode={selectionMode}
+                          selected={selectedIds?.has(transaction.id)}
+                          onToggleSelect={onToggleSelect}
+                          onEnterSelectMode={onEnterSelectMode}
                         />
                       </motion.div>
                     ))}

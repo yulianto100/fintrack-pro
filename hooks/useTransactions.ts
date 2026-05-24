@@ -1,10 +1,19 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useApiList } from './useApiData'
 import type { Transaction, TransactionFilters } from '@/types'
 import toast from 'react-hot-toast'
 import { isExpenseForSummary } from '@/lib/transaction-rules'
+
+export type TransactionSortBy = 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc'
+
+function getInitialSort(): TransactionSortBy {
+  if (typeof window === 'undefined') return 'date_desc'
+  const saved = window.localStorage.getItem('finuvo:tx-sort')
+  if (saved === 'date_asc' || saved === 'amount_desc' || saved === 'amount_asc') return saved
+  return 'date_desc'
+}
 
 export function useTransactions() {
   // Fix #1: default = NO filter (was: { month: getCurrentMonth() })
@@ -24,6 +33,11 @@ export function useTransactions() {
   const { data: transactions, loading, refetch } = useApiList<Transaction>(url, { refreshMs: 5000 })
 
   const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState<TransactionSortBy>(getInitialSort)
+
+  useEffect(() => {
+    window.localStorage.setItem('finuvo:tx-sort', sortBy)
+  }, [sortBy])
 
   const filteredTransactions = useMemo(() => {
     let list = [...transactions]
@@ -33,11 +47,28 @@ export function useTransactions() {
         (t) => t.description?.toLowerCase().includes(q) || t.categoryName?.toLowerCase().includes(q)
       )
     }
-    // Always sort newest first (by createdAt DESC for consistency)
-    return list.sort((a, b) =>
-      new Date(b.createdAt || b.date || '').getTime() - new Date(a.createdAt || a.date || '').getTime()
-    )
-  }, [transactions, searchQuery])
+
+    switch (sortBy) {
+      case 'date_asc':
+        list.sort((a, b) =>
+          new Date(a.createdAt || a.date || '').getTime() - new Date(b.createdAt || b.date || '').getTime()
+        )
+        break
+      case 'amount_desc':
+        list.sort((a, b) => b.amount - a.amount)
+        break
+      case 'amount_asc':
+        list.sort((a, b) => a.amount - b.amount)
+        break
+      case 'date_desc':
+      default:
+        list.sort((a, b) =>
+          new Date(b.createdAt || b.date || '').getTime() - new Date(a.createdAt || a.date || '').getTime()
+        )
+    }
+
+    return list
+  }, [transactions, searchQuery, sortBy])
 
   const stats = useMemo(() => {
     const income = transactions
@@ -123,6 +154,8 @@ export function useTransactions() {
     stats,
     searchQuery,
     setSearchQuery,
+    sortBy,
+    setSortBy,
     addTransaction,
     deleteTransaction,
     updateTransaction,
