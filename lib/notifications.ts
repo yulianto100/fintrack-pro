@@ -1,5 +1,7 @@
 import webpush, { PushSubscription } from 'web-push'
 import { getAdminDatabase } from './firebase-admin'
+import { persistNotificationOnce } from './notifications-store'
+import type { Deposit } from '@/types'
 
 type StoredSubscription = {
   endpoint: string
@@ -11,15 +13,8 @@ type StoredSubscription = {
 
 type UserData = {
   portfolio?: {
-    deposits?: Record<string, any>
+    deposits?: Record<string, Deposit>
   }
-}
-
-type Deposit = {
-  status: string
-  maturityDate: string
-  bankName: string
-  notificationSent?: Record<string, boolean>
 }
 
 let vapidConfigured = false
@@ -117,10 +112,10 @@ export async function checkDepositNotifications(): Promise<void> {
       const deposits = userData.portfolio?.deposits
       if (!deposits) continue
       
-      for (const [depositId, deposit] of Object.entries(deposits as Record<string, Record<string, unknown>>)) {
+      for (const [depositId, deposit] of Object.entries(deposits)) {
         if (deposit.status !== 'active') continue
         
-        const maturityDate = new Date(deposit.maturityDate as string)
+        const maturityDate = new Date(deposit.maturityDate)
         maturityDate.setHours(0, 0, 0, 0)
         
         const daysUntilMaturity = Math.round(
@@ -145,6 +140,18 @@ export async function checkDepositNotifications(): Promise<void> {
               milestone.msg,
               { depositId, daysRemaining: milestone.days }
             )
+
+            try {
+              await persistNotificationOnce(userId, `deposit_maturity_${depositId}_${milestone.days}`, {
+                type: 'deposit_maturity',
+                title: `Deposito ${deposit.bankName} jatuh tempo ${milestone.days === 0 ? 'hari ini' : `dalam ${milestone.days} hari`}`,
+                message: `Nominal Rp ${deposit.nominal.toLocaleString('id-ID')} akan kembali ke saldo.`,
+                icon: '🏦',
+                link: '/portfolio/deposito',
+              })
+            } catch (err) {
+              console.warn('[deposit notification persist]', err)
+            }
             
             // Mark as sent
             await db.ref(`users/${userId}/portfolio/deposits/${depositId}/notificationSent/${milestone.key}`).set(true)

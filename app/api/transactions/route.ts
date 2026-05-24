@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getAdminDatabase } from '@/lib/firebase-admin'
 import { isExpenseForSummary, isExpenseForWalletBalance } from '@/lib/transaction-rules'
-import type { Transaction } from '@/types'
+import { persistNotificationOnce } from '@/lib/notifications-store'
+import type { BudgetCategory, Transaction } from '@/types'
 
 async function getUserId(): Promise<string | null> {
   try {
@@ -47,6 +48,49 @@ async function getWalletTypeBalance(db: ReturnType<typeof import('@/lib/firebase
     }
   })
   return balance
+}
+
+async function persistBudgetUsageNotification(
+  db: ReturnType<typeof import('@/lib/firebase-admin').getAdminDatabase>,
+  userId: string,
+  tx: Transaction,
+): Promise<void> {
+  if (!isExpenseForSummary(tx) || !tx.categoryId || !tx.date) return
+
+  const budgetSnap = await db.ref(`users/${userId}/budgets`).get()
+  if (!budgetSnap.exists()) return
+
+  const month = tx.date.slice(0, 7)
+  const budgets = Object.values(budgetSnap.val() as Record<string, BudgetCategory>)
+  const matching = budgets.find((budget) => budget.categoryId === tx.categoryId && budget.month === month)
+  if (!matching || matching.limitAmount <= 0) return
+
+  const txSnap = await db.ref(`users/${userId}/transactions`).get()
+  const transactions = txSnap.exists()
+    ? Object.values(txSnap.val() as Record<string, Transaction>)
+    : []
+  const spent = transactions
+    .filter((item) => item.categoryId === matching.categoryId && item.date?.startsWith(month) && isExpenseForSummary(item))
+    .reduce((sum, item) => sum + item.amount, 0)
+  const percent = (spent / matching.limitAmount) * 100
+
+  if (percent >= 100) {
+    await persistNotificationOnce(userId, `budget_over_${matching.categoryId}_${month}`, {
+      type: 'budget_warning',
+      title: `Budget ${matching.categoryName || 'kategori'} terlampaui`,
+      message: `Sudah Rp ${spent.toLocaleString('id-ID')} dari Rp ${matching.limitAmount.toLocaleString('id-ID')} bulan ini.`,
+      icon: '⚠️',
+      link: '/goals?tab=budget',
+    })
+  } else if (percent >= 90) {
+    await persistNotificationOnce(userId, `budget_warn_${matching.categoryId}_${month}`, {
+      type: 'budget_warning',
+      title: `Budget ${matching.categoryName || 'kategori'} hampir habis`,
+      message: `${percent.toFixed(0)}% dari Rp ${matching.limitAmount.toLocaleString('id-ID')} sudah terpakai.`,
+      icon: '⚠️',
+      link: '/goals?tab=budget',
+    })
+  }
 }
 
 export async function GET(request: Request) {
@@ -217,6 +261,12 @@ export async function POST(request: Request) {
     }
 
     await db.ref().update(updates)
+
+    try {
+      await persistBudgetUsageNotification(db, userId, tx)
+    } catch (err) {
+      console.warn('[budget notification persist]', err)
+    }
 
     return NextResponse.json({ success: true, data: tx }, { status: 201 })
   } catch (err) {

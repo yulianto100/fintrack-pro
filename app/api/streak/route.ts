@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getAdminDatabase } from '@/lib/firebase-admin'
+import { persistNotificationOnce } from '@/lib/notifications-store'
 import type { UserStreak } from '@/types'
 
 async function getUserId(): Promise<string | null> {
@@ -79,6 +80,21 @@ export async function POST() {
     }
 
     await db.ref(`users/${userId}/streak`).set(updated)
+
+    try {
+      const milestones = [3, 7, 14, 30, 100, 365]
+      if (milestones.includes(updated.currentStreak)) {
+        await persistNotificationOnce(userId, `streak_${updated.currentStreak}`, {
+          type: 'streak_milestone',
+          title: `Streak ${updated.currentStreak} hari! 🔥`,
+          message: 'Pertahankan kebiasaan baik catat keuangan.',
+          icon: '🔥',
+        })
+      }
+    } catch (err) {
+      console.warn('[streak notification persist]', err)
+    }
+
     return NextResponse.json({ success: true, data: updated })
   } catch (err) {
     console.error('[POST /api/streak]', err)

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getAdminDatabase } from '@/lib/firebase-admin'
+import { persistNotification } from '@/lib/notifications-store'
 import type { RecurringTransaction, RecurringFrequency } from '@/types'
 
 function nextRunDate(frequency: RecurringFrequency, from: Date = new Date()): string {
@@ -49,6 +50,18 @@ export async function GET(req: Request) {
           walletAccountId: item.walletAccountId || null,
           tags: ['recurring'], createdAt: now, updatedAt: now,
         })
+
+        try {
+          await persistNotification(userId, {
+            type: 'recurring_run',
+            title: 'Transaksi berulang dijalankan',
+            message: `${item.description} • Rp ${item.amount.toLocaleString('id-ID')}`,
+            icon: '🔁',
+            link: `/transactions?focus=${txRef.key}`,
+          })
+        } catch (err) {
+          console.warn('[recurring notification persist]', err)
+        }
 
         // Update nextRunDate
         await db.ref(`users/${userId}/recurringTransactions/${recurId}`).update({

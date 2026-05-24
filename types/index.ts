@@ -190,9 +190,12 @@ export interface Insight {
 // ---- NOTIFICATIONS ----
 export interface PushSubscriptionData { userId: string; subscription: PushSubscription; createdAt: string }
 export interface Notification {
-  id: string; userId: string; type: 'deposit_maturity' | 'price_alert' | 'general'
+  id: string; userId: string
+  type: 'deposit_maturity' | 'price_alert' | 'general' | 'budget_warning' | 'bill_due' | 'recurring_run' | 'streak_milestone' | 'cc_due'
   title: string; message: string; data?: Record<string, unknown>
   read: boolean; createdAt: string
+  link?: string
+  icon?: string
 }
 
 // ---- API ----
