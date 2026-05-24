@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, SlidersHorizontal, X, ChevronDown, Tag, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -19,6 +19,7 @@ import { EmptyHint } from '@/components/shared/EmptyHint'
 import { SkeletonRow } from '@/components/shared/Skeleton'
 import type { Transaction, Category, TransactionType } from '@/types'
 import { toastConfirm } from '@/lib/toast-undo'
+import { useRefreshContext } from '../refresh-context'
 
 // ─── Month picker helper ──────────────────────────────────────────────────────
 
@@ -135,6 +136,7 @@ function TransactionSearchBar({
 
 export default function TransactionsPage() {
   const { hidden }   = useBalanceVisibility()
+  const { setHandler } = useRefreshContext()
   const {
     transactions,
     allTransactions,
@@ -153,6 +155,13 @@ export default function TransactionsPage() {
 
   const { data: categories } = useApiList<Category>('/api/categories')
   const { data: recentTags } = useApiList<{ tag: string; count: number }>('/api/tags/recent', { refreshMs: 60000 })
+
+  useEffect(() => {
+    setHandler(async () => {
+      refetch()
+    })
+    return () => setHandler(null)
+  }, [refetch, setHandler])
 
   // Modal state
   const [modalOpen,    setModalOpen   ] = useState(false)

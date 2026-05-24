@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useSession } from 'next-auth/react'
 import { useApiList } from '@/hooks/useApiData'
@@ -27,23 +27,53 @@ import { NetWorthCard } from '@/components/dashboard/NetWorthCard'
 import { WalletSection } from '@/components/dashboard/WalletSection'
 import { SkeletonHero } from '@/components/shared/Skeleton'
 import { QuickTemplates } from '@/components/dashboard/QuickTemplates'
+import { useRefreshContext } from './refresh-context'
 
 export default function DashboardPage() {
   const { data: session } = useSession()
   const { hidden, toggle, mounted } = useBalanceVisibility()
+  const { setHandler } = useRefreshContext()
 
-  const { data: transactions } = useApiList<Transaction>('/api/transactions?limit=7&sort=createdAt', { refreshMs: 8000 })
+  const { data: transactions, refetch: refetchRecentTx } = useApiList<Transaction>('/api/transactions?limit=7&sort=createdAt', { refreshMs: 8000 })
   const { data: allTx, refetch: refetchAllTx } = useApiList<Transaction>('/api/transactions?limit=500', { refreshMs: 15000 })
-  const { data: goldHoldings } = useApiList<GoldHolding>('/api/portfolio/gold', { refreshMs: 30000 })
-  const { data: stocks } = useApiList<StockHolding>('/api/portfolio/stocks', { refreshMs: 30000 })
-  const { data: deposits } = useApiList<Deposit>('/api/portfolio/deposits?status=all', { refreshMs: 30000 })
-  const { data: sbnList } = useApiList<SBNHolding>('/api/portfolio/sbn', { refreshMs: 60000 })
-  const { data: reksadanaList } = useApiList<ReksadanaHolding>('/api/portfolio/reksadana', { refreshMs: 60000 })
-  const { data: budgets } = useApiList<BudgetStatus>('/api/budget', { refreshMs: 30000 })
+  const { data: goldHoldings, refetch: refetchGoldHoldings } = useApiList<GoldHolding>('/api/portfolio/gold', { refreshMs: 30000 })
+  const { data: stocks, refetch: refetchStocks } = useApiList<StockHolding>('/api/portfolio/stocks', { refreshMs: 30000 })
+  const { data: deposits, refetch: refetchDeposits } = useApiList<Deposit>('/api/portfolio/deposits?status=all', { refreshMs: 30000 })
+  const { data: sbnList, refetch: refetchSbn } = useApiList<SBNHolding>('/api/portfolio/sbn', { refreshMs: 60000 })
+  const { data: reksadanaList, refetch: refetchReksadana } = useApiList<ReksadanaHolding>('/api/portfolio/reksadana', { refreshMs: 60000 })
+  const { data: budgets, refetch: refetchBudgets } = useApiList<BudgetStatus>('/api/budget', { refreshMs: 30000 })
 
   const stockSymbols = useMemo(() => (stocks || []).map((s) => s.symbol), [stocks])
-  const { prices: stockPrices } = useStockPrices(stockSymbols)
-  const { prices: goldPrices } = useGoldPrices()
+  const { prices: stockPrices, refetch: refetchStockPrices } = useStockPrices(stockSymbols)
+  const { prices: goldPrices, refetch: refetchGoldPrices } = useGoldPrices()
+
+  const refreshDashboard = useCallback(async () => {
+    refetchRecentTx()
+    refetchAllTx()
+    refetchGoldHoldings()
+    refetchStocks()
+    refetchDeposits()
+    refetchSbn()
+    refetchReksadana()
+    refetchBudgets()
+    await Promise.all([refetchGoldPrices(), refetchStockPrices()])
+  }, [
+    refetchAllTx,
+    refetchBudgets,
+    refetchDeposits,
+    refetchGoldHoldings,
+    refetchGoldPrices,
+    refetchRecentTx,
+    refetchReksadana,
+    refetchSbn,
+    refetchStockPrices,
+    refetchStocks,
+  ])
+
+  useEffect(() => {
+    setHandler(refreshDashboard)
+    return () => setHandler(null)
+  }, [refreshDashboard, setHandler])
 
   const monthStats = useMemo(() => {
     const currentMonth = getCurrentMonth()

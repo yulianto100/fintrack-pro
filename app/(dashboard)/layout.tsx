@@ -8,6 +8,9 @@ import Image from 'next/image'
 import { LayoutDashboard, ArrowLeftRight, TrendingUp, Settings, Target, Wallet } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { useDarkMode } from '@/hooks/useDarkMode'
+import { usePullToRefresh } from '@/hooks/usePullToRefresh'
+import { PullIndicator } from '@/components/shared/PullIndicator'
+import { RefreshProvider, useRefreshContext } from './refresh-context'
 
 /**
  * Navigation tabs.
@@ -24,11 +27,13 @@ const NAV_TABS = [
   { href: '/settings',     icon: Settings,        label: 'Atur'       },
 ]
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+function DashboardShell({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession()
   const router   = useRouter()
   const pathname = usePathname()
   useDarkMode()
+  const { trigger } = useRefreshContext()
+  const { containerRef, pullDistance, refreshing, threshold } = usePullToRefresh({ onRefresh: trigger })
 
   const reservesFloatingControls =
     pathname === '/' ||
@@ -42,7 +47,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // ── Scroll-aware sticky header ─────────────────────────────────────────
   const [scrolled, setScrolled] = useState(false)
   const [avatarFailed, setAvatarFailed] = useState(false)
-  const mainRef = useRef<HTMLElement>(null)
+  const mainRef = useRef<HTMLElement | null>(null)
   const prevPathnameRef = useRef<string>(pathname)
   const directionRef = useRef<'forward' | 'back'>('forward')
   const reduceMotion = useReducedMotion()
@@ -51,6 +56,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleScroll = useCallback(() => {
     setScrolled((mainRef.current?.scrollTop ?? 0) > 16)
   }, [])
+
+  const setMainRef = useCallback((node: HTMLElement | null) => {
+    mainRef.current = node
+    containerRef.current = node
+  }, [containerRef])
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login')
@@ -190,7 +200,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* ── Main content ── */}
       <main
-        ref={mainRef}
+        ref={setMainRef}
         onScroll={handleScroll}
         className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
         style={{
@@ -199,6 +209,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           scrollPaddingBottom: bottomControlReserve,
         }}
       >
+        <PullIndicator distance={pullDistance} threshold={threshold} refreshing={refreshing} />
         <AnimatePresence mode="popLayout">
           <motion.div
             key={pathname}
@@ -287,5 +298,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </nav>
     </div>
+  )
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <RefreshProvider>
+      <DashboardShell>{children}</DashboardShell>
+    </RefreshProvider>
   )
 }

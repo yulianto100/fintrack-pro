@@ -28,6 +28,7 @@ import { AccountTransactionList }    from '@/components/account/AccountTransacti
 import { BankLogo }                  from '@/components/shared/BankLogo'
 import { EmptyHint }                 from '@/components/shared/EmptyHint'
 import { SkeletonCard, SkeletonText } from '@/components/shared/Skeleton'
+import { useRefreshContext }         from '../refresh-context'
 import { toastUndo }                 from '@/lib/toast-undo'
 import toast                         from 'react-hot-toast'
 
@@ -790,6 +791,7 @@ function EmptyState({ type, onAdd }: { type: string; onAdd: () => void }) {
 // â”€â”€ Main page content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function AkunContent() {
   const { accounts, loading, refetch, payBill } = useAccounts()
+  const { setHandler } = useRefreshContext()
   const pathname     = usePathname()
   const searchParams = useSearchParams()
   const router       = useRouter()
@@ -799,6 +801,13 @@ function AkunContent() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [addType,    setAddType]   = useState<AccountType | null | 'open'>(null)
   const [payTarget,  setPayTarget] = useState<UnifiedAccount | null>(null)
+
+  useEffect(() => {
+    setHandler(async () => {
+      refetch()
+    })
+    return () => setHandler(null)
+  }, [refetch, setHandler])
 
   useEffect(() => {
     const tabParam = searchParams.get('tab')

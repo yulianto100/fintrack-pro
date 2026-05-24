@@ -17,6 +17,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { InvestasiModal } from '@/components/investment/InvestasiModal'
 import { EmptyHint } from '@/components/shared/EmptyHint'
 import { SkeletonCard, SkeletonHero, SkeletonText } from '@/components/shared/Skeleton'
+import { useRefreshContext } from '../refresh-context'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. INSIGHT LOGIC
@@ -321,38 +322,73 @@ function PortfolioContent() {
   const searchParams = useSearchParams()
   const filterType   = searchParams.get('type')
   const { hidden }   = useBalanceVisibility()
+  const { setHandler } = useRefreshContext()
   const HIDDEN_TEXT  = '••••••'
 
   // ── Existing data fetching (UNCHANGED) ──────────────────────────────────
-  const { data: goldHoldings }  = useApiList<GoldHolding>('/api/portfolio/gold',           { refreshMs: 30000 })
-  const { data: stocks }        = useApiList<StockHolding>('/api/portfolio/stocks',         { refreshMs: 30000 })
-  const { data: deposits }      = useApiList<Deposit>('/api/portfolio/deposits?status=all', { refreshMs: 30000 })
-  const { data: sbnList }       = useApiList<SBNHolding>('/api/portfolio/sbn',              { refreshMs: 60000 })
-  const { data: reksadanaList } = useApiList<ReksadanaHolding>('/api/portfolio/reksadana', { refreshMs: 60000 })
-  const { data: transactions }  = useApiList<Transaction>('/api/transactions?limit=500',    { refreshMs: 15000 })
+  const { data: goldHoldings, refetch: refetchGoldHoldings } = useApiList<GoldHolding>('/api/portfolio/gold', { refreshMs: 30000 })
+  const { data: stocks, refetch: refetchStocks } = useApiList<StockHolding>('/api/portfolio/stocks', { refreshMs: 30000 })
+  const { data: deposits, refetch: refetchDeposits } = useApiList<Deposit>('/api/portfolio/deposits?status=all', { refreshMs: 30000 })
+  const { data: sbnList, refetch: refetchSbn } = useApiList<SBNHolding>('/api/portfolio/sbn', { refreshMs: 60000 })
+  const { data: reksadanaList, refetch: refetchReksadana } = useApiList<ReksadanaHolding>('/api/portfolio/reksadana', { refreshMs: 60000 })
+  const { data: transactions, refetch: refetchTransactions } = useApiList<Transaction>('/api/transactions?limit=500', { refreshMs: 15000 })
 
   const [walletAccounts, setWalletAccounts] = useState<WalletAccount[]>([])
 
   const { prices: goldPrices, lastUpdated, isLive, refetch } = useGoldPrices()
   const symbols = useMemo(() => stocks.map((s) => s.symbol), [stocks])
-  const { prices: stockPrices } = useStockPrices(symbols)
+  const { prices: stockPrices, refetch: refetchStockPrices } = useStockPrices(symbols)
 
-  useEffect(() => {
-    fetch('/api/wallet-accounts').then((r) => r.json()).then((j) => {
+  const fetchWalletAccounts = useCallback(async () => {
+    await fetch('/api/wallet-accounts').then((r) => r.json()).then((j) => {
       if (j.success) setWalletAccounts(j.data || [])
     })
   }, [])
+
+  useEffect(() => {
+    fetchWalletAccounts().catch(() => {})
+  }, [fetchWalletAccounts])
 
   // ── New: Goals & wallet balances ─────────────────────────────────────────
   const [goals, setGoals] = useState<Goal[]>([])
   const [investOpen, setInvestOpen] = useState(false)
   const [dismissedInsights, setDismissedInsights] = useState<string[]>([])
 
-  useEffect(() => {
-    fetch('/api/goals').then(r => r.json()).then(j => {
+  const fetchGoals = useCallback(async () => {
+    await fetch('/api/goals').then(r => r.json()).then(j => {
       if (j.success) setGoals(j.data || [])
     }).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    fetchGoals().catch(() => {})
+  }, [fetchGoals])
+
+  const refreshPortfolio = useCallback(async () => {
+    refetchGoldHoldings()
+    refetchStocks()
+    refetchDeposits()
+    refetchSbn()
+    refetchReksadana()
+    refetchTransactions()
+    await Promise.all([refetch(), refetchStockPrices(), fetchWalletAccounts(), fetchGoals()])
+  }, [
+    fetchGoals,
+    fetchWalletAccounts,
+    refetch,
+    refetchDeposits,
+    refetchGoldHoldings,
+    refetchReksadana,
+    refetchSbn,
+    refetchStockPrices,
+    refetchStocks,
+    refetchTransactions,
+  ])
+
+  useEffect(() => {
+    setHandler(refreshPortfolio)
+    return () => setHandler(null)
+  }, [refreshPortfolio, setHandler])
 
   const handleInvestSuccess = useCallback(() => {
     refetch()
