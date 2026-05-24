@@ -19,6 +19,7 @@ import toast from 'react-hot-toast'
 import { toastUndo } from '@/lib/toast-undo'
 import { EmptyHint } from '@/components/shared/EmptyHint'
 import { SkeletonCard, SkeletonHero, SkeletonText } from '@/components/shared/Skeleton'
+import { haptics } from '@/lib/haptics'
 
 const GOAL_ICONS  = ['🎯','🏠','🚗','✈️','📱','💍','🎓','💪','🌴','👶','💼','🏋️']
 const GOAL_COLORS = ['#22C55E','#63b3ed','#f6cc60','#F87171','#d6aaff','#4fd1c5','#f6ad55']
@@ -35,6 +36,7 @@ function GoalsContent() {
   const { hidden } = useBalanceVisibility()
 
   const setTab = (tab: 'goals' | 'budget' | 'bills') => {
+    haptics.light()
     router.replace(tab === 'goals' ? '/goals' : `/goals?tab=${tab}`, { scroll: false })
   }
 
@@ -86,6 +88,7 @@ function GoalsContent() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
+      haptics.success()
       toast.success('Goal ditambahkan! 🎯')
       setShowAddGoal(false)
       setGoalForm({ title: '', targetAmount: '', icon: '🎯', color: '#22C55E' })
@@ -136,6 +139,7 @@ function GoalsContent() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
+      haptics.success()
       if (newCurrent >= showTopUp.targetAmount) toast.success('🎉 Goal tercapai!')
       else toast.success(`+${formatCurrency(add)} ditambahkan!`)
       setShowTopUp(null); setTopUpAmount(''); refetchGoals()
@@ -162,6 +166,7 @@ function GoalsContent() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
+      haptics.success()
       toast.success('Budget ditambahkan! 📊')
       setShowAddBudget(false)
       setBudgetForm({ categoryId: '', limitAmount: '' })

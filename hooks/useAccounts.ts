@@ -10,6 +10,7 @@ import {
   calcAccountSummary,
 } from '@/types/account'
 import toast from 'react-hot-toast'
+import { haptics } from '@/lib/haptics'
 
 export function useAccounts() {
   const {
@@ -51,6 +52,7 @@ export function useAccounts() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
+      haptics.success()
       toast.success(data.type === 'bank' ? 'Rekening berhasil ditambahkan! 🏦' : 'E-Wallet berhasil ditambahkan! 💳')
       refetch()
       return json.data as WalletAccount
@@ -68,6 +70,7 @@ export function useAccounts() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
+      haptics.success()
       toast.success('Kartu kredit berhasil ditambahkan! 💳')
       refetch()
       return json.data as CreditCard

@@ -21,6 +21,7 @@ import { SkeletonRow } from '@/components/shared/Skeleton'
 import type { Transaction, Category, TransactionType } from '@/types'
 import { toastConfirm } from '@/lib/toast-undo'
 import { useRefreshContext } from '../refresh-context'
+import { haptics } from '@/lib/haptics'
 
 // ─── Month picker helper ──────────────────────────────────────────────────────
 
@@ -52,7 +53,10 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
       }}
     >
       {label}
-      <button onClick={onRemove} className="opacity-70 hover:opacity-100">
+      <button onClick={() => {
+        haptics.light()
+        onRemove()
+      }} className="opacity-70 hover:opacity-100">
         <X size={10} strokeWidth={2.5} />
       </button>
     </motion.div>
@@ -498,7 +502,10 @@ export default function TransactionsPage() {
                         <motion.button
                           key={t}
                           whileTap={{ scale: 0.94 }}
-                          onClick={() => setFilters({ ...filters, type: active ? undefined : t })}
+                          onClick={() => {
+                            haptics.light()
+                            setFilters({ ...filters, type: active ? undefined : t })
+                          }}
                           className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
                           style={{
                             background: active ? 'rgba(34,197,94,0.15)' : 'var(--surface-2)',
@@ -560,7 +567,10 @@ export default function TransactionsPage() {
                         <motion.button
                           key={wallet.value}
                           whileTap={{ scale: 0.94 }}
-                          onClick={() => setFilters({ ...filters, wallet: active ? undefined : wallet.value })}
+                          onClick={() => {
+                            haptics.light()
+                            setFilters({ ...filters, wallet: active ? undefined : wallet.value })
+                          }}
                           className="py-2 rounded-xl text-xs font-semibold transition-all"
                           style={{
                             background: active ? 'rgba(34,197,94,0.15)' : 'var(--surface-2)',
@@ -621,6 +631,7 @@ export default function TransactionsPage() {
                             key={recent.tag}
                             type="button"
                             onClick={() => {
+                              haptics.light()
                               setFilters((prev) => {
                                 const current = prev.tags || []
                                 return {

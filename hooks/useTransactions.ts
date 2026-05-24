@@ -5,6 +5,7 @@ import { useApiList } from './useApiData'
 import type { Transaction, TransactionFilters } from '@/types'
 import toast from 'react-hot-toast'
 import { isExpenseForSummary } from '@/lib/transaction-rules'
+import { haptics } from '@/lib/haptics'
 
 export type TransactionSortBy = 'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc'
 
@@ -110,12 +111,14 @@ export function useTransactions() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
+      haptics.success()
       toast.success('Transaksi berhasil ditambahkan! ✓')
       refetch()
       syncWalletBalances()
       updateStreak()   // ← streak update
       return json.data
     } catch (err) {
+      haptics.error()
       toast.error('Gagal menambahkan transaksi'); throw err
     }
   }, [refetch, syncWalletBalances, updateStreak])
@@ -139,11 +142,15 @@ export function useTransactions() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
+      haptics.success()
       toast.success('Transaksi diperbarui! ✓')
       refetch()
       syncWalletBalances()
       return json.data
-    } catch { toast.error('Gagal memperbarui transaksi') }
+    } catch {
+      haptics.error()
+      toast.error('Gagal memperbarui transaksi')
+    }
   }, [refetch, syncWalletBalances])
 
   return {

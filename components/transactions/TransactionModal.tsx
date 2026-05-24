@@ -14,6 +14,7 @@ import toast from 'react-hot-toast'
 import type { RecurringFrequency } from '@/types'
 import { SkeletonCard } from '@/components/shared/Skeleton'
 import { AttachmentLightbox } from '@/components/transactions/AttachmentLightbox'
+import { haptics } from '@/lib/haptics'
 
 const RECURRING_FREQS: { value: RecurringFrequency; label: string; icon: string }[] = [
   { value: 'daily',   label: 'Harian',   icon: '🌅' },
@@ -333,7 +334,10 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
         <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>{label}</label>
         <div className="flex gap-2 mb-2">
           {WALLET_TYPES.map((w) => (
-            <button key={w.value} onClick={() => onSelect(w.value)}
+            <button key={w.value} onClick={() => {
+              haptics.select()
+              onSelect(w.value)
+            }}
               className="flex-1 flex flex-col items-center py-2.5 rounded-xl text-xs transition-all"
               style={{
                 background: selected === w.value ? `${accentColor}20` : 'var(--surface-btn)',
@@ -349,7 +353,10 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
           <div className="flex flex-wrap gap-1.5">
             {subAccounts.map((acc) => (
               <button key={acc.id}
-                onClick={() => onSelectAccount(selectedAccount === acc.id ? '' : acc.id)}
+                onClick={() => {
+                  haptics.select()
+                  onSelectAccount(selectedAccount === acc.id ? '' : acc.id)
+                }}
                 className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1"
                 style={{
                   background: selectedAccount === acc.id ? `${accentColor}25` : 'var(--surface-btn)',

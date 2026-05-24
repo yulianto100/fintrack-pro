@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CalendarDays, Plus, X, Target, PiggyBank } from 'lucide-react'
+import { haptics } from '@/lib/haptics'
 
 interface Props {
   activeTab: 'goals' | 'budget' | 'bills'
@@ -19,20 +20,24 @@ export function GoalsFAB({ activeTab, onAddGoal, onAddBudget, onAddBill }: Props
   const [open, setOpen] = useState(false)
 
   const handleGoal = () => {
+    haptics.medium()
     setOpen(false)
     onAddGoal()
   }
   const handleBudget = () => {
+    haptics.medium()
     setOpen(false)
     onAddBudget()
   }
   const handleBill = () => {
+    haptics.medium()
     setOpen(false)
     onAddBill()
   }
 
   // Single-tap: directly opens active tab's action
   const handlePrimaryTap = () => {
+    haptics.medium()
     if (!open) {
       if (activeTab === 'goals') { onAddGoal(); return }
       if (activeTab === 'budget') { onAddBudget(); return }
@@ -118,7 +123,10 @@ export function GoalsFAB({ activeTab, onAddGoal, onAddBudget, onAddBill }: Props
 
         {/* Main FAB button */}
         <motion.button
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => {
+            haptics.medium()
+            setOpen((o) => !o)
+          }}
           whileTap={{ scale: 0.93 }}
           className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl"
           style={{

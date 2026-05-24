@@ -10,6 +10,7 @@ import {
   isCreditCardPurchase,
   isExpenseForSummary,
 } from '@/lib/transaction-rules'
+import { haptics } from '@/lib/haptics'
 import type { Transaction, WalletType } from '@/types'
 
 const SWIPE_THRESHOLD = 72
@@ -315,7 +316,7 @@ function SwipeableRow({
     longPressTimer.current = setTimeout(() => {
       longPressed.current = true
       onEnterSelectMode?.(t.id)
-      navigator.vibrate?.(15)
+      haptics.medium()
     }, 500)
   }, [clearLongPressTimer, onEnterSelectMode, selectionMode, t.id])
 
@@ -351,10 +352,14 @@ function SwipeableRow({
       return
     }
     if (selectionMode) {
+      haptics.light()
       onToggleSelect?.(t.id)
       return
     }
-    if (!isDragging.current && Math.abs(x.get()) < 5) onEdit(t)
+    if (!isDragging.current && Math.abs(x.get()) < 5) {
+      haptics.light()
+      onEdit(t)
+    }
   }, [x, t, onEdit, selectionMode, onToggleSelect])
 
   return (
@@ -472,7 +477,10 @@ export function TransactionGroup({
       })
   }, [transactions])
 
-  const handleDeleteStart = useCallback((transaction: Transaction) => setPendingDelete(transaction), [])
+  const handleDeleteStart = useCallback((transaction: Transaction) => {
+    haptics.warn()
+    setPendingDelete(transaction)
+  }, [])
   const handleConfirm = useCallback(() => {
     if (pendingDelete) {
       onDelete(pendingDelete.id)

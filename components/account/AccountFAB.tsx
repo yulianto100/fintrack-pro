@@ -3,6 +3,7 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Building2, CreditCard, Plus, Wallet } from 'lucide-react'
+import { haptics } from '@/lib/haptics'
 
 interface Props {
   onAddBank:    () => void
@@ -42,9 +43,9 @@ export const AccountFAB = memo(function AccountFAB({ onAddBank, onAddCredit, onA
   const ref = useRef<HTMLDivElement>(null)
 
   const handlers: Record<string, () => void> = {
-    bank:    () => { setOpen(false); onAddBank()    },
-    credit:  () => { setOpen(false); onAddCredit()  },
-    ewallet: () => { setOpen(false); onAddEwallet() },
+    bank:    () => { haptics.medium(); setOpen(false); onAddBank()    },
+    credit:  () => { haptics.medium(); setOpen(false); onAddCredit()  },
+    ewallet: () => { haptics.medium(); setOpen(false); onAddEwallet() },
   }
 
   useEffect(() => {
@@ -110,7 +111,10 @@ export const AccountFAB = memo(function AccountFAB({ onAddBank, onAddCredit, onA
 
       <motion.button
         type="button"
-        onClick={() => setOpen(v => !v)}
+        onClick={() => {
+          haptics.medium()
+          setOpen(v => !v)
+        }}
         whileTap={{ scale: 0.92 }}
         whileHover={{ scale: 1.05 }}
         className="relative z-10 flex items-center justify-center rounded-full"

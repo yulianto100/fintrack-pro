@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeftRight, Plus, TrendingDown, TrendingUp } from 'lucide-react'
+import { haptics } from '@/lib/haptics'
 
 type TransactionType = 'expense' | 'income' | 'transfer'
 
@@ -93,11 +94,15 @@ export function FloatingActionButton(props: Props) {
           open={open}
           actions={props.actions}
           onAction={(action) => {
+            haptics.medium()
             setOpen(false)
             action.onClick()
           }}
         />
-        <MainFAB open={open} onToggle={() => setOpen((current) => !current)} />
+        <MainFAB open={open} onToggle={() => {
+          haptics.medium()
+          setOpen((current) => !current)
+        }} />
       </div>
     )
   }
@@ -108,11 +113,15 @@ export function FloatingActionButton(props: Props) {
         open={open}
         actions={TX_ACTIONS}
         onAction={(action) => {
+          haptics.medium()
           setOpen(false)
           props.onSelect(action.type)
         }}
       />
-      <MainFAB compact open={open} onToggle={() => setOpen((current) => !current)} />
+      <MainFAB compact open={open} onToggle={() => {
+        haptics.medium()
+        setOpen((current) => !current)
+      }} />
     </div>
   )
 }
