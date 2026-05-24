@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getAdminDatabase } from '@/lib/firebase-admin'
+import { getAdminDatabase, getAdminStorageBucket } from '@/lib/firebase-admin'
 import type { Transaction } from '@/types'
 
 async function getUserId(): Promise<string | null> {
@@ -11,6 +11,17 @@ async function getUserId(): Promise<string | null> {
     if (!id || id === 'undefined' || id === 'null') return null
     return id
   } catch { return null }
+}
+
+async function deleteTransactionAttachment(userId: string, transactionId: string, tx: Transaction) {
+  if (!tx.attachmentPath || !tx.attachmentPath.startsWith(`users/${userId}/transactions/${transactionId}/`)) return
+
+  try {
+    const bucket = getAdminStorageBucket()
+    await bucket.file(tx.attachmentPath).delete({ ignoreNotFound: true })
+  } catch {
+    // Attachment cleanup is non-fatal; the transaction delete should still finish.
+  }
 }
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
@@ -176,6 +187,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     const snap = await ref.get()
     if (snap.exists()) {
       const tx: Transaction = snap.val()
+      await deleteTransactionAttachment(userId, params.id, tx)
       if (tx.type === 'credit_expense' && tx.creditCardId) {
         const ccSnap = await db.ref(`users/${userId}/creditCards/${tx.creditCardId}`).get()
         if (ccSnap.exists()) {

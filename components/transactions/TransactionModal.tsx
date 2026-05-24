@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import type { ChangeEvent, KeyboardEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ArrowDownCircle, ArrowUpCircle, ArrowLeftRight, ChevronRight, Search, User, CheckCircle2, AlertCircle } from 'lucide-react'
+import { X, ArrowDownCircle, ArrowUpCircle, ArrowLeftRight, ChevronRight, Search, User, CheckCircle2, AlertCircle, Camera, FileText } from 'lucide-react'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useApiList } from '@/hooks/useApiData'
 import type { Category, Transaction, TransactionType, WalletType, WalletAccount, CreditCard } from '@/types'
@@ -12,6 +13,7 @@ import { isCreditCardPayment } from '@/lib/transaction-rules'
 import toast from 'react-hot-toast'
 import type { RecurringFrequency } from '@/types'
 import { SkeletonCard } from '@/components/shared/Skeleton'
+import { AttachmentLightbox } from '@/components/transactions/AttachmentLightbox'
 
 const RECURRING_FREQS: { value: RecurringFrequency; label: string; icon: string }[] = [
   { value: 'daily',   label: 'Harian',   icon: '🌅' },
@@ -45,6 +47,28 @@ interface LookupResult {
   walletAccounts: { id: string; name: string; type: string }[]
 }
 
+interface AttachmentState {
+  url?: string
+  path?: string
+  type?: 'image' | 'pdf'
+  size?: number
+  localFile?: File
+}
+
+interface AttachmentUploadResponse {
+  url: string
+  path: string | null
+  type: 'image' | 'pdf'
+  size: number
+}
+
+const ALLOWED_ATTACHMENT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+const MAX_ATTACHMENT_SIZE = 6 * 1024 * 1024
+
+function getEditableTags(transaction?: Transaction) {
+  return transaction?.tags?.filter((tag) => tag !== 'credit_card_payment' && !tag.startsWith('cc_')) || []
+}
+
 export function TransactionModal({ transaction, defaultType = 'expense', onClose }: Props) {
   const { addTransaction, updateTransaction } = useTransactions()
   const { data: categories, loading: catsLoading } = useApiList<Category>('/api/categories')
@@ -60,6 +84,18 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
   const [description, setDescription] = useState(transaction?.description || '')
   const [date,        setDate       ] = useState(transaction?.date || new Date().toISOString().split('T')[0])
   const [saving,      setSaving     ] = useState(false)
+  const [attachment, setAttachment] = useState<AttachmentState>({
+    url: transaction?.attachmentUrl,
+    path: transaction?.attachmentPath,
+    type: transaction?.attachmentType,
+    size: transaction?.attachmentSize,
+  })
+  const [uploadingAttachment, setUploadingAttachment] = useState(false)
+  const [showLightbox, setShowLightbox] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [tags, setTags] = useState<string[]>(getEditableTags(transaction))
+  const [tagInputValue, setTagInputValue] = useState('')
+  const { data: recentTags } = useApiList<{ tag: string; count: number }>('/api/tags/recent', { refreshMs: 60000 })
 
   // Wallet selection
   const [wallet,            setWallet           ] = useState<WalletType>(transaction?.wallet   || 'cash')
@@ -90,6 +126,12 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
   const [toExtAccountId,  setToExtAccountId ] = useState('')
   const [toExtWalletType, setToExtWalletType] = useState('')
   const lookupDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (attachment.url?.startsWith('blob:')) URL.revokeObjectURL(attachment.url)
+    }
+  }, [attachment.url])
 
   // Recurring transaction toggle
   const [isRecurring,        setIsRecurring       ] = useState(false)
@@ -138,6 +180,112 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
     setAmount(parseInt(numeric, 10).toLocaleString('id-ID'))
   }
   const getRawAmount = () => parseFloat(amount.replace(/\./g, '').replace(',', '.')) || 0
+
+  const handlePickFile = () => fileInputRef.current?.click()
+
+  const uploadAttachment = async (file: File, txId: string) => {
+    setUploadingAttachment(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await fetch(`/api/transactions/${txId}/attachment`, { method: 'POST', body: formData })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error || 'Gagal upload struk')
+
+      const data = json.data as AttachmentUploadResponse
+      setAttachment({
+        url: data.url,
+        path: data.path || undefined,
+        type: data.type,
+        size: data.size,
+      })
+      toast.success('Struk tersimpan ✓')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Gagal upload struk')
+    } finally {
+      setUploadingAttachment(false)
+    }
+  }
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    if (file.size > MAX_ATTACHMENT_SIZE) {
+      toast.error('Ukuran maksimal 6 MB')
+      return
+    }
+    if (!ALLOWED_ATTACHMENT_TYPES.includes(file.type)) {
+      toast.error('Format harus JPG/PNG/WEBP/PDF')
+      return
+    }
+
+    if (isEdit && transaction) {
+      await uploadAttachment(file, transaction.id)
+      return
+    }
+
+    const localUrl = URL.createObjectURL(file)
+    setAttachment({
+      url: localUrl,
+      type: file.type === 'application/pdf' ? 'pdf' : 'image',
+      size: file.size,
+      localFile: file,
+    })
+  }
+
+  const handleRemoveAttachment = async () => {
+    if (isEdit && transaction && attachment.url) {
+      setUploadingAttachment(true)
+      try {
+        const res = await fetch(`/api/transactions/${transaction.id}/attachment`, { method: 'DELETE' })
+        const json = await res.json()
+        if (!json.success) throw new Error(json.error || 'Gagal hapus struk')
+        setAttachment({})
+        toast.success('Struk dihapus')
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : 'Gagal hapus struk')
+      } finally {
+        setUploadingAttachment(false)
+      }
+      return
+    }
+
+    if (attachment.url?.startsWith('blob:')) URL.revokeObjectURL(attachment.url)
+    setAttachment({})
+  }
+
+  const addTag = (raw: string) => {
+    const clean = raw.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+    if (!clean) return
+    if (clean.length > 20) {
+      toast.error('Tag maksimal 20 karakter')
+      return
+    }
+    if (tags.length >= 8) {
+      toast.error('Maksimal 8 tag')
+      return
+    }
+    if (tags.includes(clean)) {
+      setTagInputValue('')
+      return
+    }
+    setTags((prev) => [...prev, clean])
+    setTagInputValue('')
+  }
+
+  const removeTag = (tag: string) => setTags((prev) => prev.filter((item) => item !== tag))
+
+  const handleTagInputKey = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter' || event.key === ',' || event.key === ' ') {
+      event.preventDefault()
+      if (tagInputValue) addTag(tagInputValue)
+    } else if (event.key === 'Backspace' && !tagInputValue && tags.length) {
+      setTags((prev) => prev.slice(0, -1))
+    }
+  }
 
   const getAccountsFor = (w: WalletType) => {
     if (w === 'bank')    return bankAccounts
@@ -334,10 +482,15 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
             paymentMethod:     (isCreditCard ? 'credit_card' : 'wallet') as 'wallet' | 'credit_card',
             creditCardId:      isCreditCard ? creditCardId  : undefined,
             creditCardName:    isCreditCard ? targetCard?.name : undefined,
+            tags:              tags.length > 0 ? tags : undefined,
           }
       let result
       if (isEdit) result = await updateTransaction(transaction.id, data)
       else        result = await addTransaction(data)
+
+      if (!isEdit && attachment.localFile && result?.id) {
+        await uploadAttachment(attachment.localFile, result.id)
+      }
 
       // Learn category mapping from description if user selected a category
       if (!isEdit && description && categoryId && type !== 'transfer') {
@@ -496,6 +649,148 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
             </div>
 
             {/* Category — skip for transfer and CC payment edits */}
+            {!isCCPaymentEdit && (
+              <div>
+                <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
+                  Tag
+                  <span className="ml-1 text-[9px] font-normal px-1.5 py-0.5 rounded-full"
+                    style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>opsional</span>
+                </label>
+                <div
+                  className="flex min-h-[44px] flex-wrap gap-1.5 rounded-xl p-2"
+                  style={{ background: 'var(--surface-btn)', border: '1px solid var(--border)' }}
+                >
+                  {tags.map((tag) => (
+                    <span key={tag}
+                      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold"
+                      style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
+                      #{tag}
+                      <button
+                        type="button"
+                        aria-label={`Hapus tag ${tag}`}
+                        onClick={() => removeTag(tag)}
+                        className="opacity-70 hover:opacity-100"
+                      >
+                        <X size={10} strokeWidth={2.5} />
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    type="text"
+                    value={tagInputValue}
+                    onChange={(event) => setTagInputValue(event.target.value)}
+                    onKeyDown={handleTagInputKey}
+                    onBlur={() => { if (tagInputValue) addTag(tagInputValue) }}
+                    placeholder={tags.length === 0 ? 'kerja, kopi, ...' : ''}
+                    className="min-w-[100px] flex-1 bg-transparent text-sm outline-none"
+                    style={{ color: 'var(--text-primary)' }}
+                  />
+                </div>
+
+                {recentTags.length > 0 && tags.length < 8 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Sering dipakai:</span>
+                    {recentTags
+                      .filter((recent) => !tags.includes(recent.tag))
+                      .slice(0, 8)
+                      .map((recent) => (
+                        <button
+                          key={recent.tag}
+                          type="button"
+                          onClick={() => addTag(recent.tag)}
+                          className="rounded px-1.5 py-0.5 text-[10px] font-medium"
+                          style={{ background: 'var(--surface-btn)', color: 'var(--text-secondary)' }}
+                        >
+                          #{recent.tag}
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div>
+              <label className="text-xs mb-1.5 block font-semibold" style={{ color: 'var(--text-muted)' }}>
+                Struk / Bukti
+                <span className="ml-1 text-[9px] font-normal px-1.5 py-0.5 rounded-full"
+                  style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>opsional</span>
+              </label>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                capture="environment"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+
+              {attachment.url ? (
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowLightbox(true)}
+                    className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl"
+                    style={{ border: '1px solid var(--border)' }}
+                  >
+                    {attachment.type === 'pdf' ? (
+                      <div className="flex h-full w-full flex-col items-center justify-center"
+                        style={{ background: 'var(--surface-2)' }}>
+                        <FileText size={24} style={{ color: 'var(--accent)' }} />
+                        <span className="mt-1 text-[9px] font-bold" style={{ color: 'var(--text-muted)' }}>
+                          PDF
+                        </span>
+                      </div>
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={attachment.url} alt="Struk" className="h-full w-full object-cover" />
+                    )}
+                    {uploadingAttachment && (
+                      <div className="absolute inset-0 flex items-center justify-center"
+                        style={{ background: 'rgba(0,0,0,0.45)' }}>
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      </div>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRemoveAttachment}
+                    disabled={uploadingAttachment}
+                    className="flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold"
+                    style={{
+                      background: 'var(--red-dim)',
+                      color: 'var(--red)',
+                      border: '1px solid rgba(248,113,113,0.25)',
+                      opacity: uploadingAttachment ? 0.7 : 1,
+                    }}
+                  >
+                    <X size={13} /> Hapus
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handlePickFile}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-all"
+                  style={{
+                    background: 'var(--accent-dim)',
+                    color: 'var(--accent)',
+                    border: '1px dashed var(--border-hover)',
+                  }}
+                >
+                  <Camera size={16} /> Tambah Foto / PDF
+                </button>
+              )}
+            </div>
+
+            {showLightbox && attachment.url && (
+              <AttachmentLightbox
+                url={attachment.url}
+                type={attachment.type || 'image'}
+                onClose={() => setShowLightbox(false)}
+              />
+            )}
+
             {type !== 'transfer' && !isCCPaymentEdit && (
               <div>
                 <label className="text-xs mb-2 block font-semibold" style={{ color: 'var(--text-muted)' }}>
@@ -914,10 +1209,10 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
             {/* Save button */}
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || uploadingAttachment}
               className="w-full py-4 flex items-center justify-center gap-2 rounded-2xl font-semibold text-base transition-all active:scale-[0.98]"
               style={{
-                background: saving
+                background: saving || uploadingAttachment
                   ? 'rgba(34,197,94,0.55)'
                   : type === 'expense'
                     ? 'linear-gradient(135deg, #ef4444, #dc2626)'
@@ -926,12 +1221,12 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
                       : 'linear-gradient(135deg, #3b82f6, #2563eb)',
                 color: '#fff',
                 border: 'none',
-                boxShadow: saving ? 'none' : '0 4px 16px rgba(0,0,0,0.18)',
-                opacity: saving ? 0.7 : 1,
-                cursor: saving ? 'not-allowed' : 'pointer',
+                boxShadow: saving || uploadingAttachment ? 'none' : '0 4px 16px rgba(0,0,0,0.18)',
+                opacity: saving || uploadingAttachment ? 0.7 : 1,
+                cursor: saving || uploadingAttachment ? 'not-allowed' : 'pointer',
                 fontFamily: 'var(--font-space)',
               }}>
-              {saving
+              {saving || uploadingAttachment
                 ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
                 : <span className="tracking-wide">
                     {type === 'transfer' && transferMode === 'external'

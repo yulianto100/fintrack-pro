@@ -36,6 +36,10 @@ export interface Transaction {
   walletAccountId?: string
   toWalletAccountId?: string
   tags?: string[]; createdAt: string; updatedAt: string
+  attachmentUrl?: string
+  attachmentPath?: string
+  attachmentType?: 'image' | 'pdf'
+  attachmentSize?: number
   // Credit card payment fields
   paymentMethod?:  'wallet' | 'credit_card'
   creditCardId?:   string
@@ -198,6 +202,7 @@ export interface ApiResponse<T> { success: boolean; data?: T; error?: string; me
 export interface TransactionFilters {
   month?: string; year?: string; categoryId?: string
   type?: TransactionType; wallet?: WalletType; search?: string
+  tags?: string[]
 }
 
 // ---- EXPORT ----

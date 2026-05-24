@@ -60,6 +60,7 @@ export async function GET(request: Request) {
   const type            = searchParams.get('type')
   const wallet          = searchParams.get('wallet')
   const walletAccountId = searchParams.get('walletAccountId')
+  const tagsParam       = searchParams.getAll('tag')
   const limit           = Math.min(parseInt(searchParams.get('limit') || '300'), 1000)
 
   try {
@@ -77,6 +78,9 @@ export async function GET(request: Request) {
     if (walletAccountId) list = list.filter(
       (t) => t.walletAccountId === walletAccountId || t.toWalletAccountId === walletAccountId
     )
+    if (tagsParam.length > 0) {
+      list = list.filter((t) => Array.isArray(t.tags) && tagsParam.some((tag) => t.tags?.includes(tag)))
+    }
 
     list.sort((a, b) => new Date(b.date || b.createdAt || '').getTime() - new Date(a.date || a.createdAt || '').getTime())
     return NextResponse.json({ success: true, data: list.slice(0, limit) })

@@ -146,6 +146,7 @@ export default function TransactionsPage() {
   } = useTransactions()
 
   const { data: categories } = useApiList<Category>('/api/categories')
+  const { data: recentTags } = useApiList<{ tag: string; count: number }>('/api/tags/recent', { refreshMs: 60000 })
 
   // Modal state
   const [modalOpen,    setModalOpen   ] = useState(false)
@@ -204,6 +205,15 @@ export default function TransactionsPage() {
     if (filters.wallet) {
       const walletLabel = filters.wallet === 'cash' ? 'Cash' : filters.wallet === 'bank' ? 'Bank' : 'E-Wallet'
       chips.push({ key: 'wallet', label: walletLabel, remove: () => setFilters({ ...filters, wallet: undefined }) })
+    }
+    if (filters.tags && filters.tags.length > 0) {
+      filters.tags.forEach((tag) => {
+        chips.push({
+          key: `tag-${tag}`,
+          label: `#${tag}`,
+          remove: () => setFilters((prev) => ({ ...prev, tags: prev.tags?.filter((item) => item !== tag) })),
+        })
+      })
     }
     return chips
   }, [filters, monthOptions, categories, setFilters])
@@ -386,6 +396,46 @@ export default function TransactionsPage() {
                     })}
                   </div>
                 </div>
+
+                {recentTags.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-1.5"
+                      style={{ color: 'var(--text-muted)' }}>
+                      Tag
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {recentTags.slice(0, 12).map((recent) => {
+                        const active = filters.tags?.includes(recent.tag) ?? false
+                        return (
+                          <button
+                            key={recent.tag}
+                            type="button"
+                            onClick={() => {
+                              setFilters((prev) => {
+                                const current = prev.tags || []
+                                return {
+                                  ...prev,
+                                  tags: active
+                                    ? current.filter((tag) => tag !== recent.tag)
+                                    : [...current, recent.tag],
+                                }
+                              })
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                            style={{
+                              background: active ? 'var(--accent-dim)' : 'var(--surface-2)',
+                              border: `1px solid ${active ? 'var(--border-hover)' : 'var(--border)'}`,
+                              color: active ? 'var(--accent)' : 'var(--text-secondary)',
+                            }}
+                          >
+                            #{recent.tag}
+                            <span className="ml-1 opacity-60">{recent.count}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* Clear filters */}
                 {hasActiveFilter && (

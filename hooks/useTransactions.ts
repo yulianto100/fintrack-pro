@@ -16,6 +16,7 @@ export function useTransactions() {
     if (filters.categoryId) p.set('categoryId', filters.categoryId)
     if (filters.type)       p.set('type',        filters.type)
     if (filters.wallet)     p.set('wallet',      filters.wallet)
+    filters.tags?.forEach((tag) => p.append('tag', tag))
     p.set('limit', '500')
     return `/api/transactions?${p.toString()}`
   }, [filters])
@@ -53,7 +54,7 @@ export function useTransactions() {
 
   // Helper: true when any filter is active
   const hasActiveFilter = useMemo(() =>
-    !!(filters.month || filters.categoryId || filters.type || filters.wallet),
+    !!(filters.month || filters.categoryId || filters.type || filters.wallet || (filters.tags && filters.tags.length > 0)),
     [filters]
   )
 

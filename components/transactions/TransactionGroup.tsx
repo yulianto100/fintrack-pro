@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState, useRef, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import { AnimatePresence, motion, useAnimation, useMotionValue, useTransform } from 'framer-motion'
-import { ArrowLeftRight, Trash2 } from 'lucide-react'
+import { ArrowLeftRight, Paperclip, Trash2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import {
   getTransactionMethodLabel,
@@ -347,12 +347,15 @@ function SwipeableRow({ transaction: t, hidden, onEdit, onDeleteStart, isLast }:
           </p>
         </div>
 
-        <p
-          className="max-w-[112px] flex-shrink-0 pl-2 text-right text-[13px] font-bold leading-tight font-mono"
-          style={{ color: amountMeta.color }}
-        >
-          {getAmountText(t, hidden)}
-        </p>
+        <div className="flex max-w-[122px] flex-shrink-0 items-center justify-end gap-1 pl-2">
+          {t.attachmentUrl && <Paperclip size={11} style={{ color: 'var(--text-muted)' }} />}
+          <p
+            className="text-right text-[13px] font-bold leading-tight font-mono"
+            style={{ color: amountMeta.color }}
+          >
+            {getAmountText(t, hidden)}
+          </p>
+        </div>
       </motion.div>
     </div>
   )
