@@ -14,6 +14,7 @@ import type {
   Deposit, BudgetStatus, SBNHolding, ReksadanaHolding,
 } from '@/types'
 import { QuickAddFAB } from '@/components/transactions/QuickAddFAB'
+import { ChatInput } from '@/components/transactions/ChatInput'
 import { CreditCardDashboardSection } from '@/components/credit-card/CreditCardDashboardSection'
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions'
 import { SmartInsights } from '@/components/dashboard/SmartInsights'
@@ -189,6 +190,7 @@ export default function DashboardPage() {
       </div>
 
       <QuickAddFAB />
+      <ChatInput />
     </div>
   )
 }

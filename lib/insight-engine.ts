@@ -1,6 +1,8 @@
 import type { Transaction, GoldHolding, StockHolding, Deposit, Insight, BudgetStatus } from '@/types'
 import { formatCurrency } from '@/lib/utils'
 import { isExpenseForSummary } from '@/lib/transaction-rules'
+import { detectAnomalies, anomaliesToInsights } from '@/lib/anomaly-detection'
+import { generateSavingTips, savingTipsToInsights } from '@/lib/saving-tips'
 
 function ym(d: Date = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
@@ -288,7 +290,17 @@ export function generateAllInsights(props: InsightEngineProps): Insight[] {
     })
   }
 
+  // ── Advanced Anomaly Detection ──────────────────────────────────────────────
+  const anomalies = detectAnomalies(transactions)
+  const anomalyInsights = anomaliesToInsights(anomalies)
+  insights.push(...anomalyInsights)
+
+  // ── Personalized Saving Tips ────────────────────────────────────────────────
+  const tips = generateSavingTips(transactions, budgets)
+  const tipInsights = savingTipsToInsights(tips.slice(0, 2)) // Max 2 tips
+  insights.push(...tipInsights)
+
   return insights
     .sort((a, b) => (b.priority || 0) - (a.priority || 0))
-    .slice(0, 8)
+    .slice(0, 10)
 }

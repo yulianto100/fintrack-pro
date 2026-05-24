@@ -130,7 +130,7 @@ function ActionList<T extends DashboardAction | (typeof TX_ACTIONS)[number]>({
           className="flex items-center gap-2.5"
         >
           <span
-            className="max-w-[190px] rounded-full px-3 py-1.5 text-xs font-semibold leading-none"
+            className="hidden max-w-[190px] rounded-full px-3 py-1.5 text-xs font-semibold leading-none sm:inline-flex"
             style={{
               background: 'var(--surface-3)',
               border: '1px solid var(--border)',
@@ -144,6 +144,8 @@ function ActionList<T extends DashboardAction | (typeof TX_ACTIONS)[number]>({
             type="button"
             whileTap={{ scale: 0.92 }}
             onClick={() => onAction(action)}
+            aria-label={action.label}
+            title={action.label}
             className="flex h-11 w-11 items-center justify-center rounded-full"
             style={{
               background: action.bg,

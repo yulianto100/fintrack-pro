@@ -12,6 +12,7 @@ import { SummaryCards }        from '@/components/transactions/SummaryCards'
 import { SmartInsight }        from '@/components/transactions/SmartInsight'
 import { EmptyState }          from '@/components/transactions/EmptyState'
 import { FloatingActionButton } from '@/components/transactions/FloatingActionButton'
+import { ChatInput } from '@/components/transactions/ChatInput'
 import type { Transaction, Category, TransactionType } from '@/types'
 
 // ─── Month picker helper ──────────────────────────────────────────────────────
@@ -467,6 +468,9 @@ export default function TransactionsPage() {
         variant="transaction"
         onSelect={openAdd}
       />
+
+      {/* ── AI Chat Input ── */}
+      <ChatInput />
     </div>
   )
 }

@@ -7,7 +7,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup": "node scripts/setup-env.mjs",
+    "doctor": "node scripts/doctor.mjs"
   },
   "dependencies": {
     "next": "14.2.5",

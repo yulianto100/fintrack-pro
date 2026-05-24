@@ -103,26 +103,90 @@ export function getLearntMappings(): Record<string, string> {
 }
 
 /**
+ * Fuzzy match score between two strings (0-1).
+ * Uses character overlap + substring matching.
+ */
+function fuzzyScore(input: string, keyword: string): number {
+  if (input === keyword) return 1
+  if (input.includes(keyword)) return 0.9
+  if (keyword.includes(input)) return 0.7
+
+  // Character-level similarity (Dice coefficient)
+  const bigrams = (s: string): Set<string> => {
+    const set = new Set<string>()
+    for (let i = 0; i < s.length - 1; i++) set.add(s.slice(i, i + 2))
+    return set
+  }
+
+  const aBigrams = bigrams(input)
+  const bBigrams = bigrams(keyword)
+  let intersection = 0
+  for (const bg of aBigrams) {
+    if (bBigrams.has(bg)) intersection++
+  }
+
+  return (2 * intersection) / (aBigrams.size + bBigrams.size)
+}
+
+/**
  * Suggest a category name based on description/keywords.
+ * Uses exact match first, then fuzzy matching as fallback.
  * Returns null if no match found.
  */
 export function suggestCategory(description: string): string | null {
   if (!description || description.length < 2) return null
 
   const lower = description.toLowerCase().trim()
+  const words = lower.split(/\s+/)
 
-  // 1. Check learned mappings first (higher priority)
+  // 1. Check learned mappings first (higher priority) — exact substring
   const learned = loadLearned()
   for (const [keyword, catName] of Object.entries(learned)) {
     if (lower.includes(keyword)) return catName
   }
 
-  // 2. Check default keyword map
+  // 2. Check default keyword map — exact substring
   for (const [keyword, catName] of Object.entries(DEFAULT_KEYWORD_MAP)) {
     if (lower.includes(keyword)) return catName
   }
 
-  return null
+  // 3. Multi-word matching: check each word individually
+  for (const word of words) {
+    if (word.length < 3) continue
+    // Learned
+    for (const [keyword, catName] of Object.entries(learned)) {
+      if (word === keyword) return catName
+    }
+    // Default
+    for (const [keyword, catName] of Object.entries(DEFAULT_KEYWORD_MAP)) {
+      if (word === keyword) return catName
+    }
+  }
+
+  // 4. Fuzzy matching as last resort (threshold: 0.75)
+  let bestMatch: { catName: string; score: number } | null = null
+
+  for (const word of words) {
+    if (word.length < 4) continue // Skip short words for fuzzy
+
+    for (const [keyword, catName] of Object.entries(DEFAULT_KEYWORD_MAP)) {
+      if (keyword.length < 3) continue
+      const score = fuzzyScore(word, keyword)
+      if (score >= 0.75 && (!bestMatch || score > bestMatch.score)) {
+        bestMatch = { catName, score }
+      }
+    }
+
+    for (const [keyword, catName] of Object.entries(learned)) {
+      if (keyword.length < 3) continue
+      const score = fuzzyScore(word, keyword)
+      if (score >= 0.75 && (!bestMatch || score > bestMatch.score)) {
+        bestMatch = { catName, score }
+      }
+    }
+  }
+
+  return bestMatch?.catName || null
 }
 
 /**
