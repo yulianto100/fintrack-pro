@@ -348,3 +348,21 @@ export interface CreditCardInsight {
   title: string
   message: string
 }
+
+export interface TransactionTemplate {
+  id: string
+  userId: string
+  type: 'income' | 'expense'
+  amount: number
+  categoryId: string
+  categoryName?: string
+  categoryIcon?: string
+  description: string
+  wallet?: WalletType
+  walletAccountId?: string
+  emoji?: string
+  createdAt: string
+  updatedAt: string
+  lastUsedAt?: string
+  useCount: number
+}

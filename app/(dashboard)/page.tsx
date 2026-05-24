@@ -26,6 +26,7 @@ import { MonthlyCashflowCard } from '@/components/dashboard/MonthlyCashflowCard'
 import { NetWorthCard } from '@/components/dashboard/NetWorthCard'
 import { WalletSection } from '@/components/dashboard/WalletSection'
 import { SkeletonHero } from '@/components/shared/Skeleton'
+import { QuickTemplates } from '@/components/dashboard/QuickTemplates'
 
 export default function DashboardPage() {
   const { data: session } = useSession()
@@ -158,6 +159,8 @@ export default function DashboardPage() {
           balance={monthStats.balance}
           hidden={hidden}
         />
+
+        <QuickTemplates />
 
         <StreakBanner />
 
