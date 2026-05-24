@@ -118,11 +118,14 @@ export function InvestmentFlow({
     return map[s]
   }
 
-  const activeWallet = enableWalletSelection
-    ? selectedWallet
-    : defaultWallet
-      ? { type: defaultWallet.type, accountId: defaultWallet.accountId ?? null, name: '', balance: 0, icon: '' }
-      : null
+  const activeWallet = useMemo(
+    () => enableWalletSelection
+      ? selectedWallet
+      : defaultWallet
+        ? { type: defaultWallet.type, accountId: defaultWallet.accountId ?? null, name: '', balance: 0, icon: '' }
+        : null,
+    [defaultWallet, enableWalletSelection, selectedWallet]
+  )
 
   const walletKey = activeWallet
     ? `${activeWallet.type}${activeWallet.accountId ? `:${activeWallet.accountId}` : ''}`

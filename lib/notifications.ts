@@ -22,12 +22,26 @@ type Deposit = {
   notificationSent?: Record<string, boolean>
 }
 
-// Configure web-push
-webpush.setVapidDetails(
-  process.env.VAPID_EMAIL || 'mailto:admin@finuvo.app',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '',
-  process.env.VAPID_PRIVATE_KEY || ''
-)
+let vapidConfigured = false
+
+function configureWebPush(): boolean {
+  if (vapidConfigured) return true
+
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+  const privateKey = process.env.VAPID_PRIVATE_KEY
+  if (!publicKey || !privateKey) {
+    console.warn('Push notification skipped: VAPID keys belum dikonfigurasi.')
+    return false
+  }
+
+  webpush.setVapidDetails(
+    process.env.VAPID_EMAIL || 'mailto:admin@finuvo.app',
+    publicKey,
+    privateKey
+  )
+  vapidConfigured = true
+  return true
+}
 
 export async function sendPushNotification(
   userId: string,
@@ -36,6 +50,8 @@ export async function sendPushNotification(
   data?: Record<string, unknown>
 ): Promise<boolean> {
   try {
+    if (!configureWebPush()) return false
+
     const db = getAdminDatabase()
     const subsRef = db.ref(`users/${userId}/pushSubscriptions`)
     const snapshot = await subsRef.get()

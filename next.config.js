@@ -2,7 +2,14 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['lh3.googleusercontent.com', 'avatars.githubusercontent.com', 'firebasestorage.googleapis.com'],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      { protocol: 'https', hostname: 'avatars.githubusercontent.com' },
+      { protocol: 'https', hostname: 'firebasestorage.googleapis.com' },
+      { protocol: 'https', hostname: 'upload.wikimedia.org' },
+      { protocol: 'https', hostname: 'commons.wikimedia.org' },
+      { protocol: 'https', hostname: 'logo.clearbit.com' },
+    ],
   },
   async headers() {
     return [

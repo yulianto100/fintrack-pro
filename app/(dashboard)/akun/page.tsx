@@ -25,6 +25,7 @@ import { AddAccountModal }    from '@/components/account/AddAccountModal'
 import { PayCreditCardModal } from '@/components/credit-card/PayCreditCardModal'
 import { CreditCardTransactionList } from '@/components/credit-card/CreditCardTransactionList'
 import { AccountTransactionList }    from '@/components/account/AccountTransactionList'
+import { BankLogo }                  from '@/components/shared/BankLogo'
 
 import {
   LiveIndicator,
@@ -44,70 +45,10 @@ import {
 } from '@/components/account/AccountDetailShared'
 
 import type { UnifiedAccount, AccountType } from '@/types/account'
-import { getProviderInfo, calcAccountSummary } from '@/types/account'
+import { calcAccountSummary } from '@/types/account'
 import type { CreditCard, Transaction } from '@/types'
 
 // â”€â”€ Provider logo map (same as AccountItem) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const PROVIDER_LOGOS: Record<string, string> = {
-  bca:       '/bank-icons/bca.png',
-  mandiri:   '/bank-icons/mandiri.png',
-  bri:       '/bank-icons/bri.png',
-  bni:       '/bank-icons/bni.png',
-  cimb:      '/bank-icons/cimb.png',
-  jago:      '/bank-icons/jago.png',
-  jenius:    '/bank-icons/jenius.png',
-  bsi:       '/bank-icons/bsi.png',
-  permata:   '/bank-icons/permata.png',
-  danamon:   '/bank-icons/danamon.png',
-  ocbc:      '/bank-icons/ocbc.png',
-  btn:       '/bank-icons/btn.png',
-  sinarmas:  '/bank-icons/sinarmas.png',
-  panin:     '/bank-icons/panin.png',
-  mega:      '/bank-icons/mega.png',
-  gopay:     '/bank-icons/gopay.png',
-  ovo:       '/bank-icons/ovo.png',
-  dana:      '/bank-icons/dana.png',
-  shopeepay: '/bank-icons/shopeepay.png',
-  linkaja:   '/bank-icons/linkaja.png',
-  flip:      '/bank-icons/flip.png',
-}
-
-function getLogoUrl(providerId?: string, providerName?: string): string | null {
-  const key = ((providerId ?? '') + ' ' + (providerName ?? '')).toLowerCase().replace(/\s+/g, '')
-  for (const [id, url] of Object.entries(PROVIDER_LOGOS)) {
-    if (key.includes(id)) return url
-  }
-  return null
-}
-
-function ProviderIcon({ providerId, providerName, size = 44 }: {
-  providerId?: string; providerName?: string; size?: number
-}) {
-  const info    = getProviderInfo(providerId ?? '', providerName ?? '')
-  const logoUrl = getLogoUrl(providerId, providerName)
-  const [errored, setErrored] = useState(false)
-  const hasLogo = logoUrl && !errored
-
-  return (
-    <div className="flex-shrink-0 overflow-hidden" style={{
-      width: size, height: size, borderRadius: 12,
-      background:  hasLogo ? 'transparent' : info.bg,
-      border:      hasLogo ? '1px solid rgba(255,255,255,0.08)' : 'none',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}>
-      {hasLogo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={logoUrl!} alt={providerName ?? ''} onError={() => setErrored(true)}
-          style={{ width: size, height: size, objectFit: 'cover', display: 'block' }} />
-      ) : (
-        <span className="font-extrabold" style={{ color: info.color, fontSize: size * 0.26 }}>
-          {info.abbr}
-        </span>
-      )}
-    </div>
-  )
-}
-
 function safeNumber(value: unknown): number {
   const n = Number(value)
   return Number.isFinite(n) ? n : 0
@@ -328,7 +269,7 @@ function AccountBalanceCard({
       <div className="relative">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <ProviderIcon providerId={account.providerId} providerName={providerName} size={46} />
+            <BankLogo provider={account.providerId || providerName || account.name} size={46} rounded={12} className="flex-shrink-0" />
             <div className="min-w-0">
               <p className="text-[14px] font-bold truncate" style={{ color: 'var(--account-balance-heading)' }}>{account.name}</p>
               <p className="text-[12px] mt-0.5 truncate" style={{ color: 'var(--account-balance-muted)' }}>
@@ -609,7 +550,7 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
       <div className="px-4 mb-1">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <ProviderIcon providerId={account.providerId} providerName={providerName} size={46} />
+            <BankLogo provider={account.providerId || providerName || account.name} size={46} rounded={12} className="flex-shrink-0" />
             <div className="min-w-0">
             <p className="text-[18px] font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
               {account.name}
@@ -763,7 +704,7 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
       <SectionReveal className="relative z-10 px-4 mb-5" delay={0.02}>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <ProviderIcon providerId={account.providerId} providerName={providerName} size={46} />
+            <BankLogo provider={account.providerId || providerName || account.name} size={46} rounded={12} className="flex-shrink-0" />
             <div className="min-w-0">
             <p className="text-[22px] font-bold truncate" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-syne)' }}>
               {account.name}

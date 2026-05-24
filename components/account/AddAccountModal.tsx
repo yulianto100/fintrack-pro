@@ -5,73 +5,18 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Building2, CreditCard, Wallet, ChevronLeft } from 'lucide-react'
 import { useAccounts }             from '@/hooks/useAccounts'
 import type { AccountType }        from '@/types/account'
+import { BANK_LOGOS, type BankLogoEntry } from '@/lib/bank-logos'
+import { BankLogo } from '@/components/shared/BankLogo'
 
 // ── Provider data with logos ──────────────────────────────────
-interface ProviderInfo {
-  name:    string
-  logoUrl: string
-}
+type ProviderInfo = Pick<BankLogoEntry, 'id' | 'name' | 'type'>
 
-const BANK_PROVIDERS: ProviderInfo[] = [
-  { name: 'BCA',        logoUrl: '/bank-icons/bca.png'      },
-  { name: 'Mandiri',    logoUrl: '/bank-icons/mandiri.png'   },
-  { name: 'BRI',        logoUrl: '/bank-icons/bri.png'       },
-  { name: 'BNI',        logoUrl: '/bank-icons/bni.png'       },
-  { name: 'UOB',        logoUrl: ''                          },
-  { name: 'CIMB Niaga', logoUrl: '/bank-icons/cimb.png'      },
-  { name: 'Jago',       logoUrl: '/bank-icons/jago.png'      },
-  { name: 'Jenius',     logoUrl: '/bank-icons/jenius.png'    },
-  { name: 'BSI',        logoUrl: '/bank-icons/bsi.png'       },
-  { name: 'Permata',    logoUrl: '/bank-icons/permata.png'   },
-  { name: 'Danamon',    logoUrl: '/bank-icons/danamon.png'   },
-  { name: 'OCBC',       logoUrl: '/bank-icons/ocbc.png'      },
-  { name: 'BTN',        logoUrl: '/bank-icons/btn.png'       },
-  { name: 'Sinarmas',   logoUrl: '/bank-icons/sinarmas.png'  },
-  { name: 'Panin',      logoUrl: '/bank-icons/panin.png'     },
-  { name: 'Mega',       logoUrl: '/bank-icons/mega.png'      },
-]
-
-const EWALLET_PROVIDERS: ProviderInfo[] = [
-  { name: 'GoPay',     logoUrl: '/bank-icons/gopay.png'     },
-  { name: 'OVO',       logoUrl: '/bank-icons/ovo.png'       },
-  { name: 'DANA',      logoUrl: '/bank-icons/dana.png'      },
-  { name: 'ShopeePay', logoUrl: '/bank-icons/shopeepay.png' },
-  { name: 'LinkAja',   logoUrl: '/bank-icons/linkaja.png'   },
-  { name: 'Flip',      logoUrl: '/bank-icons/flip.png'      },
-]
+const BANK_PROVIDERS: ProviderInfo[] = BANK_LOGOS.filter((provider) => provider.type === 'bank')
+const EWALLET_PROVIDERS: ProviderInfo[] = BANK_LOGOS.filter((provider) => provider.type === 'ewallet')
 
 const CARD_COLORS = [
   '#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4',
 ]
-
-// ── Provider Logo component ───────────────────────────────────
-function ProviderLogo({ logoUrl, name, size = 28 }: { logoUrl: string; name: string; size?: number }) {
-  const [errored, setErrored] = useState(false)
-  const compactName = name.replace(/[^a-z0-9]/gi, '').toUpperCase()
-  const fallbackText = compactName.length <= 3 ? compactName : compactName.slice(0, 2)
-
-  if (!logoUrl || errored) {
-    return (
-      <div
-        className="rounded-lg flex items-center justify-center flex-shrink-0"
-        style={{ width: size, height: size, background: 'var(--accent-dim)', fontSize: size * 0.35, fontWeight: 700, color: 'var(--accent)' }}
-      >
-        {fallbackText}
-      </div>
-    )
-  }
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={logoUrl}
-      alt={name}
-      width={size}
-      height={size}
-      onError={() => setErrored(true)}
-      style={{ objectFit: 'contain', flexShrink: 0, width: size, height: size }}
-    />
-  )
-}
 
 // ── Shared modal wrapper ──────────────────────────────────────
 function ModalWrapper({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
@@ -180,7 +125,7 @@ function ProviderChipPicker({
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
               >
-                <ProviderLogo logoUrl={p.logoUrl} name={p.name} size={18} />
+                <BankLogo provider={p.id} size={18} rounded={6} />
               </div>
               <span
                 style={{
@@ -213,11 +158,7 @@ function ProviderChipPicker({
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            <ProviderLogo
-              logoUrl={providers.find(p => p.name === selected)?.logoUrl ?? ''}
-              name={selected}
-              size={28}
-            />
+            <BankLogo provider={providers.find(p => p.name === selected)?.id ?? selected} size={28} rounded={9} />
           </div>
           <div className="flex-1">
             <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{selected}</p>

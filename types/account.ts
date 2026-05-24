@@ -5,6 +5,7 @@
 // ============================================================
 
 import type { CreditCard, WalletAccount } from './index'
+import { getBankLogo } from '@/lib/bank-logos'
 
 // ── Unified display type ─────────────────────────────────────
 export type AccountType = 'bank' | 'credit' | 'ewallet'
@@ -89,45 +90,25 @@ export interface ProviderInfo {
   bg:     string
 }
 
-const PROVIDER_MAP: Record<string, ProviderInfo> = {
-  bca:          { label: 'BCA',        abbr: 'BCA', color: '#005ea6', bg: 'rgba(0,94,166,0.15)'    },
-  mandiri:      { label: 'Mandiri',    abbr: 'MDR', color: '#003f80', bg: 'rgba(0,63,128,0.15)'    },
-  bri:          { label: 'BRI',        abbr: 'BRI', color: '#00529b', bg: 'rgba(0,82,155,0.15)'    },
-  bni:          { label: 'BNI',        abbr: 'BNI', color: '#f68b1e', bg: 'rgba(246,139,30,0.15)'  },
-  uob:          { label: 'UOB',        abbr: 'UOB', color: '#005eb8', bg: 'rgba(0,94,184,0.15)'    },
-  cimbniaga:    { label: 'CIMB',       abbr: 'CMB', color: '#cc0001', bg: 'rgba(204,0,1,0.15)'     },
-  cimb:         { label: 'CIMB',       abbr: 'CMB', color: '#cc0001', bg: 'rgba(204,0,1,0.15)'     },
-  ocbc:         { label: 'OCBC',       abbr: 'OBC', color: '#e2231a', bg: 'rgba(226,35,26,0.15)'   },
-  danamon:      { label: 'Danamon',    abbr: 'DNM', color: '#e94e1b', bg: 'rgba(233,78,27,0.15)'   },
-  permata:      { label: 'Permata',    abbr: 'PMT', color: '#e30613', bg: 'rgba(227,6,19,0.15)'    },
-  jago:         { label: 'Jago',       abbr: 'JGO', color: '#ff6a00', bg: 'rgba(255,106,0,0.15)'   },
-  jenius:       { label: 'Jenius',     abbr: 'JNS', color: '#0099a9', bg: 'rgba(0,153,169,0.15)'   },
-  bsimobile:    { label: 'BSI',        abbr: 'BSI', color: '#00563f', bg: 'rgba(0,86,63,0.15)'     },
-  bsi:          { label: 'BSI',        abbr: 'BSI', color: '#00563f', bg: 'rgba(0,86,63,0.15)'     },
-  gopay:        { label: 'GoPay',      abbr: 'GP',  color: '#00aed6', bg: 'rgba(0,174,214,0.15)'   },
-  ovo:          { label: 'OVO',        abbr: 'OVO', color: '#4c3494', bg: 'rgba(76,52,148,0.15)'   },
-  dana:         { label: 'DANA',       abbr: 'DNA', color: '#118eea', bg: 'rgba(17,142,234,0.15)'  },
-  shopeepay:    { label: 'ShopeePay', abbr: 'SPY', color: '#ee4d2d', bg: 'rgba(238,77,45,0.15)'   },
-  linkaja:      { label: 'LinkAja',   abbr: 'LJA', color: '#e82529', bg: 'rgba(232,37,41,0.15)'   },
-  flip:         { label: 'Flip',       abbr: 'FLP', color: '#3d7cbf', bg: 'rgba(61,124,191,0.15)'  },
-}
-
 export function getProviderInfo(providerId: string, fallbackName: string): ProviderInfo {
   const id = (providerId ?? '').toLowerCase().replace(/\s+/g, '')
-  // exact match
-  if (PROVIDER_MAP[id]) return PROVIDER_MAP[id]
-  // partial match
-  for (const [key, info] of Object.entries(PROVIDER_MAP)) {
-    if (id.includes(key) || key.includes(id)) return info
+  const logo = getBankLogo(providerId) ?? getBankLogo(fallbackName)
+  if (logo) {
+    return {
+      label: logo.name,
+      abbr: logo.abbr,
+      color: logo.brandColor,
+      bg: `${logo.brandColor}26`,
+    }
   }
-  // fallback: derive abbr and use accent color
+
   const abbr = fallbackName
     ?.split(' ')
     .map(w => w[0])
     .join('')
     .slice(0, 3)
     .toUpperCase() || '?'
-  return { label: fallbackName || id, abbr, color: '#22c55e', bg: 'rgba(34,197,94,0.15)' }
+  return { label: fallbackName || id, abbr, color: 'var(--accent)', bg: 'var(--accent-dim)' }
 }
 
 // ── Summary calculations ──────────────────────────────────────

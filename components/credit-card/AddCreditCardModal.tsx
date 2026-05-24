@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, CreditCard } from 'lucide-react'
 import { useCreditCards } from '@/hooks/useCreditCards'
+import { BankLogo } from '@/components/shared/BankLogo'
 
 const CARD_COLORS = [
   '#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4',
@@ -154,14 +155,15 @@ export function AddCreditCardModal({ onClose, onSuccess }: Props) {
                       <button
                         key={b}
                         onClick={() => setBankName(b)}
-                        className="px-2.5 py-1 rounded-full text-[11px] font-medium transition-all"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all"
                         style={{
                           background: bankName === b ? 'rgba(34,197,94,0.15)' : 'var(--surface-btn)',
                           border:     `1px solid ${bankName === b ? 'rgba(34,197,94,0.40)' : 'var(--border)'}`,
                           color:      bankName === b ? 'var(--accent)' : 'var(--text-secondary)',
                         }}
                       >
-                        {b}
+                        <BankLogo provider={b} size={16} rounded={5} />
+                        <span>{b}</span>
                       </button>
                     ))}
                   </div>

@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { Eye, EyeOff } from 'lucide-react'
 import type { CreditCard as CreditCardType } from '@/types'
+import { BankLogo } from '@/components/shared/BankLogo'
 
 interface Props {
   card: CreditCardType
@@ -14,18 +15,6 @@ function usageColor(pct: number): { bar: string; glow: string; text: string } {
   if (pct >= 70) return { bar: 'linear-gradient(90deg,#ef4444aa,#ef4444)', glow: '#ef444460', text: '#ef4444' }
   if (pct >= 30) return { bar: 'linear-gradient(90deg,#f59e0baa,#f59e0b)', glow: '#f59e0b60', text: '#f59e0b' }
   return { bar: 'linear-gradient(90deg,#22c55eaa,#22c55e)', glow: '#22c55e60', text: '#22c55e' }
-}
-
-function bankInitials(name: string): string {
-  const map: Record<string, string> = {
-    bca: 'BCA', bni: 'BNI', bri: 'BRI', mandiri: 'MDR',
-    uob: 'UOB', cimb: 'CIMB', ocbc: 'OCBC', danamon: 'DNM', permata: 'PMT',
-  }
-  const key = name.toLowerCase().replace(/\s+/g, '')
-  for (const [k, v] of Object.entries(map)) {
-    if (key.includes(k)) return v
-  }
-  return name.slice(0, 3).toUpperCase()
 }
 
 function formatDue(day: number): string {
@@ -42,8 +31,6 @@ export function CreditCardHero({ card, hidden = false, onToggleHidden }: Props) 
 
   const fmt = (n: number) =>
     hidden ? '••••••' : `Rp ${n.toLocaleString('id-ID')}`
-
-  const initials = card.bankName ? bankInitials(card.bankName) : '●'
 
   return (
     <motion.div
@@ -79,17 +66,21 @@ export function CreditCardHero({ card, hidden = false, onToggleHidden }: Props) 
       {/* Row 1: Bank + card name + eye */}
       <div className="relative flex items-start justify-between mb-4">
         <div className="flex items-center gap-2.5">
-          <div
-            className="px-2.5 py-1 rounded-lg text-[11px] font-bold tracking-wider"
-            style={{
-              background: 'rgba(34,197,94,0.13)',
-              border: '1px solid rgba(34,197,94,0.25)',
-              color: '#22c55e',
-              fontFamily: 'var(--font-jetbrains)',
-            }}
-          >
-            {initials}
-          </div>
+          {card.bankName ? (
+            <BankLogo provider={card.bankName} size={34} rounded={10} />
+          ) : (
+            <div
+              className="px-2.5 py-1 rounded-lg text-[11px] font-bold tracking-wider"
+              style={{
+                background: 'rgba(34,197,94,0.13)',
+                border: '1px solid rgba(34,197,94,0.25)',
+                color: '#22c55e',
+                fontFamily: 'var(--font-jetbrains)',
+              }}
+            >
+              •
+            </div>
+          )}
           <div>
             <p className="font-bold text-base leading-tight" style={{ color: '#fff', fontFamily: 'var(--font-syne)' }}>
               {card.name}

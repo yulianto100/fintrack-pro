@@ -1,42 +1,9 @@
 'use client'
 
-import { memo, useState } from 'react'
+import { memo } from 'react'
 import { ChevronRight } from 'lucide-react'
 import type { UnifiedAccount } from '@/types/account'
-import { getProviderInfo } from '@/types/account'
-
-// ── Logo map by provider name/id ──────────────────────────────
-const PROVIDER_LOGOS: Record<string, string> = {
-  bca:       '/bank-icons/bca.png',
-  mandiri:   '/bank-icons/mandiri.png',
-  bri:       '/bank-icons/bri.png',
-  bni:       '/bank-icons/bni.png',
-  cimb:      '/bank-icons/cimb.png',
-  jago:      '/bank-icons/jago.png',
-  jenius:    '/bank-icons/jenius.png',
-  bsi:       '/bank-icons/bsi.png',
-  permata:   '/bank-icons/permata.png',
-  danamon:   '/bank-icons/danamon.png',
-  ocbc:      '/bank-icons/ocbc.png',
-  btn:       '/bank-icons/btn.png',
-  sinarmas:  '/bank-icons/sinarmas.png',
-  panin:     '/bank-icons/panin.png',
-  mega:      '/bank-icons/mega.png',
-  gopay:     '/bank-icons/gopay.png',
-  ovo:       '/bank-icons/ovo.png',
-  dana:      '/bank-icons/dana.png',
-  shopeepay: '/bank-icons/shopeepay.png',
-  linkaja:   '/bank-icons/linkaja.png',
-  flip:      '/bank-icons/flip.png',
-}
-
-function getLogoUrl(providerId?: string, providerName?: string): string | null {
-  const key = ((providerId ?? '') + ' ' + (providerName ?? '')).toLowerCase().replace(/\s+/g, '')
-  for (const [id, url] of Object.entries(PROVIDER_LOGOS)) {
-    if (key.includes(id)) return url
-  }
-  return null
-}
+import { BankLogo } from '@/components/shared/BankLogo'
 
 // ── helpers ──────────────────────────────────────────────────
 function fmtBalance(n: number, hidden: boolean): string {
@@ -54,58 +21,6 @@ function usageColor(pct: number): { bar: string; text: string; label: string } {
   if (pct >= 80) return { bar: '#ef4444', text: '#ef4444', label: 'Hampir penuh' }
   if (pct >= 50) return { bar: '#f59e0b', text: '#f59e0b', label: 'Perlu perhatian' }
   return { bar: 'var(--accent)', text: 'var(--accent)', label: 'Aman' }
-}
-
-// ── Provider icon badge ───────────────────────────────────────
-function ProviderBadge({ providerId, providerName }: { providerId?: string; providerName?: string }) {
-  const info    = getProviderInfo(providerId ?? '', providerName ?? '')
-  const logoUrl = getLogoUrl(providerId, providerName)
-  const [errored, setErrored] = useState(false)
-
-  const hasLogo = logoUrl && !errored
-
-  return (
-    <div
-      className="flex-shrink-0 overflow-hidden"
-      style={{
-        width:        40,
-        height:       40,
-        borderRadius: 12,
-        // No background when we have a real logo — icon fills the space cleanly
-        // Fallback abbr badge keeps a subtle tinted bg so text is readable
-        background:   hasLogo ? 'transparent' : info.bg,
-        border:       hasLogo
-          ? '1px solid rgba(255,255,255,0.08)'   // thin border for edge definition
-          : 'none',
-        display:      'flex',
-        alignItems:   'center',
-        justifyContent: 'center',
-      }}
-    >
-      {hasLogo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={logoUrl}
-          alt={providerName ?? ''}
-          onError={() => setErrored(true)}
-          style={{
-            width:      40,
-            height:     40,
-            objectFit:  'cover',   // fill the container — no dead space
-            display:    'block',
-          }}
-        />
-      ) : (
-        /* Fallback: abbreviated text on tinted bg */
-        <span
-          className="text-[10px] font-extrabold tracking-tight leading-none"
-          style={{ color: info.color }}
-        >
-          {info.abbr}
-        </span>
-      )}
-    </div>
-  )
 }
 
 // ── Credit card row ───────────────────────────────────────────
@@ -261,7 +176,7 @@ export const AccountItem = memo(function AccountItem({
       }}
     >
       {/* Provider badge */}
-      <ProviderBadge providerId={account.providerId} providerName={account.providerName} />
+      <BankLogo provider={account.providerId || account.providerName || account.name} size={40} rounded={12} className="flex-shrink-0" />
 
       {/* Content */}
       <div className="flex-1 min-w-0">

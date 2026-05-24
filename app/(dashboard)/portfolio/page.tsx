@@ -441,7 +441,7 @@ function PortfolioContent() {
   const totalWalletBalance = walletBalances.cash + walletBalances.bank + walletBalances.ewallet
 
   // ── Existing investmentSections (UNCHANGED) ─────────────────────────────
-  const investmentSections = [
+  const investmentSections = useMemo(() => [
     { href: '/portfolio/emas',     icon: '🥇', title: 'Emas',      color: '#f6cc60',
       subtitle: `${formatNumber(goldSummary.totalGrams, 3)} gram`,  value: goldSummary.totalValue,
       meta: goldPrices?.antam ? `Antam: ${formatCurrency(goldPrices.antam.sellPrice)}/gr` : 'Memuat...',
@@ -469,7 +469,7 @@ function PortfolioContent() {
       metaColor: reksadanaSummary.pnl >= 0 ? 'var(--accent)' : 'var(--red)',
       pct: totalPortfolio > 0 ? (reksadanaSummary.totalValue / totalPortfolio) * 100 : 0,
       pnl: reksadanaSummary.pnl },
-  ]
+  ], [goldSummary, goldPrices?.antam, stockSummary, stocks.length, depositSummary, totalPortfolio, sbnSummary, reksadanaSummary])
 
   const pieData = investmentSections.filter((s) => s.pct > 0)
     .map((s) => ({ name: s.title, value: s.pct, amount: s.value, color: s.color }))

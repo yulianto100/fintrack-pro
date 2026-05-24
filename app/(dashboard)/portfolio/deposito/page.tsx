@@ -7,6 +7,7 @@ import { formatCurrency, formatDate, formatNumber, enrichDeposit, capitalizeFirs
 import type { Deposit, DepositWithCountdown, WalletType } from '@/types'
 import { Plus, Trash2, Bell, Clock, CheckCircle, X, Sparkles, Pencil, AlertCircle, Wallet, CheckCircle2 } from 'lucide-react'
 import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
+import { BankLogo } from '@/components/shared/BankLogo'
 import toast from 'react-hot-toast'
 
 // Common bank names for quick-select autocomplete
@@ -415,9 +416,10 @@ export default function DepositoPage() {
                       {BANK_SUGGESTIONS.map((b) => (
                         <button key={b}
                           onClick={() => setForm((p) => ({ ...p, bankName: b }))}
-                          className="px-2 py-1 rounded-lg text-xs"
+                          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs"
                           style={{ background: 'var(--surface-close)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
-                          {b}
+                          <BankLogo provider={b} size={16} rounded={5} />
+                          <span>{b}</span>
                         </button>
                       ))}
                     </div>
