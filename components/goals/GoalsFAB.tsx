@@ -2,19 +2,20 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, X, Target, PiggyBank } from 'lucide-react'
+import { CalendarDays, Plus, X, Target, PiggyBank } from 'lucide-react'
 
 interface Props {
-  activeTab: 'goals' | 'budget'
+  activeTab: 'goals' | 'budget' | 'bills'
   onAddGoal: () => void
   onAddBudget: () => void
+  onAddBill: () => void
 }
 
 /**
  * GoalsFAB — floating action button with expandable quick-action menu.
  * Context-aware: single-tap immediately opens the active tab's add form.
  */
-export function GoalsFAB({ activeTab, onAddGoal, onAddBudget }: Props) {
+export function GoalsFAB({ activeTab, onAddGoal, onAddBudget, onAddBill }: Props) {
   const [open, setOpen] = useState(false)
 
   const handleGoal = () => {
@@ -25,12 +26,17 @@ export function GoalsFAB({ activeTab, onAddGoal, onAddBudget }: Props) {
     setOpen(false)
     onAddBudget()
   }
+  const handleBill = () => {
+    setOpen(false)
+    onAddBill()
+  }
 
   // Single-tap: directly opens active tab's action
   const handlePrimaryTap = () => {
     if (!open) {
       if (activeTab === 'goals') { onAddGoal(); return }
       if (activeTab === 'budget') { onAddBudget(); return }
+      if (activeTab === 'bills') { onAddBill(); return }
     }
     setOpen(false)
   }
@@ -75,7 +81,7 @@ export function GoalsFAB({ activeTab, onAddGoal, onAddBudget }: Props) {
                 style={{ background: 'var(--accent)', color: '#fff', boxShadow: '0 4px 24px rgba(34,197,94,0.35)' }}
               >
                 <Target size={15} />
-                <span>Add Goal</span>
+                <span>Tambah Target</span>
               </button>
 
               {/* Add Budget */}
@@ -90,7 +96,21 @@ export function GoalsFAB({ activeTab, onAddGoal, onAddBudget }: Props) {
                 }}
               >
                 <PiggyBank size={15} />
-                <span>Add Budget</span>
+                <span>Tambah Budget</span>
+              </button>
+
+              <button
+                onClick={handleBill}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold shadow-xl transition-transform active:scale-[0.96]"
+                style={{
+                  background: 'var(--surface-modal)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border)',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                }}
+              >
+                <CalendarDays size={15} />
+                <span>Tambah Tagihan</span>
               </button>
             </motion.div>
           )}

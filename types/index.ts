@@ -370,3 +370,23 @@ export interface TransactionTemplate {
   lastUsedAt?: string
   useCount: number
 }
+
+export type BillRecurring = 'none' | 'monthly' | 'yearly'
+
+export interface Bill {
+  id: string
+  userId: string
+  name: string
+  amount: number
+  dueDate: string
+  categoryId?: string
+  categoryName?: string
+  categoryIcon?: string
+  isPaid: boolean
+  paidDate?: string
+  paidTransactionId?: string
+  recurring: BillRecurring
+  notes?: string
+  createdAt: string
+  updatedAt: string
+}

@@ -10,6 +10,7 @@ import { GoalCard } from '@/components/goals/GoalCard'
 import { BudgetCard } from '@/components/goals/BudgetCard'
 import { GoalsFAB } from '@/components/goals/GoalsFAB'
 import { InsightCard } from '@/components/goals/InsightCard'
+import { BillsList } from '@/components/goals/BillsList'
 import { generateInsights, getMonthlyNetSavings } from '@/lib/goals-finance'
 import { formatCurrency, getCurrentMonth, getMonthOptions } from '@/lib/utils'
 import { Target, PiggyBank, X, ChevronDown } from 'lucide-react'
@@ -25,12 +26,16 @@ const GOAL_COLORS = ['#22C55E','#63b3ed','#f6cc60','#F87171','#d6aaff','#4fd1c5'
 function GoalsContent() {
   const searchParams = useSearchParams()
   const router       = useRouter()
-  const activeTab    = (searchParams.get('tab') === 'budget' ? 'budget' : 'goals') as 'goals' | 'budget'
+  const activeTab    = (
+    searchParams.get('tab') === 'budget' ? 'budget' :
+    searchParams.get('tab') === 'bills' ? 'bills' :
+    'goals'
+  ) as 'goals' | 'budget' | 'bills'
 
   const { hidden } = useBalanceVisibility()
 
-  const setTab = (tab: 'goals' | 'budget') => {
-    router.replace(tab === 'budget' ? '/goals?tab=budget' : '/goals', { scroll: false })
+  const setTab = (tab: 'goals' | 'budget' | 'bills') => {
+    router.replace(tab === 'goals' ? '/goals' : `/goals?tab=${tab}`, { scroll: false })
   }
 
   const { data: goals,      refetch: refetchGoals   } = useApiList<Goal>('/api/goals',          { refreshMs: 30000 })
@@ -50,6 +55,7 @@ function GoalsContent() {
   const [savingBudget,  setSavingBudget]  = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth())
   const [budgetForm,    setBudgetForm]    = useState({ categoryId: '', limitAmount: '' })
+  const [showAddBill,   setShowAddBill]   = useState(false)
 
   const budgetsByMonth    = useMemo(() => budgets.filter((b) => b.month === selectedMonth), [budgets, selectedMonth])
   const expenseCategories = useMemo(() => categories.filter((c) => c.type === 'expense'),   [categories])
@@ -190,14 +196,18 @@ function GoalsContent() {
           <h1 className="text-xl font-display font-bold" style={{ color: 'var(--text-primary)' }}>
             Perencanaan Keuangan
           </h1>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Target & Budget</p>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Target, Budget & Tagihan</p>
         </div>
       </div>
 
       {/* Tab switcher */}
-      <div className="flex gap-1 p-1 rounded-2xl mb-5"
+      <div className="grid grid-cols-3 gap-1 p-1 rounded-2xl mb-5"
         style={{ background: 'var(--surface-3)', border: '1px solid var(--border)' }}>
-        {([['goals', '🎯', 'Target'], ['budget', '📊', 'Budget']] as const).map(([tab, icon, label]) => (
+        {([
+          ['goals', '🎯', 'Target'],
+          ['budget', '📊', 'Budget'],
+          ['bills', '📅', 'Tagihan'],
+        ] as const).map(([tab, icon, label]) => (
           <button key={tab} onClick={() => setTab(tab)}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all"
             style={{
@@ -346,9 +356,28 @@ function GoalsContent() {
             </div>
           </motion.div>
         )}
+
+        {activeTab === 'bills' && (
+          <motion.div key="bills-tab"
+            initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }}>
+            <BillsList
+              categories={expenseCategories}
+              hidden={hidden}
+              openAdd={showAddBill}
+              onOpenAdd={() => setShowAddBill(true)}
+              onCloseAdd={() => setShowAddBill(false)}
+            />
+          </motion.div>
+        )}
       </AnimatePresence>
 
-      <GoalsFAB activeTab={activeTab} onAddGoal={() => setShowAddGoal(true)} onAddBudget={() => setShowAddBudget(true)} />
+      <GoalsFAB
+        activeTab={activeTab}
+        onAddGoal={() => setShowAddGoal(true)}
+        onAddBudget={() => setShowAddBudget(true)}
+        onAddBill={() => setShowAddBill(true)}
+      />
 
       {/* Add Goal Modal */}
       <AnimatePresence>
