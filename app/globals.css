@@ -509,9 +509,8 @@ input[type="date"]::-webkit-date-and-time-value {
     0 0 / 200% auto !important;
 }
 
-/* Dark header/nav */
-.dark header,
-.dark nav {
+/* Dark header */
+.dark header {
   background: rgba(8, 16, 10, 0.92) !important;
   border-color: rgba(34, 197, 94, 0.12) !important;
 }

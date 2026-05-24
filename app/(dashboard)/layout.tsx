@@ -30,6 +30,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   useDarkMode()
 
+  const reservesFloatingControls =
+    pathname === '/' ||
+    pathname.startsWith('/transactions') ||
+    pathname.startsWith('/akun') ||
+    pathname.startsWith('/goals')
+  const bottomControlReserve = reservesFloatingControls
+    ? 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 112px)'
+    : 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 24px)'
+
   // ── Scroll-aware sticky header ─────────────────────────────────────────
   const [scrolled, setScrolled] = useState(false)
   const [avatarFailed, setAvatarFailed] = useState(false)
@@ -175,7 +184,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
         style={{
           paddingTop:    'calc(var(--nav-height) + env(safe-area-inset-top, 0px))',
-          paddingBottom: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 72px)',
+          paddingBottom: bottomControlReserve,
+          scrollPaddingBottom: bottomControlReserve,
         }}
       >
         <AnimatePresence mode="popLayout">

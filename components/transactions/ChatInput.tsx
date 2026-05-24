@@ -157,7 +157,7 @@ export function ChatInput() {
             exit={{ opacity: 0, scale: 0.8 }}
             type="button"
             onClick={() => setIsOpen(true)}
-            className="fixed left-5 z-50 flex items-center gap-2 rounded-full px-4 py-3"
+            className="fixed left-5 z-50 flex h-11 w-11 items-center justify-center rounded-full sm:h-12 sm:w-auto sm:gap-2 sm:px-4 sm:py-3"
             style={{
               bottom: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom,0px) + 28px)',
               background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
@@ -167,7 +167,7 @@ export function ChatInput() {
             aria-label="Input cepat dengan chat"
           >
             <Sparkles size={18} strokeWidth={2.2} />
-            <span className="text-xs font-semibold">Chat</span>
+            <span className="hidden text-xs font-semibold sm:inline">Chat</span>
           </motion.button>
         )}
       </AnimatePresence>

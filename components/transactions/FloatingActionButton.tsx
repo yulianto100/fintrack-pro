@@ -170,8 +170,8 @@ function MainFAB({ compact = false, open, onToggle }: { compact?: boolean; open:
       onClick={onToggle}
       className="relative z-10 flex items-center justify-center rounded-full"
       style={{
-        width: compact ? 48 : 52,
-        height: compact ? 48 : 52,
+        width: 48,
+        height: 48,
         background: open ? 'var(--surface-3)' : 'var(--accent)',
         color: open ? 'var(--text-primary)' : '#000',
         boxShadow: open ? '0 6px 20px rgba(0,0,0,0.35)' : '0 10px 26px rgba(34,197,94,0.42)',
