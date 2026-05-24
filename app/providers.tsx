@@ -2,6 +2,7 @@
 
 import { SessionProvider } from 'next-auth/react'
 import { useEffect } from 'react'
+import { applyAccent, getStoredAccent } from '@/lib/accent'
 
 // ─── TIDAK menggunakan Firebase Auth client SDK ───
 // Semua data dibaca via API routes (Next.js) yang pakai Firebase Admin SDK
@@ -10,6 +11,8 @@ import { useEffect } from 'react'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
+    applyAccent(getStoredAccent())
+
     if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
       navigator.serviceWorker.register('/sw.js').catch(() => {})
     }

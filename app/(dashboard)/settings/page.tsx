@@ -17,6 +17,7 @@ import { useDarkMode } from '@/hooks/useDarkMode'
 import toast from 'react-hot-toast'
 import { toastUndo } from '@/lib/toast-undo'
 import { SkeletonRow } from '@/components/shared/Skeleton'
+import { ACCENTS, applyAccent, getStoredAccent, storeAccent, type AccentId } from '@/lib/accent'
 
 function SettingSubItem({
   title,
@@ -73,6 +74,7 @@ export default function SettingsPage() {
   const { supported, subscribed, loading: notifLoading, subscribe, unsubscribe } = usePushNotifications()
   const { isDark, toggle: toggleDark } = useDarkMode()
   const [profileAvatarFailed, setProfileAvatarFailed] = useState(false)
+  const [currentAccent, setCurrentAccent] = useState<AccentId>('green')
 
   // Categories
   const { data: categories, refetch: refetchCats } = useApiList<Category>('/api/categories', { refreshMs: 5000 })
@@ -207,6 +209,14 @@ export default function SettingsPage() {
 
   useEffect(() => { if (recurringExpanded) fetchRecurring() }, [recurringExpanded])
   useEffect(() => { setProfileAvatarFailed(false) }, [profileAvatar])
+  useEffect(() => { setCurrentAccent(getStoredAccent()) }, [])
+
+  const handlePickAccent = (id: AccentId) => {
+    setCurrentAccent(id)
+    applyAccent(id)
+    storeAccent(id)
+    toast.success('Tema diperbarui')
+  }
 
   // ── Export / Import ──
   const handleExport = () => {
@@ -689,6 +699,41 @@ export default function SettingsPage() {
             </motion.div>
           )}
         </AnimatePresence>
+      </motion.div>
+
+      {/* Accent Color */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.17 }}
+        className="glass-card p-5">
+        <h3 className="font-bold mb-1" style={{ color: 'var(--text-primary)' }}>Warna Tema</h3>
+        <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Pilih warna aksen aplikasi</p>
+        <div className="flex gap-2 flex-wrap">
+          {ACCENTS.map((accent) => (
+            <button
+              key={accent.id}
+              type="button"
+              onClick={() => handlePickAccent(accent.id)}
+              className="flex flex-col items-center gap-1 p-2 rounded-xl transition-all"
+              style={{
+                background: currentAccent === accent.id ? 'var(--surface-2)' : 'transparent',
+                border: `2px solid ${currentAccent === accent.id ? accent.base : 'var(--border)'}`,
+                minWidth: 56,
+              }}
+            >
+              <span
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: '50%',
+                  background: accent.base,
+                  boxShadow: currentAccent === accent.id ? `0 0 0 3px ${accent.base}40` : 'none',
+                }}
+              />
+              <span className="text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                {accent.name}
+              </span>
+            </button>
+          ))}
+        </div>
       </motion.div>
 
       {/* Dark Mode Toggle */}
