@@ -11,6 +11,7 @@ import { autoCategorize, learnCategoryMapping } from '@/lib/categorization'
 import { isCreditCardPayment } from '@/lib/transaction-rules'
 import toast from 'react-hot-toast'
 import type { RecurringFrequency } from '@/types'
+import { SkeletonCard } from '@/components/shared/Skeleton'
 
 const RECURRING_FREQS: { value: RecurringFrequency; label: string; icon: string }[] = [
   { value: 'daily',   label: 'Harian',   icon: '🌅' },
@@ -504,7 +505,7 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
                 </label>
                 {catsLoading ? (
                   <div className="grid grid-cols-4 gap-2">
-                    {[...Array(8)].map((_, i) => <div key={i} className="skeleton h-16 rounded-xl" />)}
+                    {[...Array(8)].map((_, i) => <SkeletonCard key={i} className="rounded-xl" style={{ height: 64 }} />)}
                   </div>
                 ) : (
                   <>

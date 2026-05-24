@@ -375,7 +375,7 @@ export function ChatInput() {
                         }}
                       >
                         {saving ? (
-                          <span className="animate-pulse">Menyimpan...</span>
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
                           <>
                             <Check size={16} strokeWidth={2.5} />

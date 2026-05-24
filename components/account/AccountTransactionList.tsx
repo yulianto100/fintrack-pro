@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { useApiList } from '@/hooks/useApiData'
 import type { Transaction } from '@/types'
+import { SkeletonRow } from '@/components/shared/Skeleton'
 
 interface Props {
   accountId: string
@@ -135,13 +136,10 @@ export function AccountTransactionList({ accountId, accountType, hidden = false,
     return (
       <div className="space-y-2.5">
         {[...Array(4)].map((_, index) => (
-          <div
+          <SkeletonRow
             key={index}
-            className="h-[72px] rounded-2xl animate-pulse"
-            style={{
-              background: 'var(--account-skeleton-bg)',
-              border: '1px solid var(--account-panel-border)',
-            }}
+            className="rounded-2xl"
+            style={{ height: 72, border: '1px solid var(--account-panel-border)' }}
           />
         ))}
       </div>

@@ -44,7 +44,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-    const { type, name } = body
+    const { type, name, balance } = body
 
     if (!type || !['bank', 'ewallet'].includes(type))
       return NextResponse.json({ success: false, error: 'Tipe akun tidak valid (bank/ewallet)' }, { status: 400 })
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       userId,
       type,
       name:      name.trim(),
-      balance:   0,
+      balance:   Number.isFinite(Number(balance)) ? Number(balance) : 0,
       createdAt: now,
       updatedAt: now,
     }

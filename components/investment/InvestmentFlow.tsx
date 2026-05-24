@@ -512,7 +512,7 @@ export function InvestmentFlow({
               whileTap={{ scale: 0.97 }}
               disabled={saving || insufficientBalance}
               onClick={handleConfirm}
-              className="w-full py-4 rounded-2xl text-base font-bold"
+              className="w-full py-4 rounded-2xl text-base font-bold flex items-center justify-center gap-2"
               style={{
                 background: insufficientBalance ? 'var(--surface-3)' : 'var(--accent)',
                 color:      insufficientBalance ? 'var(--text-muted)' : '#000',
@@ -521,7 +521,9 @@ export function InvestmentFlow({
                 transition: 'all 0.15s',
               }}
             >
-              {saving ? 'Menyimpan...' : insufficientBalance ? 'Saldo Tidak Cukup' : '✓ Konfirmasi Investasi'}
+              {saving
+                ? <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                : insufficientBalance ? 'Saldo Tidak Cukup' : '✓ Konfirmasi Investasi'}
             </motion.button>
           )}
 

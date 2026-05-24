@@ -290,6 +290,11 @@ select.input-glass option { background: #f0faf4; color: var(--text-primary); }
    ANIMATIONS
 ───────────────────────────────────────── */
 @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+
+@keyframes finuvo-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
 @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
 @keyframes slideUp { from{transform:translateY(16px);opacity:0} to{transform:translateY(0);opacity:1} }
 @keyframes float   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }

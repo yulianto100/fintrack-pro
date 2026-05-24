@@ -15,6 +15,8 @@ import { Bell, BellOff, ChevronDown, Download, Upload, LogOut, Tag, Plus, Trash2
 import type { Category, RecurringTransaction, RecurringFrequency } from '@/types'
 import { useDarkMode } from '@/hooks/useDarkMode'
 import toast from 'react-hot-toast'
+import { toastUndo } from '@/lib/toast-undo'
+import { SkeletonRow } from '@/components/shared/Skeleton'
 
 function SettingSubItem({
   title,
@@ -121,11 +123,38 @@ export default function SettingsPage() {
   }
 
   const handleRecurringDelete = async (id: string) => {
-    if (!confirm('Hapus transaksi berulang ini?')) return
+    const item = recurringItems.find((i) => i.id === id)
+    if (!item) return
     try {
       await fetch(`/api/recurring-transactions/${id}`, { method: 'DELETE' })
       setRecurringItems((prev) => prev.filter((i) => i.id !== id))
-      toast.success('Transaksi berulang dihapus')
+      toastUndo(`Transaksi berulang "${item.description}" dihapus`, async () => {
+        const res = await fetch('/api/recurring-transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: item.type,
+            amount: item.amount,
+            categoryId: item.categoryId,
+            categoryName: item.categoryName,
+            categoryIcon: item.categoryIcon,
+            wallet: item.wallet,
+            walletAccountId: item.walletAccountId,
+            description: item.description,
+            frequency: item.frequency,
+          }),
+        })
+        const json = await res.json()
+        if (!json.success) throw new Error(json.error || 'Gagal memulihkan')
+        if (json.data?.id) {
+          await fetch(`/api/recurring-transactions/${json.data.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isActive: item.isActive, nextRunDate: item.nextRunDate }),
+          })
+        }
+        fetchRecurring()
+      })
     } catch { toast.error('Gagal menghapus') }
   }
 
@@ -228,10 +257,22 @@ export default function SettingsPage() {
     finally   { setSaving(false) }
   }
   const handleDeleteCat = async (id: string) => {
-    if (!confirm('Hapus kategori ini?')) return
-    await fetch(`/api/categories/${id}`, { method: 'DELETE' })
-    toast.success('Kategori dihapus')
-    refetchCats()
+    const cat = categories.find((c) => c.id === id)
+    if (!cat) return
+    try {
+      await fetch(`/api/categories/${id}`, { method: 'DELETE' })
+      refetchCats()
+      toastUndo(`Kategori "${cat.name}" dihapus`, async () => {
+        const res = await fetch('/api/categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: cat.name, icon: cat.icon, type: cat.type, color: cat.color }),
+        })
+        const json = await res.json()
+        if (!json.success) throw new Error(json.error || 'Gagal memulihkan')
+        refetchCats()
+      })
+    } catch { toast.error('Gagal menghapus kategori') }
   }
 
   const openEditCat = (cat: Category) => {
@@ -362,7 +403,7 @@ export default function SettingsPage() {
               <div className="px-4 pb-4" style={{ borderTop: '1px solid var(--border)' }}>
                 {loadingRecurring ? (
                   <div className="space-y-2 pt-4">
-                    {[1,2].map((i) => <div key={i} className="skeleton h-16 rounded-xl" />)}
+                    {[1,2].map((i) => <SkeletonRow key={i} />)}
                   </div>
                 ) : recurringItems.length === 0 ? (
                   <div className="pt-5 pb-2 text-center">

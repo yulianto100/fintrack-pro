@@ -13,6 +13,8 @@ import { SmartInsight }        from '@/components/transactions/SmartInsight'
 import { EmptyState }          from '@/components/transactions/EmptyState'
 import { FloatingActionButton } from '@/components/transactions/FloatingActionButton'
 import { ChatInput } from '@/components/transactions/ChatInput'
+import { EmptyHint } from '@/components/shared/EmptyHint'
+import { SkeletonRow } from '@/components/shared/Skeleton'
 import type { Transaction, Category, TransactionType } from '@/types'
 
 // ─── Month picker helper ──────────────────────────────────────────────────────
@@ -208,6 +210,12 @@ export default function TransactionsPage() {
 
   const activeFilterCount = activeChips.length
   const filterIsActive = filterOpen || activeFilterCount > 0
+  const hasSearchQuery = searchQuery.trim().length > 0
+  const showFilteredEmpty = !loading && transactions.length === 0 && (hasActiveFilter || hasSearchQuery)
+  const resetFiltersAndSearch = useCallback(() => {
+    clearFilters()
+    setSearchQuery('')
+  }, [clearFilters, setSearchQuery])
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -426,17 +434,25 @@ export default function TransactionsPage() {
         {loading && (
           <div className="flex flex-col gap-3">
             {[...Array(4)].map((_, i) => (
-              <div
-                key={i}
-                className="h-16 rounded-2xl animate-pulse"
-                style={{ background: 'var(--surface-2)', animationDelay: `${i * 80}ms` }}
-              />
+              <SkeletonRow key={i} className="rounded-2xl" style={{ animationDelay: `${i * 80}ms` }} />
             ))}
           </div>
         )}
 
         {/* Empty state */}
-        {!loading && transactions.length === 0 && (
+        {showFilteredEmpty && (
+          <div className="glass-card">
+            <EmptyHint
+              icon="?"
+              title="Tidak ada hasil"
+              description="Coba ubah filter atau hapus pencarian"
+              secondaryCta={{ label: 'Reset Filter', onClick: resetFiltersAndSearch }}
+              variant="filtered"
+            />
+          </div>
+        )}
+
+        {!loading && transactions.length === 0 && !showFilteredEmpty && (
           <EmptyState onAddTransaction={() => openAdd('expense')} />
         )}
 

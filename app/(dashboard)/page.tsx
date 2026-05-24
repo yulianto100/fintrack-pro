@@ -25,6 +25,7 @@ import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionH
 import { MonthlyCashflowCard } from '@/components/dashboard/MonthlyCashflowCard'
 import { NetWorthCard } from '@/components/dashboard/NetWorthCard'
 import { WalletSection } from '@/components/dashboard/WalletSection'
+import { SkeletonHero } from '@/components/shared/Skeleton'
 
 export default function DashboardPage() {
   const { data: session } = useSession()
@@ -137,15 +138,19 @@ export default function DashboardPage() {
           </h1>
         </motion.section>
 
-        <NetWorthCard
-          totalWealth={totalWealth}
-          animatedWealth={animatedWealth}
-          monthlyChange={monthlyChange}
-          monthlyChangePct={monthlyChangePct}
-          hidden={hidden}
-          mounted={mounted}
-          onToggleHidden={toggle}
-        />
+        {allTx.length === 0 && !mounted ? (
+          <SkeletonHero />
+        ) : (
+          <NetWorthCard
+            totalWealth={totalWealth}
+            animatedWealth={animatedWealth}
+            monthlyChange={monthlyChange}
+            monthlyChangePct={monthlyChangePct}
+            hidden={hidden}
+            mounted={mounted}
+            onToggleHidden={toggle}
+          />
+        )}
 
         <MonthlyCashflowCard
           income={monthStats.income}

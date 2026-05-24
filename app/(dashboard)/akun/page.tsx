@@ -26,6 +26,10 @@ import { PayCreditCardModal } from '@/components/credit-card/PayCreditCardModal'
 import { CreditCardTransactionList } from '@/components/credit-card/CreditCardTransactionList'
 import { AccountTransactionList }    from '@/components/account/AccountTransactionList'
 import { BankLogo }                  from '@/components/shared/BankLogo'
+import { EmptyHint }                 from '@/components/shared/EmptyHint'
+import { SkeletonCard, SkeletonText } from '@/components/shared/Skeleton'
+import { toastUndo }                 from '@/lib/toast-undo'
+import toast                         from 'react-hot-toast'
 
 import {
   LiveIndicator,
@@ -46,7 +50,7 @@ import {
 
 import type { UnifiedAccount, AccountType } from '@/types/account'
 import { calcAccountSummary } from '@/types/account'
-import type { CreditCard, Transaction } from '@/types'
+import type { CreditCard, Transaction, WalletAccount } from '@/types'
 
 // â”€â”€ Provider logo map (same as AccountItem) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function safeNumber(value: unknown): number {
@@ -766,33 +770,26 @@ const WalletDetailSheet = memo(function WalletDetailSheet({ account, hidden, onC
 
 // â”€â”€ Empty state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function EmptyState({ type, onAdd }: { type: string; onAdd: () => void }) {
-  const config: Record<string, { label: string; hint: string }> = {
-    bank:    { label: 'rekening bank', hint: 'Hubungkan rekening untuk mulai melacak saldo' },
-    credit:  { label: 'kartu kredit',  hint: 'Pantau limit dan tagihan kartu kamu' },
-    ewallet: { label: 'e-wallet',      hint: 'Tambah GoPay, OVO, DANA, dan lainnya' },
-    all:     { label: 'akun',          hint: 'Tambahkan akun untuk mulai melacak keuangan kamu' },
+  const config: Record<string, { label: string; hint: string; icon: ReactNode }> = {
+    bank:    { label: 'rekening bank', icon: <Building2 size={32} style={{ color: 'var(--accent)' }} />, hint: 'Hubungkan rekening untuk mulai melacak saldo' },
+    credit:  { label: 'kartu kredit',  icon: <CreditCardIcon size={32} style={{ color: 'var(--accent)' }} />, hint: 'Pantau limit dan tagihan kartu kamu' },
+    ewallet: { label: 'e-wallet',      icon: <Wallet size={32} style={{ color: 'var(--accent)' }} />, hint: 'Tambah GoPay, OVO, DANA, dan lainnya' },
+    all:     { label: 'akun',          icon: <Wallet size={32} style={{ color: 'var(--accent)' }} />, hint: 'Tambahkan akun untuk mulai melacak keuangan kamu' },
   }
-  const { label, hint } = config[type] ?? config['all']
+  const { label, hint, icon } = config[type] ?? config['all']
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      className="flex flex-col items-center justify-center py-16 px-6 text-center">
-      <div className="w-16 h-16 rounded-3xl flex items-center justify-center mb-4" style={{ background: 'var(--accent-dim)' }}>
-        <span className="text-2xl font-bold" style={{ color: 'var(--accent)' }}>
-          {label.slice(0, 1).toUpperCase()}
-        </span>
-      </div>
-      <p className="text-[15px] font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Belum ada {label}</p>
-      <p className="text-[12px] mb-5 max-w-xs" style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>{hint}</p>
-      <button onClick={onAdd} className="px-6 py-2.5 rounded-full text-[13px] font-bold" style={{ background: 'var(--accent)', color: '#fff' }}>
-        Tambah Sekarang
-      </button>
-    </motion.div>
+    <EmptyHint
+      icon={icon}
+      title={`Belum ada ${label}`}
+      description={hint}
+      primaryCta={{ label: 'Tambah Sekarang', onClick: onAdd }}
+    />
   )
 }
 
 // â”€â”€ Main page content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function AkunContent() {
-  const { accounts, loading, refetch, deleteAccount, payBill } = useAccounts()
+  const { accounts, loading, refetch, payBill } = useAccounts()
   const pathname     = usePathname()
   const searchParams = useSearchParams()
   const router       = useRouter()
@@ -842,9 +839,63 @@ function AkunContent() {
   const summary  = useMemo(() => calcAccountSummary(filtered), [filtered])
 
   const handleDelete = useCallback(async (account: UnifiedAccount) => {
-    if (!confirm(`Hapus "${account.name}"?`)) return
-    try { await deleteAccount(account); setSelectedId(null) } catch { /* toast handled */ }
-  }, [deleteAccount])
+    const url =
+      account.type === 'credit'
+        ? `/api/credit-cards/${account.id}`
+        : `/api/wallet-accounts/${account.id}`
+
+    try {
+      const res = await fetch(url, { method: 'DELETE' })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error || 'Gagal menghapus akun')
+
+      setSelectedId(null)
+      refetch()
+      toastUndo(`Akun "${account.name}" dihapus`, async () => {
+        if (account.type === 'credit') {
+          const card = account._raw as CreditCard | undefined
+          const restore = await fetch('/api/credit-cards', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: card?.name ?? account.name,
+              bankName: card?.bankName ?? account.providerName ?? '',
+              last4: card?.last4 ?? account.last4 ?? '',
+              limit: card?.limit ?? account.creditLimit ?? 0,
+              billingDate: card?.billingDate ?? account.billingDate ?? 1,
+              dueDate: card?.dueDate ?? account.dueDate ?? 1,
+              color: card?.color ?? account.color,
+            }),
+          })
+          const restoreJson = await restore.json()
+          if (!restoreJson.success) throw new Error(restoreJson.error || 'Gagal memulihkan akun')
+          if (restoreJson.data?.id && card?.used) {
+            await fetch(`/api/credit-cards/${restoreJson.data.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ used: card.used }),
+            })
+          }
+        } else {
+          const wallet = account._raw as WalletAccount | undefined
+          const restore = await fetch('/api/wallet-accounts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: account.type,
+              name: wallet?.name ?? account.name,
+              balance: wallet?.balance ?? account.balance ?? 0,
+            }),
+          })
+          const restoreJson = await restore.json()
+          if (!restoreJson.success) throw new Error(restoreJson.error || 'Gagal memulihkan akun')
+        }
+        refetch()
+      })
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Gagal menghapus akun')
+    }
+  }, [refetch])
 
   const showAll = activeTab === 'all'
 
@@ -961,9 +1012,9 @@ export default function AkunPage() {
   return (
     <Suspense fallback={
       <div className="px-4 py-6 space-y-4">
-        <div className="h-8 w-32 rounded-xl animate-pulse" style={{ background: 'var(--surface-card)' }} />
-        <div className="h-28 rounded-3xl animate-pulse" style={{ background: 'var(--surface-card)' }} />
-        <div className="h-10 rounded-full animate-pulse" style={{ background: 'var(--surface-card)' }} />
+        <SkeletonText width={128} style={{ height: 32 }} />
+        <SkeletonCard className="rounded-3xl" style={{ height: 112 }} />
+        <SkeletonCard className="rounded-full" style={{ height: 40 }} />
       </div>
     }>
       <AkunContent />

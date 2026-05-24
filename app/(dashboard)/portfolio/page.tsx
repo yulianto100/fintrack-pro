@@ -15,6 +15,8 @@ import { ArrowRight, RefreshCw, Wifi, WifiOff, Landmark, Wallet, X,
          PlusCircle, Target } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { InvestasiModal } from '@/components/investment/InvestasiModal'
+import { EmptyHint } from '@/components/shared/EmptyHint'
+import { SkeletonCard, SkeletonHero, SkeletonText } from '@/components/shared/Skeleton'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. INSIGHT LOGIC
@@ -537,15 +539,13 @@ function PortfolioContent() {
         </div>
 
         {accounts.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-4xl mb-3">{isBankView ? '🏦' : '📱'}</p>
-            <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Belum ada akun</p>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{emptyHint}</p>
-            <Link href="/settings"
-              className="inline-block mt-4 px-4 py-2 rounded-xl text-sm font-semibold"
-              style={{ background: 'var(--accent)', color: '#000' }}>
-              Pengaturan
-            </Link>
+          <div className="glass-card">
+            <EmptyHint
+              icon={isBankView ? <Landmark size={32} style={{ color: 'var(--accent)' }} /> : <Wallet size={32} style={{ color: 'var(--accent)' }} />}
+              title="Belum ada akun"
+              description={emptyHint}
+              primaryCta={{ label: 'Buka Pengaturan', href: '/settings' }}
+            />
           </div>
         ) : (
           <div className="space-y-3">
@@ -830,9 +830,9 @@ export default function PortfolioPage() {
   return (
     <Suspense fallback={
       <div className="px-4 py-5 max-w-2xl mx-auto space-y-4">
-        <div className="skeleton h-8 w-48 rounded-xl" />
-        <div className="skeleton h-32 rounded-2xl" />
-        <div className="skeleton h-24 rounded-2xl" />
+        <SkeletonText width={192} style={{ height: 32 }} />
+        <SkeletonHero style={{ height: 128 }} />
+        <SkeletonCard />
       </div>
     }>
       <PortfolioContent />

@@ -9,6 +9,9 @@ import type { ReksadanaHolding, ReksadanaType } from '@/types'
 import { Plus, Trash2, X, TrendingUp, TrendingDown, RefreshCw, Pencil, AlertCircle, Zap } from 'lucide-react'
 import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import toast from 'react-hot-toast'
+import { toastConfirm } from '@/lib/toast-undo'
+import { EmptyHint } from '@/components/shared/EmptyHint'
+import { SkeletonCard } from '@/components/shared/Skeleton'
 
 const RD_TYPES: { value: ReksadanaType; label: string; icon: string; color: string }[] = [
   { value: 'pasar_uang',       label: 'Pasar Uang',       icon: '💵', color: '#22c55e' },
@@ -209,8 +212,7 @@ export default function ReksadanaPage() {
     finally { setEditSaving(false) }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Hapus reksadana ini?')) return
+  const doDelete = async (id: string) => {
     // Auto-create income transaction
     const h = (holdings || []).find((x) => x.id === id)
     if (h) {
@@ -234,6 +236,11 @@ export default function ReksadanaPage() {
     try { await fetch('/api/wallet-accounts/sync', { method: 'POST' }) } catch { /* silent */ }
     window.dispatchEvent(new CustomEvent('fintrack:wallet-updated'))
     toast.success('Reksadana dihapus'); refetch()
+  }
+
+  const handleDelete = (id: string) => {
+    const holding = (holdings || []).find((h) => h.id === id)
+    toastConfirm(`Hapus ${holding?.productName || 'reksadana'}?`, () => doDelete(id))
   }
 
   const handleUpdateNAV = async () => {
@@ -337,12 +344,15 @@ export default function ReksadanaPage() {
 
       {/* Holdings */}
       {loading ? (
-        <div className="space-y-3">{[...Array(2)].map((_, i) => <div key={i} className="skeleton h-28 rounded-2xl" />)}</div>
+        <div className="space-y-3">{[...Array(2)].map((_, i) => <SkeletonCard key={i} style={{ height: 112 }} />)}</div>
       ) : !(holdings || []).length ? (
-        <div className="text-center py-16 glass-card">
-          <p className="text-4xl mb-3">📦</p>
-          <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Belum ada reksadana</p>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Tambahkan kepemilikan reksadana Anda</p>
+        <div className="glass-card">
+          <EmptyHint
+            icon="RD"
+            title="Belum ada reksadana"
+            description="Tambahkan kepemilikan reksadana Anda"
+            primaryCta={{ label: 'Tambah Reksadana', onClick: () => setShowAdd(true) }}
+          />
         </div>
       ) : (
         <div className="space-y-3">

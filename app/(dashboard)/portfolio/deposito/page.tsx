@@ -9,6 +9,9 @@ import { Plus, Trash2, Bell, Clock, CheckCircle, X, Sparkles, Pencil, AlertCircl
 import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import { BankLogo } from '@/components/shared/BankLogo'
 import toast from 'react-hot-toast'
+import { toastConfirm } from '@/lib/toast-undo'
+import { EmptyHint } from '@/components/shared/EmptyHint'
+import { SkeletonCard } from '@/components/shared/Skeleton'
 
 // Common bank names for quick-select autocomplete
 const BANK_SUGGESTIONS = ['BCA', 'Mandiri', 'BRI', 'BNI', 'CIMB Niaga', 'Jago', 'Sinarmas', 'Danamon', 'Permata', 'BTN']
@@ -156,11 +159,15 @@ export default function DepositoPage() {
     finally { setSaving(false) }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Hapus deposito ini?')) return
+  const doDelete = async (id: string) => {
     await fetch(`/api/portfolio/deposits?id=${id}`, { method: 'DELETE' })
     toast.success('Deposito dihapus')
     refetch()
+  }
+
+  const handleDelete = (id: string) => {
+    const deposit = deposits.find((d) => d.id === id)
+    toastConfirm(`Hapus deposito ${deposit?.bankName || 'ini'}?`, () => doDelete(id))
   }
 
   // ── Feature #7: Auto-capitalization — capitalize first letter as user types ──
@@ -259,11 +266,15 @@ export default function DepositoPage() {
 
       {/* Active deposits */}
       {loading ? (
-        <div className="space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="skeleton h-32 rounded-2xl" />)}</div>
+        <div className="space-y-3">{[...Array(3)].map((_, i) => <SkeletonCard key={i} style={{ height: 128 }} />)}</div>
       ) : !active.length ? (
-        <div className="text-center py-16">
-          <p className="text-4xl mb-3">🏦</p>
-          <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Belum ada deposito aktif</p>
+        <div className="glass-card">
+          <EmptyHint
+            icon={<BankLogo provider="bca" size={38} rounded={12} />}
+            title="Belum ada deposito aktif"
+            description="Tambahkan deposito untuk memantau jatuh tempo dan estimasi bunga"
+            primaryCta={{ label: 'Tambah Deposito', onClick: () => setShowAdd(true) }}
+          />
         </div>
       ) : (
         <div className="space-y-3">

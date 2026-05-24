@@ -4,6 +4,7 @@ import { useMemo }          from 'react'
 import { motion }           from 'framer-motion'
 import { useApiList }       from '@/hooks/useApiData'
 import type { Transaction } from '@/types'
+import { SkeletonRow } from '@/components/shared/Skeleton'
 
 interface Props {
   creditCardId: string
@@ -63,7 +64,7 @@ export function CreditCardTransactionList({ creditCardId, hidden = false }: Prop
     return (
       <div className="space-y-2.5">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="skeleton h-[68px] rounded-2xl" />
+          <SkeletonRow key={i} className="rounded-2xl" style={{ height: 68 }} />
         ))}
       </div>
     )

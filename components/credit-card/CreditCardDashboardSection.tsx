@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { ArrowRight, CreditCard } from 'lucide-react'
 import { useCreditCards } from '@/hooks/useCreditCards'
 import { dashboardColors, dashboardRadius } from '@/components/dashboard/dashboardTokens'
+import { SkeletonCard } from '@/components/shared/Skeleton'
 
 interface Props {
   hidden?: boolean
@@ -15,7 +16,7 @@ const MASKED = '******'
 export function CreditCardDashboardSection({ hidden = false }: Props) {
   const { cards, loading, totalDebt, totalLimit, overallUsagePercent } = useCreditCards()
 
-  if (loading) return <div className="skeleton h-24 rounded-2xl" />
+  if (loading) return <SkeletonCard style={{ height: 96 }} />
   if (cards.length === 0) return null
 
   const statusColor =

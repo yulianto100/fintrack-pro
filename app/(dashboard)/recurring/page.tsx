@@ -7,6 +7,9 @@ import { useApiList } from '@/hooks/useApiData'
 import { formatCurrency } from '@/lib/utils'
 import type { RecurringTransaction, Category, RecurringFrequency, WalletType } from '@/types'
 import toast from 'react-hot-toast'
+import { toastUndo } from '@/lib/toast-undo'
+import { EmptyHint } from '@/components/shared/EmptyHint'
+import { SkeletonCard } from '@/components/shared/Skeleton'
 
 const FREQ_LABELS: Record<RecurringFrequency, string> = {
   daily: 'Harian', weekly: 'Mingguan', monthly: 'Bulanan',
@@ -97,11 +100,38 @@ export default function RecurringPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Hapus transaksi berulang ini?')) return
+    const item = items.find((i) => i.id === id)
+    if (!item) return
     try {
       await fetch(`/api/recurring-transactions/${id}`, { method: 'DELETE' })
       setItems((prev) => prev.filter((i) => i.id !== id))
-      toast.success('Dihapus')
+      toastUndo(`Transaksi berulang "${item.description}" dihapus`, async () => {
+        const res = await fetch('/api/recurring-transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: item.type,
+            amount: item.amount,
+            categoryId: item.categoryId,
+            categoryName: item.categoryName,
+            categoryIcon: item.categoryIcon,
+            wallet: item.wallet,
+            walletAccountId: item.walletAccountId,
+            description: item.description,
+            frequency: item.frequency,
+          }),
+        })
+        const json = await res.json()
+        if (!json.success) throw new Error(json.error || 'Gagal memulihkan')
+        if (json.data?.id) {
+          await fetch(`/api/recurring-transactions/${json.data.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isActive: item.isActive, nextRunDate: item.nextRunDate }),
+          })
+        }
+        fetchItems()
+      })
     } catch { toast.error('Gagal menghapus') }
   }
 
@@ -127,21 +157,17 @@ export default function RecurringPage() {
 
       {loading ? (
         <div className="space-y-3">
-          {[1,2,3].map((i) => <div key={i} className="skeleton h-20 rounded-2xl" />)}
+          {[1,2,3].map((i) => <SkeletonCard key={i} />)}
         </div>
       ) : items.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          className="glass-card p-10 text-center"
-        >
-          <Repeat size={32} style={{ color: 'var(--text-muted)', margin: '0 auto 12px' }} />
-          <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-            Belum ada transaksi berulang
-          </p>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Tambahkan gaji, langganan, atau cicilan yang rutin
-          </p>
-        </motion.div>
+        <div className="glass-card">
+          <EmptyHint
+            icon={<Repeat size={32} />}
+            title="Belum ada transaksi berulang"
+            description="Tambahkan gaji, langganan, atau cicilan yang rutin"
+            primaryCta={{ label: 'Tambah Transaksi Berulang', onClick: () => setShowModal(true) }}
+          />
+        </div>
       ) : (
         <div className="space-y-3">
           <AnimatePresence>

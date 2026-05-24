@@ -10,6 +10,9 @@ import { Plus, Trash2, TrendingUp, TrendingDown, X, DollarSign, Pencil, AlertCir
 import { SahamSellModal } from '@/components/sell-modal'
 import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import toast from 'react-hot-toast'
+import { toastConfirm } from '@/lib/toast-undo'
+import { EmptyHint } from '@/components/shared/EmptyHint'
+import { SkeletonCard } from '@/components/shared/Skeleton'
 
 // ─── Tiny helpers ────────────────────────────────────────────────────────────
 function Field({ label, required, error, children }: {
@@ -159,10 +162,14 @@ export default function SahamPage() {
   }
 
   // ── Delete ──
-  const handleDelete = async (id: string) => {
-    if (!confirm('Hapus entri saham ini?')) return
+  const doDelete = async (id: string) => {
     await fetch(`/api/portfolio/stocks?id=${id}`, { method: 'DELETE' })
     toast.success('Saham dihapus'); refetch()
+  }
+
+  const handleDelete = (id: string) => {
+    const holding = holdings.find((h) => h.id === id)
+    toastConfirm(`Hapus entri ${holding?.symbol || 'saham'}?`, () => doDelete(id))
   }
 
   // ── Sell complete — transaction is already created inside SahamSellModal ──
@@ -257,12 +264,15 @@ export default function SahamPage() {
 
       {/* Holdings — grouped by symbol */}
       {loading ? (
-        <div className="space-y-3">{[...Array(2)].map((_, i) => <div key={i} className="skeleton h-24 rounded-2xl" />)}</div>
+        <div className="space-y-3">{[...Array(2)].map((_, i) => <SkeletonCard key={i} style={{ height: 96 }} />)}</div>
       ) : Object.keys(groupedBySymbol).length === 0 ? (
-        <div className="text-center py-14 glass-card">
-          <p className="text-4xl mb-3">📈</p>
-          <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Belum ada saham</p>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Tambahkan saham IDX Anda</p>
+        <div className="glass-card">
+          <EmptyHint
+            icon="IDX"
+            title="Belum ada saham"
+            description="Tambahkan saham IDX Anda"
+            primaryCta={{ label: 'Tambah Saham', onClick: () => setShowAdd(true) }}
+          />
         </div>
       ) : (
         <div className="space-y-3">

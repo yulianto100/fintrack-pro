@@ -11,6 +11,9 @@ import { EmasSellModal } from '@/components/sell-modal'
 import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import { useCountUp } from '@/hooks/useCountUp'
 import toast from 'react-hot-toast'
+import { toastConfirm } from '@/lib/toast-undo'
+import { EmptyHint } from '@/components/shared/EmptyHint'
+import { SkeletonCard } from '@/components/shared/Skeleton'
 
 // ─── Provider config — Emasku dihapus ──────────────────────────────────────
 const PROVIDERS: Record<string, { label: string; icon: string; color: string; type: GoldType }> = {
@@ -285,11 +288,16 @@ export default function EmasPage() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Hapus data emas ini?')) return
+  const doDelete = async (id: string) => {
     await fetch(`/api/portfolio/gold?id=${id}`, { method: 'DELETE' })
     toast.success('Data emas dihapus')
     refetch()
+  }
+
+  const handleDelete = (id: string) => {
+    const holding = holdings.find((h) => h.id === id)
+    const label = holding ? `${formatNumber(holding.grams, 3)} gr ${PROVIDERS[holding.source]?.label || 'emas'}` : 'data emas'
+    toastConfirm(`Hapus ${label}?`, () => doDelete(id))
   }
 
   // Grouped holdings for display
@@ -483,13 +491,16 @@ export default function EmasPage() {
       {/* Holdings */}
       {loading ? (
         <div className="space-y-3">
-          {[...Array(2)].map((_,i) => <div key={i} className="skeleton h-20 rounded-2xl"/>)}
+          {[...Array(2)].map((_,i) => <SkeletonCard key={i} />)}
         </div>
       ) : holdings.length === 0 ? (
-        <div className="text-center py-14 glass-card">
-          <p className="text-4xl mb-3">🥇</p>
-          <p className="font-medium mb-1" style={{ color:'var(--text-primary)' }}>Belum ada kepemilikan emas</p>
-          <p className="text-sm" style={{ color:'var(--text-muted)' }}>Tekan + Tambah untuk mulai</p>
+        <div className="glass-card">
+          <EmptyHint
+            icon="Au"
+            title="Belum ada kepemilikan emas"
+            description="Tekan Tambah untuk mulai mencatat portofolio emas"
+            primaryCta={{ label: 'Tambah Emas', onClick: () => setShowAdd(true) }}
+          />
         </div>
       ) : (
         <div className="space-y-3">

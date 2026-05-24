@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, Check, KeyRound, Camera } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { SkeletonRow } from '@/components/shared/Skeleton'
 
 interface ProfileData {
   name: string
@@ -458,7 +459,7 @@ export default function EditProfilePage() {
                 onChange={(e) => setName(e.target.value)}
                 style={inputStyle} />
             ) : (
-              <div className="skeleton h-11 rounded-xl" />
+              <SkeletonRow className="rounded-xl" style={{ height: 44 }} />
             )}
           </div>
           <div className="relative">

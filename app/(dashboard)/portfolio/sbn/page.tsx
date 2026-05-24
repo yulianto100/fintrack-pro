@@ -10,6 +10,9 @@ import type { SBNHolding, SBNType } from '@/types'
 import { Plus, Trash2, X, TrendingUp, Clock, Pencil, AlertCircle } from 'lucide-react'
 import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import toast from 'react-hot-toast'
+import { toastConfirm } from '@/lib/toast-undo'
+import { EmptyHint } from '@/components/shared/EmptyHint'
+import { SkeletonCard } from '@/components/shared/Skeleton'
 
 // Tax is auto-set from type — SBSN = 15%, everything else = 10%
 const SBN_TYPES: { value: SBNType; label: string; desc: string; taxRate: number }[] = [
@@ -271,10 +274,14 @@ export default function SBNPage() {
     finally { setEditSaving(false) }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Hapus SBN ini?')) return
+  const doDelete = async (id: string) => {
     await fetch(`/api/portfolio/sbn?id=${id}`, { method: 'DELETE' })
     toast.success('SBN dihapus'); refetch()
+  }
+
+  const handleDelete = (id: string) => {
+    const holding = holdings.find((h) => h.id === id)
+    toastConfirm(`Hapus ${holding?.seri || 'SBN'}?`, () => doDelete(id))
   }
 
   // ── Shared form body (used in both Add and Edit) ──────────────────────────
@@ -447,12 +454,15 @@ export default function SBNPage() {
 
       {/* Holdings */}
       {loading ? (
-        <div className="space-y-3">{[...Array(2)].map((_, i) => <div key={i} className="skeleton h-28 rounded-2xl" />)}</div>
+        <div className="space-y-3">{[...Array(2)].map((_, i) => <SkeletonCard key={i} style={{ height: 112 }} />)}</div>
       ) : active.length === 0 ? (
-        <div className="text-center py-16 glass-card">
-          <p className="text-4xl mb-3">🏛️</p>
-          <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Belum ada SBN</p>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Tambahkan kepemilikan SBN Anda</p>
+        <div className="glass-card">
+          <EmptyHint
+            icon="SBN"
+            title="Belum ada SBN"
+            description="Tambahkan kepemilikan SBN Anda"
+            primaryCta={{ label: 'Tambah SBN', onClick: () => setShowAdd(true) }}
+          />
         </div>
       ) : (
         <div className="space-y-3">

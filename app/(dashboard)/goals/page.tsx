@@ -15,6 +15,9 @@ import { formatCurrency, getCurrentMonth, getMonthOptions } from '@/lib/utils'
 import { Target, PiggyBank, X, ChevronDown } from 'lucide-react'
 import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import toast from 'react-hot-toast'
+import { toastUndo } from '@/lib/toast-undo'
+import { EmptyHint } from '@/components/shared/EmptyHint'
+import { SkeletonCard, SkeletonHero, SkeletonText } from '@/components/shared/Skeleton'
 
 const GOAL_ICONS  = ['🎯','🏠','🚗','✈️','📱','💍','🎓','💪','🌴','👶','💼','🏋️']
 const GOAL_COLORS = ['#22C55E','#63b3ed','#f6cc60','#F87171','#d6aaff','#4fd1c5','#f6ad55']
@@ -79,11 +82,33 @@ function GoalsContent() {
   }, [goalForm, refetchGoals])
 
   const handleDeleteGoal = useCallback(async (id: string) => {
-    if (!confirm('Hapus goal ini?')) return
+    const goal = goals.find((g) => g.id === id)
+    if (!goal) return
     await fetch(`/api/goals/${id}`, { method: 'DELETE' })
-    toast.success('Goal dihapus')
     refetchGoals()
-  }, [refetchGoals])
+    toastUndo(`Goal "${goal.title}" dihapus`, async () => {
+      const res = await fetch('/api/goals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: goal.title,
+          targetAmount: goal.targetAmount,
+          icon: goal.icon,
+          color: goal.color,
+        }),
+      })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error || 'Gagal memulihkan')
+      if (json.data?.id && goal.currentAmount > 0) {
+        await fetch(`/api/goals/${json.data.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentAmount: goal.currentAmount }),
+        })
+      }
+      refetchGoals()
+    })
+  }, [goals, refetchGoals])
 
   const handleTopUp = useCallback(async () => {
     if (!showTopUp || !topUpAmount) return
@@ -133,11 +158,28 @@ function GoalsContent() {
   }, [budgetForm, selectedMonth, categories, refetchBudgets])
 
   const handleDeleteBudget = useCallback(async (id: string, name: string) => {
-    if (!confirm(`Hapus budget "${name}"?`)) return
+    const budget = budgets.find((b) => b.id === id)
+    if (!budget) return
     await fetch(`/api/budget?id=${id}`, { method: 'DELETE' })
-    toast.success('Budget dihapus')
     refetchBudgets()
-  }, [refetchBudgets])
+    toastUndo(`Budget "${name}" dihapus`, async () => {
+      const res = await fetch('/api/budget', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          categoryId: budget.categoryId,
+          categoryName: budget.categoryName,
+          categoryIcon: budget.categoryIcon,
+          categoryColor: budget.categoryColor,
+          limitAmount: budget.limitAmount,
+          month: budget.month,
+        }),
+      })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error || 'Gagal memulihkan')
+      refetchBudgets()
+    })
+  }, [budgets, refetchBudgets])
 
   return (
     <div className="px-4 py-5 max-w-2xl mx-auto">
@@ -214,17 +256,13 @@ function GoalsContent() {
             )}
 
             {goals.length === 0 && (
-              <div className="text-center py-16 glass-card px-6">
-                <p className="text-5xl mb-4">🎯</p>
-                <p className="font-display font-bold text-lg mb-2" style={{ color: 'var(--text-primary)' }}>
-                  Belum ada Financial Goal
-                </p>
-                <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
-                  Tetapkan target keuangan dan pantau progresmu setiap hari
-                </p>
-                <button onClick={() => setShowAddGoal(true)} className="btn-primary px-6 py-3">
-                  + Buat Goal Pertama
-                </button>
+              <div className="glass-card">
+                <EmptyHint
+                  icon={<Target size={32} style={{ color: 'var(--accent)' }} />}
+                  title="Belum ada Financial Goal"
+                  description="Tetapkan target keuangan dan pantau progresmu setiap hari"
+                  primaryCta={{ label: 'Buat Goal Pertama', onClick: () => setShowAddGoal(true) }}
+                />
               </div>
             )}
 
@@ -291,17 +329,13 @@ function GoalsContent() {
             )}
 
             {budgetsByMonth.length === 0 && (
-              <div className="text-center py-16 glass-card px-6">
-                <p className="text-5xl mb-4">📊</p>
-                <p className="font-display font-bold text-lg mb-2" style={{ color: 'var(--text-primary)' }}>
-                  Belum ada Budget
-                </p>
-                <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
-                  Tetapkan limit pengeluaran per kategori untuk bulan ini
-                </p>
-                <button onClick={() => setShowAddBudget(true)} className="btn-primary px-6 py-3">
-                  + Buat Budget Pertama
-                </button>
+              <div className="glass-card">
+                <EmptyHint
+                  icon={<PiggyBank size={32} style={{ color: 'var(--accent)' }} />}
+                  title="Belum ada Budget"
+                  description="Tetapkan limit pengeluaran per kategori untuk bulan ini"
+                  primaryCta={{ label: 'Buat Budget Pertama', onClick: () => setShowAddBudget(true) }}
+                />
               </div>
             )}
 
@@ -429,7 +463,9 @@ function GoalsContent() {
               <div className="grid grid-cols-2 gap-3">
                 <button onClick={() => { setShowTopUp(null); setTopUpAmount('') }} className="btn-ghost py-3">Batal</button>
                 <button onClick={handleTopUp} disabled={savingGoal} className="btn-primary py-3">
-                  {savingGoal ? '...' : '+ Tambah'}
+                  {savingGoal
+                    ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+                    : '+ Tambah'}
                 </button>
               </div>
             </motion.div>
@@ -511,11 +547,11 @@ export default function GoalsPage() {
   return (
     <Suspense fallback={
       <div className="px-4 py-5 max-w-2xl mx-auto space-y-4">
-        <div className="skeleton h-8 w-48 rounded-xl" />
-        <div className="skeleton h-12 rounded-2xl" />
-        <div className="skeleton h-32 rounded-2xl" />
-        <div className="skeleton h-24 rounded-2xl" />
-        <div className="skeleton h-24 rounded-2xl" />
+        <SkeletonText width={192} style={{ height: 32 }} />
+        <SkeletonCard style={{ height: 48 }} />
+        <SkeletonHero style={{ height: 128 }} />
+        <SkeletonCard />
+        <SkeletonCard />
       </div>
     }>
       <GoalsContent />

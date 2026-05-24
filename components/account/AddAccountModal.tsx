@@ -230,14 +230,16 @@ function WalletForm({ type, onDone }: { type: 'bank' | 'ewallet'; onDone: () => 
       <button
         onClick={handleSave}
         disabled={saving || !(name.trim() || provider)}
-        className="w-full py-3.5 rounded-2xl text-[14px] font-bold transition-opacity"
+        className="w-full py-3.5 rounded-2xl text-[14px] font-bold transition-opacity flex items-center justify-center gap-2"
         style={{
           background: 'var(--accent)',
           color:      '#fff',
           opacity:    saving || !(name.trim() || provider) ? 0.5 : 1,
         }}
       >
-        {saving ? 'Menyimpan…' : type === 'bank' ? 'Tambah Rekening' : 'Tambah E-Wallet'}
+        {saving
+          ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          : type === 'bank' ? 'Tambah Rekening' : 'Tambah E-Wallet'}
       </button>
     </div>
   )
@@ -385,10 +387,12 @@ function CreditCardForm({ onDone }: { onDone: () => void }) {
       <button
         onClick={handleSave}
         disabled={saving || !name.trim() || getRaw() <= 0}
-        className="w-full py-3.5 rounded-2xl text-[14px] font-bold transition-opacity"
+        className="w-full py-3.5 rounded-2xl text-[14px] font-bold transition-opacity flex items-center justify-center gap-2"
         style={{ background: 'var(--accent)', color: '#fff', opacity: saving || !name.trim() || getRaw() <= 0 ? 0.5 : 1 }}
       >
-        {saving ? 'Menyimpan…' : 'Tambah Kartu Kredit'}
+        {saving
+          ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          : 'Tambah Kartu Kredit'}
       </button>
     </div>
   )
