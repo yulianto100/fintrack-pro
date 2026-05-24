@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useSession } from 'next-auth/react'
 import { useApiList } from '@/hooks/useApiData'
@@ -30,9 +31,11 @@ import { QuickTemplates } from '@/components/dashboard/QuickTemplates'
 import { useRefreshContext } from './refresh-context'
 
 export default function DashboardPage() {
+  const searchParams = useSearchParams()
   const { data: session } = useSession()
   const { hidden, toggle, mounted } = useBalanceVisibility()
   const { setHandler } = useRefreshContext()
+  const requestedAction = searchParams.get('action')
 
   const { data: transactions, refetch: refetchRecentTx } = useApiList<Transaction>('/api/transactions?limit=7&sort=createdAt', { refreshMs: 8000 })
   const { data: allTx, refetch: refetchAllTx } = useApiList<Transaction>('/api/transactions?limit=500', { refreshMs: 15000 })
@@ -151,6 +154,14 @@ export default function DashboardPage() {
     window.addEventListener('fintrack:wallet-updated', handler)
     return () => window.removeEventListener('fintrack:wallet-updated', handler)
   }, [refetchAllTx])
+
+  useEffect(() => {
+    if (requestedAction !== 'add') return
+    const timer = window.setTimeout(() => {
+      window.dispatchEvent(new Event('finuvo:open-add-transaction'))
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [requestedAction])
 
   const firstName = session?.user?.name?.split(' ')[0] || 'User'
   const hour = new Date().getHours()

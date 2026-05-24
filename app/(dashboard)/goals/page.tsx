@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, Suspense } from 'react'
+import { useState, useMemo, useCallback, useEffect, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useApiList } from '@/hooks/useApiData'
@@ -67,6 +67,13 @@ function GoalsContent() {
   const totalCurrent = goals.reduce((s, g) => s + g.currentAmount, 0)
   const totalBudget  = budgetsByMonth.reduce((s, b) => s + b.limitAmount, 0)
   const totalSpent   = budgetsByMonth.reduce((s, b) => s + b.spent,       0)
+  const prefillCategory = searchParams.get('prefillCategory')
+
+  useEffect(() => {
+    if (!prefillCategory) return
+    setBudgetForm((prev) => ({ ...prev, categoryId: prefillCategory }))
+    setShowAddBudget(true)
+  }, [prefillCategory])
 
   // Goal handlers
   const handleAddGoal = useCallback(async () => {

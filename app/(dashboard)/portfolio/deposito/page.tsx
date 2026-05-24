@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useApiList } from '@/hooks/useApiData'
 import { formatCurrency, formatDate, formatNumber, enrichDeposit, capitalizeFirst } from '@/lib/utils'
@@ -44,6 +45,7 @@ async function getOrCreateInvestasiCategory(): Promise<{ id: string; name: strin
 }
 
 export default function DepositoPage() {
+  const searchParams = useSearchParams()
   const { data: deposits, loading, refetch } = useApiList<Deposit>('/api/portfolio/deposits?status=all', { refreshMs: 30000 })
   const { hidden } = useBalanceVisibility()
   const MASKED = '••••••'
@@ -64,6 +66,15 @@ export default function DepositoPage() {
     fetch('/api/wallet-accounts').then(r => r.json())
       .then(j => { if (j.success) setWalletAccounts(j.data || []) }).catch(() => {})
   }, [])
+
+  const prefillNominal = searchParams.get('prefillNominal')
+  useEffect(() => {
+    if (!prefillNominal) return
+    const amount = Number(prefillNominal)
+    if (!Number.isFinite(amount) || amount <= 0) return
+    setForm((prev) => ({ ...prev, nominal: String(Math.round(amount)) }))
+    setShowAdd(true)
+  }, [prefillNominal])
 
   // ── Edit modal state ──
   const [editTarget, setEditTarget] = useState<Deposit | null>(null)

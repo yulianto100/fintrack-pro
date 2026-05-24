@@ -8,6 +8,7 @@ import {
   BadgeCheck,
   BarChart3,
   Bell,
+  ChevronRight,
   ClipboardList,
   Lightbulb,
   PieChart,
@@ -22,7 +23,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import type { Transaction, GoldHolding, StockHolding, Deposit, Insight, BudgetStatus } from '@/types'
-import { generateAllInsights } from '@/lib/insight-engine'
+import { generateAllInsights } from '@/lib/insights-engine'
 import { DashboardSectionHeader } from './DashboardSectionHeader'
 import { dashboardColors, dashboardRadius } from './dashboardTokens'
 
@@ -234,10 +235,11 @@ export function SmartInsights({
                   {insight.actionLabel && insight.actionHref && (
                     <Link
                       href={insight.actionHref}
-                      className="mt-3 inline-flex rounded-full px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-75"
-                      style={{ background: tone.iconBg, color: tone.text, border: `1px solid ${tone.border}` }}
+                      className="mt-2 inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold transition-opacity hover:opacity-75"
+                      style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
                     >
                       {insight.actionLabel}
+                      <ChevronRight size={11} />
                     </Link>
                   )}
                 </div>
