@@ -9,7 +9,7 @@ import {
   Wallet, Calendar, Tag,
 } from 'lucide-react'
 import { parseNaturalLanguage, NLP_EXAMPLES } from '@/lib/nlp-parser'
-import { autoCategorize, suggestCategory } from '@/lib/categorization'
+import { autoCategorize } from '@/lib/categorization'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useApiList } from '@/hooks/useApiData'
 import type { Category, TransactionType, WalletType } from '@/types'
@@ -28,6 +28,33 @@ interface ParsedPreview {
   categoryName?: string
   categoryIcon?: string
   confidence: number
+}
+
+type CategorizedTransactionType = 'income' | 'expense'
+
+function getCategoryType(type: TransactionType): CategorizedTransactionType | null {
+  if (type === 'income') return 'income'
+  if (type === 'expense' || type === 'credit_expense') return 'expense'
+  return null
+}
+
+function findChatCategory(
+  categories: Category[],
+  type: TransactionType,
+  description: string,
+): Category | undefined {
+  const categoryType = getCategoryType(type)
+  if (!categoryType) return undefined
+
+  const suggestedId = autoCategorize(description, categories, categoryType)
+  const suggestedCategory = categories.find(
+    (category) => category.id === suggestedId && category.type === categoryType,
+  )
+  if (suggestedCategory) return suggestedCategory
+
+  return categories.find(
+    (category) => category.type === categoryType && category.name.toLowerCase() === 'lainnya',
+  ) || categories.find((category) => category.type === categoryType)
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -72,10 +99,7 @@ export function ChatInput() {
     if (result.success && result.data) {
       const { type, amount, description, date, wallet, confidence } = result.data
 
-      // Try to auto-categorize
-      const txType = type === 'transfer' ? 'expense' : type
-      const categoryId = autoCategorize(description, categories, txType as 'income' | 'expense')
-      const category = categories.find((c) => c.id === categoryId)
+      const category = findChatCategory(categories, type, description)
 
       setPreview({
         type,
@@ -83,7 +107,7 @@ export function ChatInput() {
         description,
         date,
         wallet,
-        categoryId: categoryId || undefined,
+        categoryId: category?.id,
         categoryName: category?.name,
         categoryIcon: category?.icon,
         confidence,
@@ -100,6 +124,17 @@ export function ChatInput() {
   const handleSubmit = useCallback(async () => {
     if (!preview) return
 
+    if (preview.type === 'transfer') {
+      toast.error('Transfer perlu wallet tujuan. Gunakan form tambah transaksi dulu.')
+      return
+    }
+
+    const categoryId = preview.categoryId || findChatCategory(categories, preview.type, preview.description)?.id
+    if (!categoryId) {
+      toast.error('Kategori belum tersedia. Tambahkan kategori dulu di Pengaturan.')
+      return
+    }
+
     setSaving(true)
     try {
       await addTransaction({
@@ -108,7 +143,7 @@ export function ChatInput() {
         description: preview.description,
         date: preview.date,
         wallet: preview.wallet || 'cash',
-        categoryId: preview.categoryId || '',
+        categoryId,
       })
 
       toast.success(
@@ -125,7 +160,7 @@ export function ChatInput() {
     } finally {
       setSaving(false)
     }
-  }, [preview, addTransaction])
+  }, [preview, categories, addTransaction])
 
   // Handle enter key
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -397,9 +432,15 @@ export function ChatInput() {
                       </button>
                     </div>
 
-                    {!preview.categoryName && (
+                    {!preview.categoryName && preview.type !== 'transfer' && (
                       <p className="mt-2 text-center text-[11px]" style={{ color: '#fbbf24' }}>
-                        ⚠️ Kategori tidak terdeteksi — akan disimpan tanpa kategori
+                        Kategori belum siap. Finuvo akan pakai kategori default saat disimpan.
+                      </p>
+                    )}
+
+                    {preview.type === 'transfer' && (
+                      <p className="mt-2 text-center text-[11px]" style={{ color: '#fbbf24' }}>
+                        Transfer dari chat perlu wallet tujuan. Gunakan form tambah transaksi dulu.
                       </p>
                     )}
                   </motion.div>

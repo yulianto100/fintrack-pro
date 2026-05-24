@@ -119,7 +119,9 @@ export function useTransactions() {
       return json.data
     } catch (err) {
       haptics.error()
-      toast.error('Gagal menambahkan transaksi'); throw err
+      const message = err instanceof Error && err.message ? err.message : 'Gagal menambahkan transaksi'
+      toast.error(message)
+      throw err
     }
   }, [refetch, syncWalletBalances, updateStreak])
 
