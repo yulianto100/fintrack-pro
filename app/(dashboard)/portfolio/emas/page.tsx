@@ -6,7 +6,7 @@ import { useApiList } from '@/hooks/useApiData'
 import { useGoldPrices } from '@/hooks/usePrices'
 import { formatCurrency, formatNumber, formatDate } from '@/lib/utils'
 import type { GoldHolding, GoldSource, GoldType } from '@/types'
-import { Plus, Trash2, RefreshCw, X, Wifi, WifiOff, TrendingUp, TrendingDown, DollarSign, Pencil, ChevronDown, MoreHorizontal, Activity, Award, BadgePercent, LineChart, Sparkles } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, X, Wifi, WifiOff, TrendingUp, TrendingDown, DollarSign, Pencil, ChevronDown, MoreHorizontal, Activity, Award, BadgePercent, LineChart, Sparkles, Clock3, ExternalLink } from 'lucide-react'
 import { EmasSellModal } from '@/components/sell-modal'
 import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import { useCountUp } from '@/hooks/useCountUp'
@@ -16,12 +16,20 @@ import { EmptyHint } from '@/components/shared/EmptyHint'
 import { SkeletonCard } from '@/components/shared/Skeleton'
 
 // ─── Provider config — Emasku dihapus ──────────────────────────────────────
-const PROVIDERS: Record<string, { label: string; icon: string; color: string; type: GoldType }> = {
+const PROVIDERS: Record<GoldSource, { label: string; icon: string; color: string; type: GoldType }> = {
   antam:     { label: 'Antam',     icon: '🏅', color: '#f6cc60', type: 'fisik'   },
   pegadaian: { label: 'Pegadaian', icon: '🟡', color: '#f97316', type: 'digital' },
   treasury:  { label: 'Treasury',  icon: '💛', color: '#eab308', type: 'digital' },
   ubs:       { label: 'UBS',       icon: '🥈', color: '#94a3b8', type: 'fisik'   },
   galeri24:  { label: 'Galeri24',  icon: '🔶', color: '#fb923c', type: 'fisik'   },
+}
+
+const VENDOR_URLS: Record<GoldSource, string> = {
+  antam: 'https://www.logammulia.com/id/harga-emas-hari-ini',
+  pegadaian: 'https://sahabat.pegadaian.co.id/harga-emas',
+  treasury: 'https://www.treasury.id/',
+  ubs: 'https://galeri24.co.id/harga-emas',
+  galeri24: 'https://galeri24.co.id/harga-emas',
 }
 
 const GOLD_TYPES: { value: GoldType; label: string; icon: string }[] = [
@@ -49,6 +57,22 @@ function compactCurrency(value: number) {
   return formatCurrency(value)
 }
 
+function relativeGoldTime(date: Date | null): string {
+  if (!date || Number.isNaN(date.getTime())) return 'Menunggu update'
+
+  const diffSeconds = Math.max(0, Math.round((Date.now() - date.getTime()) / 1000))
+  if (diffSeconds < 45) return 'Baru saja'
+
+  const minutes = Math.round(diffSeconds / 60)
+  if (minutes < 60) return `${minutes} mnt lalu`
+
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `${hours} jam lalu`
+
+  const days = Math.round(hours / 24)
+  return `${days} hari lalu`
+}
+
 function MiniSparkline({ values, color }: { values: number[]; color: string }) {
   const safeValues = values.length >= 2 ? values : [1, 1.01, 1.005, 1.018, 1.014, 1.026]
   const min = Math.min(...safeValues)
@@ -69,7 +93,7 @@ function MiniSparkline({ values, color }: { values: number[]; color: string }) {
 }
 
 function PriceCard({ source, price, selected, onClick, history = [] }: {
-  source: string
+  source: GoldSource
   price: { buyPrice: number; sellPrice: number; isLive?: boolean; updatedAt?: string }
   selected?: boolean
   onClick?: () => void
@@ -84,7 +108,7 @@ function PriceCard({ source, price, selected, onClick, history = [] }: {
   const movementPct = firstPoint > 0 ? (movement / firstPoint) * 100 : 0
   const positive = movement >= 0
   const updatedAt = price.updatedAt ? new Date(price.updatedAt) : null
-  const secondsAgo = updatedAt ? Math.max(0, Math.round((Date.now() - updatedAt.getTime()) / 1000)) : null
+  const sourceUrl = VENDOR_URLS[source]
 
   return (
     <motion.div
@@ -107,7 +131,28 @@ function PriceCard({ source, price, selected, onClick, history = [] }: {
             <p className="text-xs font-bold leading-tight truncate" style={{ color: selected ? cfg.color : 'var(--text-primary)' }}>
               {cfg.label}
             </p>
-            <p className="text-[9px] capitalize" style={{ color: 'var(--text-muted)' }}>{cfg.type}</p>
+            <div className="flex items-center gap-1 mt-0.5">
+              <p className="text-[9px] capitalize" style={{ color: 'var(--text-muted)' }}>{cfg.type}</p>
+              {price.isLive ? (
+                <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                  style={{ background: 'rgba(34,197,94,0.12)', color: 'var(--accent)' }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }} />
+                  Live
+                </span>
+              ) : (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                  style={{
+                    background: 'var(--gold-dim)',
+                    color: 'var(--gold)',
+                    border: '1px solid rgba(245,158,11,0.3)',
+                  }}
+                  title="Harga ini dari cache atau fallback, mungkin tidak real-time"
+                >
+                  <Clock3 size={9} /> Cache
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full"
@@ -150,11 +195,23 @@ function PriceCard({ source, price, selected, onClick, history = [] }: {
               background: `linear-gradient(90deg, ${cfg.color}, ${cfg.color}88)`,
             }} />
         </div>
-        <div className="flex items-center gap-1 pt-1">
-          <span className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: price.isLive ? 'var(--accent)' : 'var(--text-muted)' }} />
-          <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-            {secondsAgo === null ? 'Menunggu update' : `Updated ${secondsAgo}s ago`}
-          </p>
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <div className="flex items-center gap-1 min-w-0">
+            <span className="h-1.5 w-1.5 rounded-full animate-pulse shrink-0" style={{ background: price.isLive ? 'var(--accent)' : 'var(--text-muted)' }} />
+            <p className="text-[9px] truncate" style={{ color: 'var(--text-muted)' }}>
+              {relativeGoldTime(updatedAt)}
+            </p>
+          </div>
+          <a
+            href={sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(event) => event.stopPropagation()}
+            className="inline-flex items-center gap-0.5 text-[9px] font-bold shrink-0"
+            style={{ color: cfg.color }}
+          >
+            Sumber <ExternalLink size={8} />
+          </a>
         </div>
       </div>
     </motion.div>
@@ -233,7 +290,7 @@ export default function EmasPage() {
   }
 
   const availableProviders = Object.entries(PROVIDERS)
-    .filter(([, v]) => v.type === form.goldType) as [string, typeof PROVIDERS.antam][]
+    .filter(([, v]) => v.type === form.goldType) as [GoldSource, typeof PROVIDERS.antam][]
 
   const totalGrams = holdings.reduce((s, h) => s + h.grams, 0)
   const totalValue = holdings.reduce((s, h) => s + h.grams * (prices?.[h.source]?.sellPrice || 0), 0)
@@ -333,7 +390,7 @@ export default function EmasPage() {
   const allocationSegments = groupedEntries.map(([src, group]) => ({
     src,
     width: totalValue > 0 ? (group.value / totalValue) * 100 : 0,
-    color: PROVIDERS[src]?.color || 'var(--accent)',
+    color: PROVIDERS[src as GoldSource]?.color || 'var(--accent)',
   }))
 
   return (
@@ -447,9 +504,9 @@ export default function EmasPage() {
           {[
             { label:'Hari ini', value: hidden ? MASKED : signedCurrency(marketMove), tone: marketMove >= 0 ? 'var(--accent)' : 'var(--red)', icon: Activity },
             { label:'7D lokal', value: hidden ? MASKED : signedPercent(marketMovePercent), tone: marketMove >= 0 ? 'var(--accent)' : 'var(--red)', icon: LineChart },
-            { label:'Terbaik', value: bestPerformer ? `${PROVIDERS[bestPerformer.src]?.label} ${signedPercent(bestPerformer.pnlPct)}` : 'Belum ada', tone: 'var(--accent)', icon: Award },
-            { label:'Spread tinggi', value: highestSpread ? `${PROVIDERS[highestSpread.src]?.label} ${formatNumber(highestSpread.spreadPct, 1)}%` : '-', tone: '#f6cc60', icon: BadgePercent },
-            { label:'Top holding', value: topHolding ? PROVIDERS[topHolding[0]]?.label : '-', tone: '#f6cc60', icon: Sparkles },
+            { label:'Terbaik', value: bestPerformer ? `${PROVIDERS[bestPerformer.src as GoldSource]?.label} ${signedPercent(bestPerformer.pnlPct)}` : 'Belum ada', tone: 'var(--accent)', icon: Award },
+            { label:'Spread tinggi', value: highestSpread ? `${PROVIDERS[highestSpread.src as GoldSource]?.label} ${formatNumber(highestSpread.spreadPct, 1)}%` : '-', tone: '#f6cc60', icon: BadgePercent },
+            { label:'Top holding', value: topHolding ? PROVIDERS[topHolding[0] as GoldSource]?.label : '-', tone: '#f6cc60', icon: Sparkles },
           ].map((item) => {
             const Icon = item.icon
             return (
@@ -477,7 +534,7 @@ export default function EmasPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {(Object.entries(PROVIDERS) as [string, typeof PROVIDERS.antam][]).map(([src]) => {
+            {(Object.entries(PROVIDERS) as [GoldSource, typeof PROVIDERS.antam][]).map(([src]) => {
               const p = prices[src]
               if (!p) return null
               return (
@@ -508,7 +565,8 @@ export default function EmasPage() {
             Kepemilikan ({groupedEntries.length} aset / {holdings.length} entri)
           </p>
           {Object.entries(holdingsBySource).map(([src, group]) => {
-            const cfg = PROVIDERS[src]
+            const source = src as GoldSource
+            const cfg = PROVIDERS[source]
             if (!cfg) return null
             const expanded = !!expandedSources[src]
             const pnlPct = group.pnl !== null && group.cost > 0 ? (group.pnl / group.cost) * 100 : null

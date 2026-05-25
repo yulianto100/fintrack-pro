@@ -7,6 +7,14 @@ import type { GoldPriceMap, StockPrice } from '@/types'
 const GOLD_POLL_MS  = 10_000  // 10s per spec
 const STOCK_POLL_MS = 15_000
 
+interface GoldPricesResponse {
+  success?: boolean
+  data?: GoldPriceMap
+  meta?: {
+    isLive?: boolean
+  }
+}
+
 // ─── Gold prices (global Zustand store) ──────────────────────────────────────
 export function useGoldPrices() {
   const { goldPrices, goldLastUpdated, goldIsLive, goldLoading, setGoldPrices } = useStore()
@@ -15,9 +23,10 @@ export function useGoldPrices() {
   const fetch_ = useCallback(async () => {
     try {
       const res  = await fetch('/api/prices/gold', { cache: 'no-store' })
-      const json = await res.json()
-      if (json.success) {
-        setGoldPrices(json.data as GoldPriceMap, json.meta?.isLive ?? false)
+      const json = await res.json() as GoldPricesResponse
+      if (json.success && json.data) {
+        const hasLiveVendor = Object.values(json.data).some((price) => price.isLive)
+        setGoldPrices(json.data, json.meta?.isLive ?? hasLiveVendor)
       }
     } catch (err) {
       console.error('[useGoldPrices]', err)
