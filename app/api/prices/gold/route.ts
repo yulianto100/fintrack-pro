@@ -1,109 +1,197 @@
 import { NextResponse } from 'next/server'
 import { getServerCache, setServerCache } from '@/lib/cache'
+import {
+  scrapeAntam,
+  scrapeGaleri24,
+  scrapePegadaian,
+  scrapeTreasury,
+  scrapeUbs,
+  type VendorPriceResult,
+} from '@/lib/gold-scrapers'
 import type { GoldPrice, GoldPriceMap, GoldSource } from '@/types'
 
-const CACHE_KEY = 'gold_prices_v3'
-const CACHE_TTL = 10  // 10 seconds
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
-async function fetchXauUsd(): Promise<number | null> {
-  const sources = [
-    () => fetch('https://api.gold-api.com/price/XAU', {
-        headers: { Accept: 'application/json' },
-        signal: AbortSignal.timeout(4000),
-      }).then(r => r.json()).then(d => typeof d.price === 'number' ? d.price : null),
-    () => fetch('https://api.frankfurter.app/latest?from=XAU&to=USD', {
-        signal: AbortSignal.timeout(4000),
-      }).then(r => r.json()).then(d => d?.rates?.USD ?? null),
-  ]
-  for (const src of sources) {
-    try { const v = await src(); if (v) return v } catch { /* next */ }
+const VENDOR_TTL_S = 30 * 60
+const TREASURY_TTL_S = 2 * 60
+const RESPONSE_TTL_S = 60
+const LAST_KNOWN_TTL_S = 24 * 60 * 60
+
+const RESPONSE_CACHE_KEY = 'gold_prices_v4'
+const LAST_KNOWN_KEY = 'gold_prices_v4_last'
+const VENDOR_CACHE_KEY = (vendor: GoldSource) => `gold_vendor_${vendor}_v4`
+
+interface ScrapeJob {
+  source: GoldSource
+  ttl: number
+  fn: () => Promise<VendorPriceResult>
+}
+
+interface VendorFetchResult {
+  price: VendorPriceResult
+  cached: boolean
+  failed: boolean
+  staleSince?: string
+}
+
+interface GoldPricesMeta {
+  durationMs: number
+  failures: GoldSource[]
+  failureCount: number
+  cachedVendors: GoldSource[]
+  livenessByVendor: Record<GoldSource, boolean>
+  staleSinceByVendor: Partial<Record<GoldSource, string>>
+  isLive: boolean
+}
+
+interface CachedGoldResponse {
+  data: GoldPriceMap
+  meta: GoldPricesMeta
+}
+
+const JOBS: ScrapeJob[] = [
+  { source: 'antam', ttl: VENDOR_TTL_S, fn: scrapeAntam },
+  { source: 'ubs', ttl: VENDOR_TTL_S, fn: scrapeUbs },
+  { source: 'pegadaian', ttl: VENDOR_TTL_S, fn: scrapePegadaian },
+  { source: 'galeri24', ttl: VENDOR_TTL_S, fn: scrapeGaleri24 },
+  { source: 'treasury', ttl: TREASURY_TTL_S, fn: scrapeTreasury },
+]
+
+function toGoldPrice(price: VendorPriceResult): GoldPrice {
+  return {
+    source: price.source,
+    buyPrice: price.buyPrice,
+    sellPrice: price.sellPrice,
+    spread: price.spread,
+    updatedAt: price.updatedAt,
+    currency: 'IDR',
+    isLive: price.isLive,
   }
-  return null
 }
 
-async function fetchUsdIdr(): Promise<number> {
+function buildLivenessMap(results: VendorFetchResult[]): Record<GoldSource, boolean> {
+  const map: Partial<Record<GoldSource, boolean>> = {}
+  for (const job of JOBS) {
+    const result = results.find((item) => item.price.source === job.source)
+    map[job.source] = result?.price.isLive ?? false
+  }
+  return map as Record<GoldSource, boolean>
+}
+
+function buildStaleMap(results: VendorFetchResult[]): Partial<Record<GoldSource, string>> {
+  const map: Partial<Record<GoldSource, string>> = {}
+  for (const result of results) {
+    if (result.staleSince) map[result.price.source] = result.staleSince
+  }
+  return map
+}
+
+function disasterFallback(source: GoldSource): VendorPriceResult {
+  const fallbackBase = 1_900_000
+  const sellPrice = Math.round(fallbackBase * 0.95)
+
+  return {
+    source,
+    buyPrice: fallbackBase,
+    sellPrice,
+    spread: fallbackBase - sellPrice,
+    updatedAt: new Date().toISOString(),
+    isLive: false,
+    sourceUrl: 'fallback',
+  }
+}
+
+async function getVendorPrice(job: ScrapeJob): Promise<VendorFetchResult> {
+  const cached = getServerCache<VendorPriceResult>(VENDOR_CACHE_KEY(job.source))
+  if (cached) {
+    return {
+      price: cached,
+      cached: true,
+      failed: !cached.isLive,
+      staleSince: cached.isLive ? undefined : cached.updatedAt,
+    }
+  }
+
   try {
-    const r = await fetch('https://api.frankfurter.app/latest?from=USD&to=IDR', {
-      signal: AbortSignal.timeout(4000),
-    })
-    const d = await r.json()
-    if (d?.rates?.IDR) return d.rates.IDR
-  } catch { /* fallback */ }
-  return 16_400
-}
+    const fresh = await job.fn()
+    setServerCache(VENDOR_CACHE_KEY(job.source), fresh, job.ttl)
+    return {
+      price: fresh,
+      cached: false,
+      failed: !fresh.isLive,
+      staleSince: fresh.isLive ? undefined : fresh.updatedAt,
+    }
+  } catch (error) {
+    console.warn(`[gold/${job.source}] scrape failed:`, error instanceof Error ? error.message : error)
+  }
 
-// Build prices WITHOUT artificial spread normalization
-// Use realistic market ratios based on actual provider behavior
-function buildPrices(basePerGram: number, isLive: boolean): GoldPriceMap {
-  const now = new Date().toISOString()
-  const r   = (v: number) => Math.round(v / 500) * 500   // round to nearest 500
+  const last = getServerCache<GoldPriceMap>(LAST_KNOWN_KEY)
+  const lastPrice = last?.[job.source]
+  if (lastPrice) {
+    return {
+      price: {
+        source: job.source,
+        buyPrice: lastPrice.buyPrice,
+        sellPrice: lastPrice.sellPrice,
+        spread: lastPrice.spread,
+        updatedAt: lastPrice.updatedAt,
+        isLive: false,
+        sourceUrl: 'last-known',
+      },
+      cached: false,
+      failed: true,
+      staleSince: lastPrice.updatedAt,
+    }
+  }
 
-  // Each provider has real-world buy/sell ratio from market observation
-  // buy = harga jual ke konsumen (kita bayar)
-  // sell = harga buyback (kita terima)
-  const providers: Array<{ source: GoldSource; buyRatio: number; sellRatio: number }> = [
-    // Antam: official LM price from logammulia.com, spread ~4-5%
-    { source: 'antam',     buyRatio: 1.000, sellRatio: 0.952 },
-    // Pegadaian: ~1-2% premium over Antam for buy, similar buyback
-    { source: 'pegadaian', buyRatio: 1.018, sellRatio: 0.946 },
-    // UBS: ~2-3% premium, slightly better buyback than Pegadaian
-    { source: 'ubs',       buyRatio: 1.025, sellRatio: 0.948 },
-    // Galeri24: similar to Antam, slight premium
-    { source: 'galeri24',  buyRatio: 1.012, sellRatio: 0.950 },
-    // Treasury (digital Pegadaian): tightest spread, no physical premium
-    { source: 'treasury',  buyRatio: 1.008, sellRatio: 0.970 },
-  ]
-
-  const result: GoldPriceMap = {}
-  providers.forEach(({ source, buyRatio, sellRatio }) => {
-    const buyPrice  = r(basePerGram * buyRatio)
-    const sellPrice = r(basePerGram * sellRatio)
-    result[source] = {
-      source,
-      buyPrice,
-      sellPrice,
-      spread:    buyPrice - sellPrice,
-      updatedAt: now,
-      currency:  'IDR',
-      isLive,
-    } as GoldPrice
-  })
-
-  return result
+  const fallback = disasterFallback(job.source)
+  return {
+    price: fallback,
+    cached: false,
+    failed: true,
+    staleSince: fallback.updatedAt,
+  }
 }
 
 export async function GET() {
-  const cached = getServerCache<GoldPriceMap>(CACHE_KEY)
-  if (cached) return NextResponse.json({ success: true, data: cached, cached: true })
-
-  try {
-    const [xauUsd, usdIdr] = await Promise.all([fetchXauUsd(), fetchUsdIdr()])
-
-    let basePerGram: number
-    let isLive = false
-
-    if (xauUsd) {
-      basePerGram = (xauUsd / 31.1035) * usdIdr
-      isLive = true
-    } else {
-      const last = getServerCache<GoldPriceMap>(`${CACHE_KEY}_last`)
-      basePerGram = last?.antam
-        ? last.antam.buyPrice  // antam buyPrice ≈ base
-        : 1_600_000
-      console.warn('[Gold API] Using fallback:', basePerGram)
-    }
-
-    const prices = buildPrices(basePerGram, isLive)
-    setServerCache(CACHE_KEY, prices, CACHE_TTL)
-    setServerCache(`${CACHE_KEY}_last`, prices, 86400)
-
+  const cached = getServerCache<CachedGoldResponse>(RESPONSE_CACHE_KEY)
+  if (cached) {
     return NextResponse.json({
-      success: true, data: prices, cached: false,
-      meta: { xauUsd, usdIdr, basePerGram: Math.round(basePerGram), isLive },
+      success: true,
+      data: cached.data,
+      meta: cached.meta,
+      cached: true,
     })
-  } catch (err) {
-    console.error('[Gold API]', err)
-    const fallback = buildPrices(1_600_000, false)
-    return NextResponse.json({ success: true, data: fallback, cached: false, fallback: true })
   }
+
+  const startedAt = Date.now()
+  const results = await Promise.all(JOBS.map((job) => getVendorPrice(job)))
+
+  const data: GoldPriceMap = {}
+  const failures: GoldSource[] = []
+  const cachedVendors: GoldSource[] = []
+
+  for (const result of results) {
+    if (result.failed) failures.push(result.price.source)
+    if (result.cached) cachedVendors.push(result.price.source)
+    data[result.price.source] = toGoldPrice(result.price)
+  }
+
+  const hasReusableSnapshot = results.some((result) => result.price.sourceUrl !== 'fallback')
+  if (hasReusableSnapshot) setServerCache(LAST_KNOWN_KEY, data, LAST_KNOWN_TTL_S)
+
+  const meta: GoldPricesMeta = {
+    durationMs: Date.now() - startedAt,
+    failures,
+    failureCount: failures.length,
+    cachedVendors,
+    livenessByVendor: buildLivenessMap(results),
+    staleSinceByVendor: buildStaleMap(results),
+    isLive: results.some((result) => result.price.isLive),
+  }
+
+  setServerCache(RESPONSE_CACHE_KEY, { data, meta }, RESPONSE_TTL_S)
+
+  return NextResponse.json({ success: true, data, meta, cached: false })
 }
