@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getServerCache, setServerCache } from '@/lib/cache'
 import {
-  scrapeAntam,
-  scrapeGaleri24,
-  scrapePegadaian,
-  scrapeTreasury,
-  scrapeUbs,
+  GOLD_VENDOR_SOURCES,
+  scrapeGoldVendor,
   type VendorPriceResult,
 } from '@/lib/gold-scrapers'
 import type { GoldPrice, GoldPriceMap, GoldSource } from '@/types'
@@ -18,9 +15,9 @@ const TREASURY_TTL_S = 2 * 60
 const RESPONSE_TTL_S = 60
 const LAST_KNOWN_TTL_S = 24 * 60 * 60
 
-const RESPONSE_CACHE_KEY = 'gold_prices_v5'
-const LAST_KNOWN_KEY = 'gold_prices_v5_last'
-const VENDOR_CACHE_KEY = (vendor: GoldSource) => `gold_vendor_${vendor}_v5`
+const RESPONSE_CACHE_KEY = 'gold_prices_v6'
+const LAST_KNOWN_KEY = 'gold_prices_v6_last'
+const VENDOR_CACHE_KEY = (vendor: GoldSource) => `gold_vendor_${vendor}_v6`
 
 interface ScrapeJob {
   source: GoldSource
@@ -50,13 +47,11 @@ interface CachedGoldResponse {
   meta: GoldPricesMeta
 }
 
-const JOBS: ScrapeJob[] = [
-  { source: 'antam', ttl: VENDOR_TTL_S, fn: scrapeAntam },
-  { source: 'ubs', ttl: VENDOR_TTL_S, fn: scrapeUbs },
-  { source: 'pegadaian', ttl: VENDOR_TTL_S, fn: scrapePegadaian },
-  { source: 'galeri24', ttl: VENDOR_TTL_S, fn: scrapeGaleri24 },
-  { source: 'treasury', ttl: TREASURY_TTL_S, fn: scrapeTreasury },
-]
+const JOBS: ScrapeJob[] = GOLD_VENDOR_SOURCES.map((source) => ({
+  source,
+  ttl: source === 'treasury' ? TREASURY_TTL_S : VENDOR_TTL_S,
+  fn: () => scrapeGoldVendor(source),
+}))
 
 function toGoldPrice(price: VendorPriceResult): GoldPrice {
   return {

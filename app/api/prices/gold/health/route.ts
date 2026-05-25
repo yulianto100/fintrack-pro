@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server'
 import {
-  scrapeAntam,
-  scrapeGaleri24,
-  scrapePegadaian,
-  scrapeTreasury,
-  scrapeUbs,
+  GOLD_VENDOR_SOURCES,
+  scrapeGoldVendor,
   type VendorScraper,
 } from '@/lib/gold-scrapers'
 import type { GoldSource } from '@/types'
@@ -36,13 +33,10 @@ interface HealthFail {
 
 type HealthResult = HealthOk | HealthFail
 
-const JOBS: HealthJob[] = [
-  { name: 'antam', fn: scrapeAntam },
-  { name: 'ubs', fn: scrapeUbs },
-  { name: 'pegadaian', fn: scrapePegadaian },
-  { name: 'galeri24', fn: scrapeGaleri24 },
-  { name: 'treasury', fn: scrapeTreasury },
-]
+const JOBS: HealthJob[] = GOLD_VENDOR_SOURCES.map((source) => ({
+  name: source,
+  fn: () => scrapeGoldVendor(source),
+}))
 
 function isLiveResult(result: HealthResult): boolean {
   return result.ok && result.isLive
