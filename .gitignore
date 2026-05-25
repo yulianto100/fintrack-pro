@@ -49,3 +49,4 @@ service-account*.json
 
 # OS
 desktop.ini
+.vercel

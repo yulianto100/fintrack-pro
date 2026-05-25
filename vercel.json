@@ -14,7 +14,7 @@
     },
     {
       "path": "/api/cron/gold-prices",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 9 * * *"
     }
   ],
   "headers": [
