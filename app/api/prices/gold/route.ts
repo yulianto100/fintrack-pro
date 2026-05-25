@@ -18,9 +18,9 @@ const TREASURY_TTL_S = 2 * 60
 const RESPONSE_TTL_S = 60
 const LAST_KNOWN_TTL_S = 24 * 60 * 60
 
-const RESPONSE_CACHE_KEY = 'gold_prices_v4'
-const LAST_KNOWN_KEY = 'gold_prices_v4_last'
-const VENDOR_CACHE_KEY = (vendor: GoldSource) => `gold_vendor_${vendor}_v4`
+const RESPONSE_CACHE_KEY = 'gold_prices_v5'
+const LAST_KNOWN_KEY = 'gold_prices_v5_last'
+const VENDOR_CACHE_KEY = (vendor: GoldSource) => `gold_vendor_${vendor}_v5`
 
 interface ScrapeJob {
   source: GoldSource
@@ -67,6 +67,8 @@ function toGoldPrice(price: VendorPriceResult): GoldPrice {
     updatedAt: price.updatedAt,
     currency: 'IDR',
     isLive: price.isLive,
+    sourceUrl: price.sourceUrl,
+    vendorUpdatedAt: price.vendorUpdatedAt,
   }
 }
 
@@ -87,15 +89,26 @@ function buildStaleMap(results: VendorFetchResult[]): Partial<Record<GoldSource,
   return map
 }
 
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 function disasterFallback(source: GoldSource): VendorPriceResult {
-  const fallbackBase = 1_900_000
-  const sellPrice = Math.round(fallbackBase * 0.95)
+  const fallbackBaseBySource: Record<GoldSource, number> = {
+    antam: 2_800_000,
+    ubs: 2_850_000,
+    pegadaian: 2_770_000,
+    galeri24: 2_790_000,
+    treasury: 2_600_000,
+  }
+  const buyPrice = fallbackBaseBySource[source]
+  const sellPrice = Math.round(buyPrice * 0.95)
 
   return {
     source,
-    buyPrice: fallbackBase,
+    buyPrice,
     sellPrice,
-    spread: fallbackBase - sellPrice,
+    spread: buyPrice - sellPrice,
     updatedAt: new Date().toISOString(),
     isLive: false,
     sourceUrl: 'fallback',
@@ -126,6 +139,20 @@ async function getVendorPrice(job: ScrapeJob): Promise<VendorFetchResult> {
     console.warn(`[gold/${job.source}] scrape failed:`, error instanceof Error ? error.message : error)
   }
 
+  try {
+    await wait(600)
+    const fresh = await job.fn()
+    setServerCache(VENDOR_CACHE_KEY(job.source), fresh, job.ttl)
+    return {
+      price: fresh,
+      cached: false,
+      failed: !fresh.isLive,
+      staleSince: fresh.isLive ? undefined : fresh.updatedAt,
+    }
+  } catch (error) {
+    console.warn(`[gold/${job.source}] retry failed:`, error instanceof Error ? error.message : error)
+  }
+
   const last = getServerCache<GoldPriceMap>(LAST_KNOWN_KEY)
   const lastPrice = last?.[job.source]
   if (lastPrice) {
@@ -138,6 +165,7 @@ async function getVendorPrice(job: ScrapeJob): Promise<VendorFetchResult> {
         updatedAt: lastPrice.updatedAt,
         isLive: false,
         sourceUrl: 'last-known',
+        vendorUpdatedAt: lastPrice.vendorUpdatedAt,
       },
       cached: false,
       failed: true,
@@ -175,7 +203,10 @@ export async function GET() {
   for (const result of results) {
     if (result.failed) failures.push(result.price.source)
     if (result.cached) cachedVendors.push(result.price.source)
-    data[result.price.source] = toGoldPrice(result.price)
+    data[result.price.source] = {
+      ...toGoldPrice(result.price),
+      staleSince: result.staleSince,
+    }
   }
 
   const hasReusableSnapshot = results.some((result) => result.price.sourceUrl !== 'fallback')

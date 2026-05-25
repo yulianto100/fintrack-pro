@@ -1,6 +1,7 @@
 import * as cheerio from 'cheerio'
 import type { Element } from 'domhandler'
 import { fetchHtml, findFirstPlausiblePrice, isPlausibleGoldPrice, parseRupiah } from './http'
+import { scrapeGaleri24Vendor } from './galeri24Vendor'
 import { scrapeFromHargaEmasOrg } from './hargaEmasOrg'
 import type { VendorPriceResult } from './types'
 
@@ -70,6 +71,10 @@ export async function scrapeAntam(): Promise<VendorPriceResult> {
       sourceUrl: PRICE_URL,
     }
   } catch {
-    return scrapeFromHargaEmasOrg('antam')
+    try {
+      return await scrapeGaleri24Vendor('antam')
+    } catch {
+      return scrapeFromHargaEmasOrg('antam')
+    }
   }
 }

@@ -94,7 +94,7 @@ function MiniSparkline({ values, color }: { values: number[]; color: string }) {
 
 function PriceCard({ source, price, selected, onClick, history = [] }: {
   source: GoldSource
-  price: { buyPrice: number; sellPrice: number; isLive?: boolean; updatedAt?: string }
+  price: { buyPrice: number; sellPrice: number; isLive?: boolean; updatedAt?: string; sourceUrl?: string }
   selected?: boolean
   onClick?: () => void
   history?: number[]
@@ -108,7 +108,7 @@ function PriceCard({ source, price, selected, onClick, history = [] }: {
   const movementPct = firstPoint > 0 ? (movement / firstPoint) * 100 : 0
   const positive = movement >= 0
   const updatedAt = price.updatedAt ? new Date(price.updatedAt) : null
-  const sourceUrl = VENDOR_URLS[source]
+  const sourceUrl = price.sourceUrl || VENDOR_URLS[source]
 
   return (
     <motion.div

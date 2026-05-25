@@ -79,6 +79,9 @@ export interface GoldPrice {
   updatedAt: string
   currency:  string
   isLive:    boolean
+  sourceUrl?: string
+  vendorUpdatedAt?: string
+  staleSince?: string
 }
 
 export interface GoldPriceMap { [key: string]: GoldPrice }

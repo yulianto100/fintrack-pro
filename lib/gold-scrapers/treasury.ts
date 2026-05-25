@@ -41,8 +41,8 @@ async function scrapeApi(): Promise<VendorPriceResult> {
   const startDate = new Date(endDate.getTime() - 24 * 60 * 60 * 1000)
   const data = await fetchJson<TreasuryApiResponse>(API_URL, {
     method: 'POST',
-    timeout: 8000,
-    retries: 1,
+    timeout: 12000,
+    retries: 3,
     headers: {
       Origin: SITE_URL,
       Referer: SITE_URL,
