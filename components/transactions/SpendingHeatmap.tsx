@@ -82,10 +82,12 @@ export function SpendingHeatmap({
   const todayKey = toDateKey(new Date())
 
   const getCellColor = (amount: number) => {
-    if (amount === 0) return 'rgba(34,197,94,0.06)'
+    if (amount === 0) return 'var(--surface-2)'
     const ratio = Math.min(1, amount / p90)
-    const opacity = 0.18 + ratio * 0.62
-    return `rgba(248,113,113,${opacity.toFixed(2)})`
+    if (ratio >= 0.75) return 'var(--expenseStrong)'
+    if (ratio >= 0.5) return 'var(--expenseNormal)'
+    if (ratio >= 0.25) return 'var(--gold)'
+    return 'var(--accent-dim)'
   }
 
   return (
@@ -164,12 +166,10 @@ export function SpendingHeatmap({
 
               <div className="mt-2 flex items-center justify-end gap-1">
                 <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Sedikit</span>
-                {[0.15, 0.3, 0.5, 0.75].map((opacity) => (
-                  <div
-                    key={opacity}
-                    style={{ width: 10, height: 10, borderRadius: 2, background: `rgba(248,113,113,${opacity})` }}
-                  />
-                ))}
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--accent-dim)' }} />
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--gold)' }} />
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--expenseNormal)' }} />
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--expenseStrong)' }} />
                 <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>Banyak</span>
               </div>
             </div>
