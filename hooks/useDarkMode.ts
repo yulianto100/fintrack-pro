@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { applyAccent, getStoredAccent } from '@/lib/accent'
 
 const STORAGE_KEY = 'finuvo_theme'
 
@@ -19,6 +20,7 @@ export function useDarkMode() {
     } else {
       document.documentElement.classList.remove('dark')
     }
+    applyAccent(getStoredAccent())
   }, [])
 
   const toggle = useCallback(() => {
@@ -30,6 +32,7 @@ export function useDarkMode() {
       } else {
         document.documentElement.classList.remove('dark')
       }
+      applyAccent(getStoredAccent())
       return next
     })
   }, [])
@@ -42,6 +45,7 @@ export function useDarkMode() {
     } else {
       document.documentElement.classList.remove('dark')
     }
+    applyAccent(getStoredAccent())
   }, [])
 
   return { isDark, toggle, setDark, mounted }
