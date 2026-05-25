@@ -139,6 +139,27 @@ function getAccountTransactions(transactions: Transaction[], accountId: string) 
     .sort((a, b) => new Date(b.date || b.createdAt || '').getTime() - new Date(a.date || a.createdAt || '').getTime())
 }
 
+function getCreditCardMonthlyChange(transactions: Transaction[], creditCardId: string): number | undefined {
+  const now = new Date()
+  const ym = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+  const thisMonth = ym(now)
+  const lastMonth = ym(new Date(now.getFullYear(), now.getMonth() - 1, 1))
+
+  let current = 0
+  let previous = 0
+  for (const tx of Array.isArray(transactions) ? transactions : []) {
+    if (tx.creditCardId !== creditCardId) continue
+    if (tx.type !== 'credit_expense') continue
+    const txMonth = (tx.date || '').slice(0, 7)
+    if (txMonth === thisMonth) current += safeNumber(tx.amount)
+    else if (txMonth === lastMonth) previous += safeNumber(tx.amount)
+  }
+
+  if (previous === 0) return undefined
+  if (current === 0 && previous === 0) return undefined
+  return Math.round(((current - previous) / previous) * 100)
+}
+
 function CountUpBalance({ value, hidden }: { value: number; hidden: boolean }) {
   const reducedMotion = useReducedMotion()
   const [displayValue, setDisplayValue] = useState(value)
@@ -492,6 +513,11 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
   const billing   = getBillingStatus(pct, due?.days ?? 999)
   const minPayment = Math.round(used * 0.10)
   const providerName = account.providerName || account.name
+  const { data: allTransactions } = useApiList<Transaction>('/api/transactions?limit=500', { refreshMs: 15000 })
+  const monthlyChangePct = useMemo(
+    () => getCreditCardMonthlyChange(allTransactions, account.id),
+    [allTransactions, account.id]
+  )
 
   const cardTypeLabel = (() => {
     const id = (account.providerId ?? '').toLowerCase()
@@ -506,7 +532,7 @@ const CreditDetailSheet = memo(function CreditDetailSheet({ account, hidden, onC
   const insights = getAccountInsights({
     type: 'credit',
     usagePercent: Math.round(pct),
-    monthlyChangePct: 20, // TODO: wire from real data
+    monthlyChangePct,
   })
 
   // Quick actions
