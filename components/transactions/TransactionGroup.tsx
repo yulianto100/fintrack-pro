@@ -324,6 +324,11 @@ function SwipeableRow({
     clearLongPressTimer()
   }, [clearLongPressTimer])
 
+  const handleDragStart = useCallback(() => {
+    clearLongPressTimer()
+    isDragging.current = true
+  }, [clearLongPressTimer])
+
   const handleDragEnd = useCallback(() => {
     clearLongPressTimer()
     isDragging.current = false
@@ -354,12 +359,14 @@ function SwipeableRow({
     if (selectionMode) {
       haptics.light()
       onToggleSelect?.(t.id)
+      longPressed.current = false
       return
     }
     if (!isDragging.current && Math.abs(x.get()) < 5) {
       haptics.light()
       onEdit(t)
     }
+    longPressed.current = false
   }, [x, t, onEdit, selectionMode, onToggleSelect])
 
   return (
@@ -394,7 +401,7 @@ function SwipeableRow({
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        onDragStart={() => { clearLongPressTimer(); isDragging.current = true }}
+        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         animate={controls}
         onClick={handleClick}
