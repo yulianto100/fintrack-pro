@@ -6,7 +6,7 @@ import { useApiList } from '@/hooks/useApiData'
 import { useGoldPrices } from '@/hooks/usePrices'
 import { formatCurrency, formatNumber, formatDate } from '@/lib/utils'
 import type { GoldHolding, GoldSource, GoldType } from '@/types'
-import { Plus, Trash2, RefreshCw, X, Wifi, WifiOff, TrendingUp, TrendingDown, DollarSign, Pencil, ChevronDown, MoreHorizontal, Activity, Award, BadgePercent, LineChart, Sparkles, Clock3, ExternalLink } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, X, Wifi, WifiOff, TrendingUp, TrendingDown, DollarSign, Pencil, ChevronDown, MoreHorizontal, Activity, Award, BadgePercent, LineChart, Sparkles, Clock3 } from 'lucide-react'
 import { EmasSellModal } from '@/components/sell-modal'
 import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import { useCountUp } from '@/hooks/useCountUp'
@@ -22,14 +22,6 @@ const PROVIDERS: Record<GoldSource, { label: string; icon: string; color: string
   treasury:  { label: 'Treasury',  icon: '💛', color: '#eab308', type: 'digital' },
   ubs:       { label: 'UBS',       icon: '🥈', color: '#94a3b8', type: 'fisik'   },
   galeri24:  { label: 'Galeri24',  icon: '🔶', color: '#fb923c', type: 'fisik'   },
-}
-
-const VENDOR_URLS: Record<GoldSource, string> = {
-  antam: 'https://www.logammulia.com/id/harga-emas-hari-ini',
-  pegadaian: 'https://sahabat.pegadaian.co.id/harga-emas',
-  treasury: 'https://www.treasury.id/',
-  ubs: 'https://galeri24.co.id/harga-emas',
-  galeri24: 'https://galeri24.co.id/harga-emas',
 }
 
 const GOLD_TYPES: { value: GoldType; label: string; icon: string }[] = [
@@ -94,7 +86,7 @@ function MiniSparkline({ values, color }: { values: number[]; color: string }) {
 
 function PriceCard({ source, price, selected, onClick, history = [] }: {
   source: GoldSource
-  price: { buyPrice: number; sellPrice: number; isLive?: boolean; updatedAt?: string; sourceUrl?: string }
+  price: { buyPrice: number; sellPrice: number; isLive?: boolean; updatedAt?: string }
   selected?: boolean
   onClick?: () => void
   history?: number[]
@@ -108,7 +100,6 @@ function PriceCard({ source, price, selected, onClick, history = [] }: {
   const movementPct = firstPoint > 0 ? (movement / firstPoint) * 100 : 0
   const positive = movement >= 0
   const updatedAt = price.updatedAt ? new Date(price.updatedAt) : null
-  const sourceUrl = price.sourceUrl || VENDOR_URLS[source]
 
   return (
     <motion.div
@@ -195,23 +186,13 @@ function PriceCard({ source, price, selected, onClick, history = [] }: {
               background: `linear-gradient(90deg, ${cfg.color}, ${cfg.color}88)`,
             }} />
         </div>
-        <div className="flex items-center justify-between gap-2 pt-1">
+        <div className="flex items-center gap-1 pt-1">
           <div className="flex items-center gap-1 min-w-0">
             <span className="h-1.5 w-1.5 rounded-full animate-pulse shrink-0" style={{ background: price.isLive ? 'var(--accent)' : 'var(--text-muted)' }} />
             <p className="text-[9px] truncate" style={{ color: 'var(--text-muted)' }}>
               {relativeGoldTime(updatedAt)}
             </p>
           </div>
-          <a
-            href={sourceUrl}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(event) => event.stopPropagation()}
-            className="inline-flex items-center gap-0.5 text-[9px] font-bold shrink-0"
-            style={{ color: cfg.color }}
-          >
-            Sumber <ExternalLink size={8} />
-          </a>
         </div>
       </div>
     </motion.div>
