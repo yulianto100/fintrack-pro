@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     const db          = getAdminDatabase()
     const [budgetSnap, txSnap] = await Promise.all([
       db.ref(`users/${userId}/budgets`).get(),
-      db.ref(`users/${userId}/transactions`).get(),
+      db.ref(`users/${userId}/transactions`).orderByChild('date').startAt(`${month}-01`).endAt(`${month}-31`).get(),
     ])
 
     if (!budgetSnap.exists()) return NextResponse.json({ success: true, data: [] })
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
     const spentMap: Record<string, number> = {}
     if (txSnap.exists()) {
       const txs: Transaction[] = Object.values(txSnap.val())
-      txs.filter((t) => isExpenseForSummary(t) && t.date.startsWith(month)).forEach((t) => {
+      txs.filter((t) => isExpenseForSummary(t)).forEach((t) => {
         spentMap[t.categoryId] = (spentMap[t.categoryId] || 0) + t.amount
       })
     }

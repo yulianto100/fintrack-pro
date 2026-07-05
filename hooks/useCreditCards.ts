@@ -6,7 +6,7 @@ import type { CreditCard } from '@/types'
 import toast from 'react-hot-toast'
 
 export function useCreditCards() {
-  const { data: cards, loading, refetch } = useApiList<CreditCard>('/api/credit-cards', { refreshMs: 10000 })
+  const { data: cards, loading, refetch } = useApiList<CreditCard>('/api/credit-cards', { refreshMs: 30000 })
 
   const totalDebt = useMemo(() => cards.reduce((s, c) => s + c.used, 0), [cards])
   const totalLimit = useMemo(() => cards.reduce((s, c) => s + c.limit, 0), [cards])

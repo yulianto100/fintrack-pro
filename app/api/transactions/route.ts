@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getAdminDatabase } from '@/lib/firebase-admin'
-import { isExpenseForSummary, isExpenseForWalletBalance } from '@/lib/transaction-rules'
+import { isExpenseForSummary } from '@/lib/transaction-rules'
 import { persistNotificationOnce } from '@/lib/notifications-store'
 import type { BudgetCategory, Transaction } from '@/types'
 
@@ -15,41 +15,6 @@ async function getUserId(): Promise<string | null> {
   } catch { return null }
 }
 
-/** Compute current balance for a specific walletAccountId from transaction history */
-async function getAccountBalance(db: ReturnType<typeof import('@/lib/firebase-admin').getAdminDatabase>, userId: string, walletAccountId: string): Promise<number> {
-  const snap = await db.ref(`users/${userId}/transactions`).get()
-  if (!snap.exists()) return 0
-  const txs: Transaction[] = Object.values(snap.val())
-  let balance = 0
-  txs.forEach((tx) => {
-    if (tx.type === 'income' && tx.walletAccountId === walletAccountId) balance += tx.amount
-    if (isExpenseForWalletBalance(tx) && tx.walletAccountId === walletAccountId) balance -= tx.amount
-    if (tx.type === 'transfer') {
-      if (tx.walletAccountId   === walletAccountId) balance -= tx.amount
-      if (tx.toWalletAccountId === walletAccountId) balance += tx.amount
-    }
-  })
-  return balance
-}
-
-/** Compute current balance for a generic wallet type (cash/bank/ewallet) from transaction history */
-async function getWalletTypeBalance(db: ReturnType<typeof import('@/lib/firebase-admin').getAdminDatabase>, userId: string, walletType: string): Promise<number> {
-  const snap = await db.ref(`users/${userId}/transactions`).get()
-  if (!snap.exists()) return 0
-  const txs: Transaction[] = Object.values(snap.val())
-  let balance = 0
-  txs.forEach((tx) => {
-    // Only count transactions that DON'T have a walletAccountId (generic wallet-level)
-    if (tx.type === 'income' && tx.wallet === walletType && !tx.walletAccountId) balance += tx.amount
-    if (isExpenseForWalletBalance(tx) && tx.wallet === walletType && !tx.walletAccountId) balance -= tx.amount
-    if (tx.type === 'transfer') {
-      if (tx.wallet   === walletType && !tx.walletAccountId)   balance -= tx.amount
-      if (tx.toWallet === walletType && !tx.toWalletAccountId) balance += tx.amount
-    }
-  })
-  return balance
-}
-
 async function persistBudgetUsageNotification(
   db: ReturnType<typeof import('@/lib/firebase-admin').getAdminDatabase>,
   userId: string,
@@ -57,20 +22,22 @@ async function persistBudgetUsageNotification(
 ): Promise<void> {
   if (!isExpenseForSummary(tx) || !tx.categoryId || !tx.date) return
 
-  const budgetSnap = await db.ref(`users/${userId}/budgets`).get()
+  const month = tx.date.slice(0, 7)
+  const [budgetSnap, txSnap] = await Promise.all([
+    db.ref(`users/${userId}/budgets`).get(),
+    db.ref(`users/${userId}/transactions`).orderByChild('date').startAt(`${month}-01`).endAt(`${month}-31`).get(),
+  ])
   if (!budgetSnap.exists()) return
 
-  const month = tx.date.slice(0, 7)
   const budgets = Object.values(budgetSnap.val() as Record<string, BudgetCategory>)
   const matching = budgets.find((budget) => budget.categoryId === tx.categoryId && budget.month === month)
   if (!matching || matching.limitAmount <= 0) return
 
-  const txSnap = await db.ref(`users/${userId}/transactions`).get()
   const transactions = txSnap.exists()
     ? Object.values(txSnap.val() as Record<string, Transaction>)
     : []
   const spent = transactions
-    .filter((item) => item.categoryId === matching.categoryId && item.date?.startsWith(month) && isExpenseForSummary(item))
+    .filter((item) => item.categoryId === matching.categoryId && isExpenseForSummary(item))
     .reduce((sum, item) => sum + item.amount, 0)
   const percent = (spent / matching.limitAmount) * 100
 
@@ -169,18 +136,23 @@ export async function POST(request: Request) {
 
     // Wallet validation is skipped for credit card expenses —
     // they do not deduct from wallet balance.
-    // ── BALANCE VALIDATION ────────────────────────────────────────────────────
-    // Block expense or transfer (debit side) if balance would go negative
+    // ── BALANCE VALIDATION (lightweight) ────────────────────────────────────────
+    // Use walletAccounts balance directly instead of recomputing from all transactions
     const needsBalanceCheck = (type === 'expense' || type === 'transfer') && !isCreditCardExpense
     if (needsBalanceCheck) {
-      let currentBalance: number
+      let currentBalance = 0
 
       if (walletAccountId) {
-        // Specific account — check account-level balance
-        currentBalance = await getAccountBalance(db, userId, walletAccountId)
-      } else {
-        // Generic wallet type — check wallet-type balance
-        currentBalance = await getWalletTypeBalance(db, userId, wallet)
+        const accSnap = await db.ref(`users/${userId}/walletAccounts/${walletAccountId}/balance`).get()
+        currentBalance = accSnap.exists() ? Number(accSnap.val() || 0) : 0
+      } else if (wallet) {
+        // Generic wallet: sum balances of all accounts of this type
+        const accountsSnap = await db.ref(`users/${userId}/walletAccounts`).orderByChild('type').equalTo(wallet).get()
+        if (accountsSnap.exists()) {
+          Object.values(accountsSnap.val()).forEach((acc: any) => {
+            currentBalance += Number(acc.balance || 0)
+          })
+        }
       }
 
       if (currentBalance < amt) {
@@ -262,11 +234,10 @@ export async function POST(request: Request) {
 
     await db.ref().update(updates)
 
-    try {
-      await persistBudgetUsageNotification(db, userId, tx)
-    } catch (err) {
+    // Fire-and-forget: don't block the response for budget notifications
+    persistBudgetUsageNotification(db, userId, tx).catch((err) => {
       console.warn('[budget notification persist]', err)
-    }
+    })
 
     return NextResponse.json({ success: true, data: tx }, { status: 201 })
   } catch (err) {

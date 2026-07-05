@@ -37,21 +37,19 @@ export default function DashboardPage() {
   const { setHandler } = useRefreshContext()
   const requestedAction = searchParams.get('action')
 
-  const { data: transactions, refetch: refetchRecentTx } = useApiList<Transaction>('/api/transactions?limit=7&sort=createdAt', { refreshMs: 8000 })
-  const { data: allTx, refetch: refetchAllTx } = useApiList<Transaction>('/api/transactions?limit=500', { refreshMs: 15000 })
-  const { data: goldHoldings, refetch: refetchGoldHoldings } = useApiList<GoldHolding>('/api/portfolio/gold', { refreshMs: 30000 })
-  const { data: stocks, refetch: refetchStocks } = useApiList<StockHolding>('/api/portfolio/stocks', { refreshMs: 30000 })
-  const { data: deposits, refetch: refetchDeposits } = useApiList<Deposit>('/api/portfolio/deposits?status=all', { refreshMs: 30000 })
-  const { data: sbnList, refetch: refetchSbn } = useApiList<SBNHolding>('/api/portfolio/sbn', { refreshMs: 60000 })
-  const { data: reksadanaList, refetch: refetchReksadana } = useApiList<ReksadanaHolding>('/api/portfolio/reksadana', { refreshMs: 60000 })
-  const { data: budgets, refetch: refetchBudgets } = useApiList<BudgetStatus>('/api/budget', { refreshMs: 30000 })
+  const { data: allTx, refetch: refetchAllTx } = useApiList<Transaction>('/api/transactions?limit=500', { refreshMs: 60000 })
+  const { data: goldHoldings, refetch: refetchGoldHoldings } = useApiList<GoldHolding>('/api/portfolio/gold', { refreshMs: 60000 })
+  const { data: stocks, refetch: refetchStocks } = useApiList<StockHolding>('/api/portfolio/stocks', { refreshMs: 60000 })
+  const { data: deposits, refetch: refetchDeposits } = useApiList<Deposit>('/api/portfolio/deposits?status=all', { refreshMs: 60000 })
+  const { data: sbnList, refetch: refetchSbn } = useApiList<SBNHolding>('/api/portfolio/sbn', { refreshMs: 120000 })
+  const { data: reksadanaList, refetch: refetchReksadana } = useApiList<ReksadanaHolding>('/api/portfolio/reksadana', { refreshMs: 120000 })
+  const { data: budgets, refetch: refetchBudgets } = useApiList<BudgetStatus>('/api/budget', { refreshMs: 60000 })
 
   const stockSymbols = useMemo(() => (stocks || []).map((s) => s.symbol), [stocks])
   const { prices: stockPrices, refetch: refetchStockPrices } = useStockPrices(stockSymbols)
   const { prices: goldPrices, refetch: refetchGoldPrices } = useGoldPrices()
 
   const refreshDashboard = useCallback(async () => {
-    refetchRecentTx()
     refetchAllTx()
     refetchGoldHoldings()
     refetchStocks()
@@ -66,7 +64,6 @@ export default function DashboardPage() {
     refetchDeposits,
     refetchGoldHoldings,
     refetchGoldPrices,
-    refetchRecentTx,
     refetchReksadana,
     refetchSbn,
     refetchStockPrices,
@@ -166,7 +163,7 @@ export default function DashboardPage() {
   const firstName = session?.user?.name?.split(' ')[0] || 'User'
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Selamat pagi' : hour < 17 ? 'Selamat siang' : 'Selamat malam'
-  const recentTransactions = useMemo(() => transactions.slice(0, 4), [transactions])
+  const recentTransactions = useMemo(() => allTx.slice(0, 4), [allTx])
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-8 pt-6">

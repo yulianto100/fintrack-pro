@@ -14,14 +14,33 @@ async function getUserId(): Promise<string | null> {
   } catch { return null }
 }
 
+// Simple in-memory cache per user (resets on cold start, acceptable for Vercel)
+const syncCache = new Map<string, { data: unknown; expiresAt: number }>()
+const SYNC_CACHE_TTL = 15_000 // 15 seconds
+
+function getCachedSync(userId: string) {
+  const entry = syncCache.get(userId)
+  if (!entry || Date.now() > entry.expiresAt) return null
+  return entry.data
+}
+
+function setCachedSync(userId: string, data: unknown) {
+  syncCache.set(userId, { data, expiresAt: Date.now() + SYNC_CACHE_TTL })
+}
+
 /**
  * POST /api/wallet-accounts/sync
  * Recomputes balances for all wallet accounts from transaction history.
  * Called after transactions are added/edited to keep account balances accurate.
+ * Result is cached for 15s to avoid redundant recomputation.
  */
 export async function POST() {
   const userId = await getUserId()
   if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+
+  // Return cached result if still fresh
+  const cached = getCachedSync(userId)
+  if (cached) return NextResponse.json({ success: true, data: cached })
 
   try {
     const db = getAdminDatabase()
@@ -65,6 +84,7 @@ export async function POST() {
 
     if (Object.keys(updates).length > 0) await db.ref().update(updates)
 
+    setCachedSync(userId, balances)
     return NextResponse.json({ success: true, data: balances })
   } catch (err) {
     console.error('[POST /api/wallet-accounts/sync]', err)
