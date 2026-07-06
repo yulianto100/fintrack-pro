@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import type { MouseEvent } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Bell, Check, X, Trash2 } from 'lucide-react'
 import { useApiList } from '@/hooks/useApiData'
@@ -29,6 +29,7 @@ function relativeTime(iso: string): string {
 }
 
 export function NotificationCenter({ open, onClose }: Props) {
+  const router = useRouter()
   const [filter, setFilter] = useState<'all' | 'unread' | 'money' | 'bills'>('all')
   const { data: notifications, refetch } = useApiList<Notification>('/api/notifications', {
     refreshMs: open ? 8000 : 60000,
@@ -48,16 +49,17 @@ export function NotificationCenter({ open, onClose }: Props) {
   }, [refetch])
 
   const handleClick = useCallback(async (notification: Notification) => {
+    if (notification.link) onClose()
     if (!notification.read) {
-      await fetch('/api/notifications', {
+      fetch('/api/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: [notification.id] }),
-      })
+      }).catch(() => {})
       refetch()
     }
-    if (notification.link) onClose()
-  }, [refetch, onClose])
+    if (notification.link) router.push(notification.link)
+  }, [refetch, onClose, router])
 
   const handleDelete = useCallback(async (id: string, event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation()
@@ -237,11 +239,7 @@ export function NotificationCenter({ open, onClose }: Props) {
                       </div>
                     )
 
-                    return notification.link ? (
-                      <Link key={notification.id} href={notification.link} onClick={() => { void handleClick(notification) }}>
-                        {content}
-                      </Link>
-                    ) : (
+                    return (
                       <button
                         key={notification.id}
                         type="button"
