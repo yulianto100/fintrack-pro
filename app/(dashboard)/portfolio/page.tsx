@@ -13,7 +13,6 @@ import type { GoldHolding, StockHolding, Deposit, WalletAccount, SBNHolding, Rek
 import { ArrowRight, RefreshCw, Wifi, WifiOff, Landmark, Wallet, X,
          TrendingUp, TrendingDown, Lightbulb, AlertTriangle, CheckCircle2,
          PlusCircle, Target } from 'lucide-react'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { InvestasiModal } from '@/components/investment/InvestasiModal'
 import { EmptyHint } from '@/components/shared/EmptyHint'
 import { SkeletonCard, SkeletonHero, SkeletonText } from '@/components/shared/Skeleton'
@@ -509,8 +508,6 @@ function PortfolioContent() {
       pnl: reksadanaSummary.pnl },
   ], [goldSummary, goldPrices?.antam, stockSummary, stocks.length, depositSummary, totalPortfolio, sbnSummary, reksadanaSummary])
 
-  const pieData = investmentSections.filter((s) => s.pct > 0)
-    .map((s) => ({ name: s.title, value: s.pct, amount: s.value, color: s.color }))
 
   // ── New: Insights ───────────────────────────────────────────────────────
   const allInsights = useMemo(() => generatePortfolioInsights({
@@ -538,20 +535,6 @@ function PortfolioContent() {
     return map
   }, [goals])
 
-  // ── Tooltip (UNCHANGED) ─────────────────────────────────────────────────
-  function CustomPortfolioTooltip({ active, payload }: { active?: boolean; payload?: { payload: { name: string; value: number; amount: number; color: string } }[] }) {
-    if (!active || !payload?.length) return null
-    const { name, amount, color } = payload[0].payload
-    const pctVal = payload[0].payload.value
-    return (
-      <div className="px-3 py-2 rounded-xl text-xs font-medium"
-        style={{ background: 'rgba(10,26,15,0.95)', border: '1px solid rgba(34,197,94,0.25)', color: 'var(--text-primary)', pointerEvents: 'none' }}>
-        <p style={{ color: 'var(--text-muted)' }}>{name}</p>
-        <p className="font-bold" style={{ color }}>{formatCurrency(amount)}</p>
-        <p style={{ color: 'var(--text-muted)' }}>{pctVal.toFixed(1)}%</p>
-      </div>
-    )
-  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // FILTER VIEW (UNCHANGED)
@@ -658,34 +641,16 @@ function PortfolioContent() {
       <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
         className="glass-hero p-5 mb-4">
         <div className="flex items-center gap-4">
-          {/* Pie chart (UNCHANGED) */}
-          <div className="flex-shrink-0" style={{ width: 100, height: 100 }}>
-            {pieData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={28} outerRadius={46}
-                    dataKey="value" strokeWidth={2} stroke="transparent">
-                    {pieData.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} opacity={0.9} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomPortfolioTooltip />} wrapperStyle={{ zIndex: 100, outline: 'none' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center rounded-full"
-                style={{ border: '2px dashed var(--border)' }}>
-                <span className="text-2xl">📊</span>
-              </div>
-            )}
-          </div>
-
-          {/* Total + legend (UNCHANGED labels, CountUp on number) */}
           <div className="flex-1 min-w-0">
             <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Total Portofolio Investasi</p>
             <p className="text-2xl font-display font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
               <CountUpNumber value={totalPortfolio} hidden={hidden} hiddenText={HIDDEN_TEXT} />
             </p>
+            <div className="mb-3 flex h-3 overflow-hidden rounded-full" style={{ background: 'var(--surface-3)' }}>
+              {investmentSections.filter((s) => s.pct > 0).map((s) => (
+                <div key={s.title} style={{ width: `${Math.max(s.pct, 3)}%`, background: s.color }} />
+              ))}
+            </div>
             <div className="flex flex-wrap gap-2">
               {investmentSections.filter((s) => s.pct > 0).map((s) => (
                 <div key={s.title} className="flex items-center gap-1">
