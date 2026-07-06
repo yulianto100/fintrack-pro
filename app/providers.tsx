@@ -14,7 +14,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
     applyAccent(getStoredAccent())
 
     if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-      navigator.serviceWorker.register('/sw.js').catch(() => {})
+      navigator.serviceWorker.register('/sw.js').then((registration) => {
+        registration.update().catch(() => {})
+      }).catch(() => {})
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (sessionStorage.getItem('finuvo-sw-reloaded') === '1') return
+        sessionStorage.setItem('finuvo-sw-reloaded', '1')
+        window.location.reload()
+      })
     }
   }, [])
 

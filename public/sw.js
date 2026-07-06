@@ -1,7 +1,6 @@
 // Finuvo Service Worker
-const CACHE_NAME = 'finuvo-v1'
+const CACHE_NAME = 'finuvo-v20260706-2'
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
   '/icons/icon-192x192.png',
 ]
@@ -24,7 +23,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim()
 })
 
-// Fetch - Network first, fallback to cache for navigation
+// Fetch - app pages stay network-first so deploys are not stuck behind old cache.
 self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
@@ -35,13 +34,11 @@ self.addEventListener('fetch', (event) => {
   // For navigation requests: network-first
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(async () => {
-        const cached = await caches.match('/')
-        return cached || new Response('Offline', {
+      fetch(request).catch(() => new Response('Offline', {
           status: 503,
           headers: { 'Content-Type': 'text/plain' },
         })
-      })
+      )
     )
     return
   }
