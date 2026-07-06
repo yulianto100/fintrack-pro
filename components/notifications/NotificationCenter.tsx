@@ -5,9 +5,7 @@ import type { MouseEvent } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Bell, Check, X, Trash2 } from 'lucide-react'
-import toast from 'react-hot-toast'
 import { useApiList } from '@/hooks/useApiData'
-import { usePushNotifications } from '@/hooks/usePushNotifications'
 import type { Notification } from '@/types'
 
 interface Props {
@@ -35,7 +33,6 @@ export function NotificationCenter({ open, onClose }: Props) {
   const { data: notifications, refetch } = useApiList<Notification>('/api/notifications', {
     refreshMs: open ? 8000 : 60000,
   })
-  const { supported, subscribed, loading, subscribe, unsubscribe } = usePushNotifications()
 
   const handleMarkAllRead = useCallback(async () => {
     try {
@@ -46,7 +43,7 @@ export function NotificationCenter({ open, onClose }: Props) {
       })
       refetch()
     } catch {
-      toast.error('Gagal menandai')
+      console.error('Failed to mark notifications as read')
     }
   }, [refetch])
 
@@ -70,23 +67,9 @@ export function NotificationCenter({ open, onClose }: Props) {
       await fetch(`/api/notifications/${id}`, { method: 'DELETE' })
       refetch()
     } catch {
-      toast.error('Gagal hapus')
+      console.error('Failed to delete notification')
     }
   }, [refetch])
-
-  const handleTogglePush = useCallback(async () => {
-    try {
-      if (subscribed) {
-        await unsubscribe()
-        toast.success('Push dimatikan')
-      } else {
-        await subscribe()
-        toast.success('Push diaktifkan')
-      }
-    } catch {
-      toast.error('Gagal mengubah push')
-    }
-  }, [subscribe, subscribed, unsubscribe])
 
   const hasUnread = notifications.some((notification) => !notification.read)
   const visibleNotifications = useMemo(() => notifications.filter((notification) => {
@@ -273,30 +256,6 @@ export function NotificationCenter({ open, onClose }: Props) {
               )}
             </div>
 
-            {supported && (
-              <div className="p-4" style={{ borderTop: '1px solid var(--border)' }}>
-                <button
-                  type="button"
-                  onClick={() => { void handleTogglePush() }}
-                  disabled={loading}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold"
-                  style={{
-                    background: subscribed ? 'var(--surface-2)' : 'var(--accent-dim)',
-                    color: subscribed ? 'var(--text-primary)' : 'var(--accent)',
-                    border: '1px solid var(--border)',
-                    opacity: loading ? 0.7 : 1,
-                  }}
-                >
-                  {loading ? (
-                    <div className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                  ) : subscribed ? (
-                    'Matikan push'
-                  ) : (
-                    'Aktifkan push'
-                  )}
-                </button>
-              </div>
-            )}
           </motion.div>
         </>
       )}
