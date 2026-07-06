@@ -47,7 +47,7 @@ export function NotificationCenter({ open, onClose }: Props) {
   }, [refetch])
 
   const handleClick = useCallback(async (notification: Notification) => {
-    if (notification.link) onClose()
+    onClose()
     if (!notification.read) {
       fetch('/api/notifications', {
         method: 'PATCH',
@@ -55,11 +55,6 @@ export function NotificationCenter({ open, onClose }: Props) {
         body: JSON.stringify({ ids: [notification.id] }),
       }).catch(() => {})
       refetch()
-    }
-    if (notification.link) {
-      window.requestAnimationFrame(() => {
-        window.location.assign(notification.link!)
-      })
     }
   }, [refetch, onClose])
 

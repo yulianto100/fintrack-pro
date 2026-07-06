@@ -1,5 +1,5 @@
 // Finuvo Service Worker
-const CACHE_NAME = 'finuvo-v20260706-2'
+const CACHE_NAME = 'finuvo-v20260706-3'
 const STATIC_ASSETS = [
   '/manifest.json',
   '/icons/icon-192x192.png',
@@ -77,7 +77,7 @@ self.addEventListener('notificationclick', (event) => {
 
   if (event.action === 'dismiss') return
 
-  const url = event.notification.data?.url || '/'
+  const url = '/'
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
