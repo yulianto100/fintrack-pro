@@ -110,40 +110,29 @@ export function SmartInsight({ transactions }: Props) {
           style={{ background: 'rgba(34,197,94,0.12)' }}
         />
 
-        <div className="relative flex items-start gap-3 p-3">
+        <div className="relative flex items-center gap-2.5 px-3 py-2.5">
           <div
-            className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl"
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl"
             style={{ background: 'rgba(34,197,94,0.15)', color: 'var(--accent)' }}
           >
             <Lightbulb size={14} strokeWidth={2} />
           </div>
 
-          <div className="min-w-0 flex-1">
-            <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'rgba(34,197,94,0.7)' }}>
-              Smart Insight
-            </p>
-            <p className="text-[13px] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
+          <div className="min-w-0 flex-1 pr-2">
+            <p className="truncate text-[12px] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
               Pengeluaran terbesar minggu ini:{' '}
               <span style={{ color: 'var(--accent)' }}>{insight.categoryName}</span>
             </p>
 
             {insight.pct !== null ? (
-              <div className="mt-1 flex items-center gap-1.5">
-                <div
-                  className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                  style={{
-                    background: isUp ? 'rgba(248,113,113,0.12)' : 'rgba(34,197,94,0.12)',
-                    color: isUp ? 'var(--expenseNormal)' : 'var(--accent)',
-                  }}
-                >
-                  {isUp
-                    ? <TrendingUp size={10} strokeWidth={2.5} />
-                    : <TrendingDown size={10} strokeWidth={2.5} />}
-                  {isUp ? '+' : ''}{insight.pct}% dibanding minggu lalu
-                </div>
-              </div>
+              <p className="mt-0.5 flex items-center gap-1 text-[10px] font-semibold" style={{ color: isUp ? 'var(--expenseNormal)' : 'var(--accent)' }}>
+                {isUp
+                  ? <TrendingUp size={10} strokeWidth={2.5} />
+                  : <TrendingDown size={10} strokeWidth={2.5} />}
+                {isUp ? '+' : ''}{insight.pct}% vs minggu lalu
+              </p>
             ) : (
-              <p className="mt-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              <p className="mt-0.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>
                 Belum ada data minggu lalu untuk perbandingan.
               </p>
             )}

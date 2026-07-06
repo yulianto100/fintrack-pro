@@ -40,7 +40,7 @@ interface Props {
 }
 
 const STORAGE_KEY = 'finuvo_dismissed_insights'
-const INITIAL_LIMIT = 3
+const INITIAL_LIMIT = 1
 
 const TONE: Record<Insight['type'], { label: string; bg: string; border: string; text: string; iconBg: string }> = {
   success: {
@@ -180,12 +180,14 @@ export function SmartInsights({
   if (allInsights.length === 0) return null
 
   return (
-    <section className="space-y-3">
-      <DashboardSectionHeader
-        title="Insight Penting"
-        actionLabel={visible.length > INITIAL_LIMIT ? (showAll ? 'Ringkas' : 'Lihat semua insight') : undefined}
-        onAction={() => setShowAll((current) => !current)}
-      />
+    <section className="space-y-2">
+      {visible.length > INITIAL_LIMIT && (
+        <DashboardSectionHeader
+          title="Insight"
+          actionLabel={showAll ? 'Ringkas' : `+${visible.length - INITIAL_LIMIT}`}
+          onAction={() => setShowAll((current) => !current)}
+        />
+      )}
 
       {visible.length === 0 && (
         <div className="glass-card p-4 text-center" style={{ borderRadius: dashboardRadius.cardSm }}>
@@ -212,31 +214,26 @@ export function SmartInsights({
               className="overflow-hidden"
             >
               <div
-                className="relative flex items-start gap-3 rounded-2xl p-4"
+                className="relative flex items-center gap-2.5 rounded-2xl px-3 py-2.5"
                 style={{ background: tone.bg, border: `1px solid ${tone.border}` }}
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ background: tone.iconBg, color: tone.text }}>
-                  <Icon size={19} strokeWidth={2.2} />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl" style={{ background: tone.iconBg, color: tone.text }}>
+                  <Icon size={16} strokeWidth={2.2} />
                 </div>
 
-                <div className="min-w-0 flex-1 pr-5">
-                  <div className="mb-1 flex items-center gap-2">
-                    <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold leading-none" style={{ background: tone.iconBg, color: tone.text }}>
-                      {tone.label}
-                    </span>
-                  </div>
-                  <h3 className="text-sm font-semibold leading-snug" style={{ color: tone.text }}>
+                <div className="min-w-0 flex-1 pr-6">
+                  <h3 className="truncate text-[13px] font-semibold leading-snug" style={{ color: tone.text }}>
                     {insight.title}
                   </h3>
-                  <p className="mt-1 text-[13px] leading-relaxed" style={{ color: dashboardColors.muted }}>
+                  <p className="line-clamp-1 text-[11px] leading-snug" style={{ color: dashboardColors.muted }}>
                     {insight.message}
                   </p>
 
                   {insight.actionLabel && insight.actionHref && (
                     <Link
                       href={insight.actionHref}
-                      className="mt-2 inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold transition-opacity hover:opacity-75"
-                      style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
+                      className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold transition-opacity hover:opacity-75"
+                      style={{ color: 'var(--accent)' }}
                     >
                       {insight.actionLabel}
                       <ChevronRight size={11} />
