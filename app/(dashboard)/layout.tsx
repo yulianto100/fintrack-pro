@@ -263,8 +263,6 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               href === '/'
                 ? pathname === '/'
                 : pathname.startsWith(href)
-                || (href === '/goals' && pathname.startsWith('/budget'))
-                || (href === '/akun'  && pathname.startsWith('/credit-card'))
             return (
               <Link
                 key={href}
