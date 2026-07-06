@@ -137,43 +137,56 @@ function ActionList<T extends DashboardAction | (typeof TX_ACTIONS)[number]>({
 }) {
   return (
     <AnimatePresence>
-      {open && actions.map((action, index) => (
-        <motion.div
-          key={action.label}
-          initial={{ opacity: 0, y: 10, scale: 0.85 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 10, scale: 0.85 }}
-          transition={{ delay: (actions.length - 1 - index) * 0.05, duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-          className="flex items-center gap-2.5"
-        >
-          <span
-            className="hidden max-w-[190px] rounded-full px-3 py-1.5 text-xs font-semibold leading-none sm:inline-flex"
+      {open && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[-1]"
+            style={{ background: 'rgba(0,0,0,0.28)', backdropFilter: 'blur(2px)' }}
+          />
+          <motion.div
+            initial={{ opacity: 0, y: 18, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 18, scale: 0.98 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed left-4 right-4 z-[-1] rounded-[28px] p-3"
             style={{
-              background: 'var(--surface-3)',
+              bottom: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom,0px) + 84px)',
+              background: 'color-mix(in srgb, var(--surface-2) 94%, transparent)',
               border: '1px solid var(--border)',
-              color: 'var(--text-primary)',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+              boxShadow: '0 22px 60px rgba(0,0,0,0.34)',
+              backdropFilter: 'blur(24px) saturate(1.4)',
             }}
           >
-            {action.label}
-          </span>
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.92 }}
-            onClick={() => onAction(action)}
-            aria-label={action.label}
-            title={action.label}
-            className="flex h-11 w-11 items-center justify-center rounded-full"
-            style={{
-              background: action.bg,
-              color: action.color,
-              boxShadow: `0 8px 22px ${action.shadow || `${action.bg}55`}`,
-            }}
-          >
-            {action.icon}
-          </motion.button>
-        </motion.div>
-      ))}
+            <p className="px-2 pb-2 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+              Aksi cepat
+            </p>
+            <div className="grid gap-2">
+              {actions.map((action) => (
+                <button
+                  key={action.label}
+                  type="button"
+                  onClick={() => onAction(action)}
+                  className="flex items-center gap-3 rounded-2xl px-3 py-3 text-left transition-transform active:scale-[0.99]"
+                  style={{ background: 'var(--surface-3)', border: '1px solid var(--border)' }}
+                >
+                  <span
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
+                    style={{ background: action.bg, color: action.color, boxShadow: `0 8px 20px ${action.shadow || `${action.bg}55`}` }}
+                  >
+                    {action.icon}
+                  </span>
+                  <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    {action.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        </>
+      )}
     </AnimatePresence>
   )
 }
