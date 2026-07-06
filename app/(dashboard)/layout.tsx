@@ -48,6 +48,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   // ── Scroll-aware sticky header ─────────────────────────────────────────
   const [scrolled, setScrolled] = useState(false)
   const [avatarFailed, setAvatarFailed] = useState(false)
+  const [profileAvatar, setProfileAvatar] = useState('')
   const mainRef = useRef<HTMLElement | null>(null)
   const prevPathnameRef = useRef<string>(pathname)
   const directionRef = useRef<'forward' | 'back'>('forward')
@@ -75,7 +76,24 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   }, [pathname])
   useEffect(() => {
     setAvatarFailed(false)
-  }, [session?.user?.image])
+  }, [profileAvatar, session?.user?.image])
+
+  useEffect(() => {
+    if (!session?.user?.id) return
+    let cancelled = false
+
+    fetch('/api/profile/me')
+      .then((response) => response.ok ? response.json() : null)
+      .then((json) => {
+        const image = json?.success && typeof json.data?.image === 'string' ? json.data.image : ''
+        if (!cancelled) setProfileAvatar(image)
+      })
+      .catch(() => {
+        if (!cancelled) setProfileAvatar('')
+      })
+
+    return () => { cancelled = true }
+  }, [session?.user?.id, pathname])
 
   if (status === 'loading') {
     return (
@@ -127,7 +145,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   if (!session) return null
 
-  const sessionAvatar = avatarFailed ? '' : session.user?.image || ''
+  const sessionAvatar = avatarFailed ? '' : profileAvatar || session.user?.image || ''
   const shouldSkipAvatarOptimization = sessionAvatar.startsWith('/api/profile/avatar') || sessionAvatar.startsWith('data:image/')
 
   return (

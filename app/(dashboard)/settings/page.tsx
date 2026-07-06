@@ -74,6 +74,7 @@ export default function SettingsPage() {
   const { supported, subscribed, loading: notifLoading, subscribe, unsubscribe } = usePushNotifications()
   const { isDark, toggle: toggleDark } = useDarkMode()
   const [profileAvatarFailed, setProfileAvatarFailed] = useState(false)
+  const [savedProfileAvatar, setSavedProfileAvatar] = useState('')
   const [currentAccent, setCurrentAccent] = useState<AccentId>('green')
 
   // Categories
@@ -203,13 +204,29 @@ export default function SettingsPage() {
 
   const incomeCategories  = categories.filter((c) => c.type === 'income')
   const expenseCategories = categories.filter((c) => c.type === 'expense')
-  const profileAvatar = session?.user?.image || ''
+  const profileAvatar = savedProfileAvatar || session?.user?.image || ''
   const shouldShowProfileAvatar = profileAvatar && !profileAvatarFailed
   const shouldSkipProfileAvatarOptimization =
     profileAvatar.startsWith('/api/profile/avatar') || profileAvatar.startsWith('data:image/')
 
   useEffect(() => { if (recurringExpanded) fetchRecurring() }, [recurringExpanded])
   useEffect(() => { setProfileAvatarFailed(false) }, [profileAvatar])
+  useEffect(() => {
+    if (!session?.user?.id) return
+    let cancelled = false
+
+    fetch('/api/profile/me')
+      .then((response) => response.ok ? response.json() : null)
+      .then((json) => {
+        const image = json?.success && typeof json.data?.image === 'string' ? json.data.image : ''
+        if (!cancelled) setSavedProfileAvatar(image)
+      })
+      .catch(() => {
+        if (!cancelled) setSavedProfileAvatar('')
+      })
+
+    return () => { cancelled = true }
+  }, [session?.user?.id])
   useEffect(() => { setCurrentAccent(getStoredAccent()) }, [])
 
   const handlePickAccent = (id: AccentId) => {
