@@ -19,7 +19,6 @@ import { ChatInput } from '@/components/transactions/ChatInput'
 import { CreditCardDashboardSection } from '@/components/credit-card/CreditCardDashboardSection'
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions'
 import { SmartInsights } from '@/components/dashboard/SmartInsights'
-import { NetWorthChart } from '@/components/charts/NetWorthChart'
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader'
 import { MonthlyCashflowCard } from '@/components/dashboard/MonthlyCashflowCard'
 import { NetWorthCard } from '@/components/dashboard/NetWorthCard'
@@ -198,13 +197,6 @@ export default function DashboardPage() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
           <WalletSection walletBalances={walletBalances} hidden={hidden} />
         </motion.div>
-
-        <NetWorthChart
-          transactions={allTx}
-          goldValue={goldValue}
-          stockValue={stockValue}
-          depositValue={depositValue}
-        />
 
         <SmartInsights
           transactions={allTx}
