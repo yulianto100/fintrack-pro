@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useMemo, useCallback, memo, useEffect, useRef, Suspense } from 'react'
 import type { ReactNode } from 'react'
