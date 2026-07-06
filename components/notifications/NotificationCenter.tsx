@@ -2,7 +2,6 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import type { MouseEvent } from 'react'
-import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Bell, Check, X, Trash2 } from 'lucide-react'
 import { useApiList } from '@/hooks/useApiData'
@@ -29,7 +28,6 @@ function relativeTime(iso: string): string {
 }
 
 export function NotificationCenter({ open, onClose }: Props) {
-  const router = useRouter()
   const [filter, setFilter] = useState<'all' | 'unread' | 'money' | 'bills'>('all')
   const { data: notifications, refetch } = useApiList<Notification>('/api/notifications', {
     refreshMs: open ? 8000 : 60000,
@@ -58,8 +56,12 @@ export function NotificationCenter({ open, onClose }: Props) {
       }).catch(() => {})
       refetch()
     }
-    if (notification.link) router.push(notification.link)
-  }, [refetch, onClose, router])
+    if (notification.link) {
+      window.requestAnimationFrame(() => {
+        window.location.assign(notification.link!)
+      })
+    }
+  }, [refetch, onClose])
 
   const handleDelete = useCallback(async (id: string, event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation()
