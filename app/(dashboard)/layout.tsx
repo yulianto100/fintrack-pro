@@ -247,10 +247,10 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         aria-label="Navigasi utama"
       >
         <div
-          className="mx-auto flex items-center justify-around gap-1 rounded-[28px] px-2 py-2 pointer-events-auto"
+          className="mx-auto flex items-center justify-around gap-1 rounded-[24px] px-2 py-1.5 pointer-events-auto"
           style={{
             maxWidth: 430,
-            minHeight: 76,
+            minHeight: 66,
             background: 'color-mix(in srgb, var(--surface-nav) 82%, transparent)',
             border: '1px solid rgba(34,197,94,0.16)',
             boxShadow: '0 18px 48px rgba(15,23,42,0.16), inset 0 1px 0 rgba(255,255,255,0.36)',
@@ -281,7 +281,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                 <motion.div
                   whileHover={{ y: -1 }}
                   whileTap={{ scale: 0.94 }}
-                  className="relative h-[60px] rounded-2xl flex flex-col items-center justify-center gap-1 overflow-hidden"
+                  className="relative h-[52px] rounded-2xl flex flex-col items-center justify-center gap-0.5 overflow-hidden"
                   style={{ color: active ? 'var(--accent)' : 'var(--text-muted)' }}
                 >
                   {active && (
@@ -304,7 +304,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                   >
                     <Icon size={20} strokeWidth={active ? 2.25 : 1.9} />
                   </div>
-                  <span className="text-[11px] font-semibold leading-none relative z-10 whitespace-nowrap px-0.5">
+                  <span className="text-[10.5px] font-semibold leading-none relative z-10 whitespace-nowrap px-0.5">
                     {label}
                   </span>
                 </motion.div>
