@@ -356,24 +356,6 @@ export interface CreditCardInsight {
   message: string
 }
 
-export interface TransactionTemplate {
-  id: string
-  userId: string
-  type: 'income' | 'expense'
-  amount: number
-  categoryId: string
-  categoryName?: string
-  categoryIcon?: string
-  description: string
-  wallet?: WalletType
-  walletAccountId?: string
-  emoji?: string
-  createdAt: string
-  updatedAt: string
-  lastUsedAt?: string
-  useCount: number
-}
-
 export type BillRecurring = 'none' | 'monthly' | 'yearly'
 
 export interface Bill {
