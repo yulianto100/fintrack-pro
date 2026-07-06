@@ -2,7 +2,7 @@
 import { useSession } from 'next-auth/react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { LayoutDashboard, ArrowLeftRight, TrendingUp, Target, Wallet } from 'lucide-react'
@@ -48,10 +48,6 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   const [avatarFailed, setAvatarFailed] = useState(false)
   const [profileAvatar, setProfileAvatar] = useState('')
   const mainRef = useRef<HTMLElement | null>(null)
-  const prevPathnameRef = useRef<string>(pathname)
-  const directionRef = useRef<'forward' | 'back'>('forward')
-  const reduceMotion = useReducedMotion()
-  const slideAmount = reduceMotion ? 0 : 12
 
   const handleScroll = useCallback(() => {
     setScrolled((mainRef.current?.scrollTop ?? 0) > 16)
@@ -65,13 +61,6 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login')
   }, [status, router])
-  useEffect(() => {
-    const prev = prevPathnameRef.current
-    const prevDepth = prev.split('/').filter(Boolean).length
-    const nextDepth = pathname.split('/').filter(Boolean).length
-    directionRef.current = nextDepth > prevDepth ? 'forward' : 'back'
-    prevPathnameRef.current = pathname
-  }, [pathname])
   useEffect(() => {
     setAvatarFailed(false)
   }, [profileAvatar, session?.user?.image])
@@ -227,17 +216,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         }}
       >
         <PullIndicator distance={pullDistance} threshold={threshold} refreshing={refreshing} />
-        <AnimatePresence mode="popLayout">
-          <motion.div
-            key={pathname}
-            initial={{ opacity: 0, x: directionRef.current === 'forward' ? slideAmount : -slideAmount }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: directionRef.current === 'forward' ? -slideAmount : slideAmount }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+        {children}
       </main>
 
       {/* ── Bottom navigation ── */}
