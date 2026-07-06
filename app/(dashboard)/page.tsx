@@ -19,15 +19,12 @@ import { ChatInput } from '@/components/transactions/ChatInput'
 import { CreditCardDashboardSection } from '@/components/credit-card/CreditCardDashboardSection'
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions'
 import { SmartInsights } from '@/components/dashboard/SmartInsights'
-import { StreakBanner } from '@/components/dashboard/StreakBanner'
-import { WeeklySummary } from '@/components/dashboard/WeeklySummary'
 import { NetWorthChart } from '@/components/charts/NetWorthChart'
 import { DashboardSectionHeader } from '@/components/dashboard/DashboardSectionHeader'
 import { MonthlyCashflowCard } from '@/components/dashboard/MonthlyCashflowCard'
 import { NetWorthCard } from '@/components/dashboard/NetWorthCard'
 import { WalletSection } from '@/components/dashboard/WalletSection'
 import { SkeletonHero } from '@/components/shared/Skeleton'
-import { QuickTemplates } from '@/components/dashboard/QuickTemplates'
 import { useRefreshContext } from './refresh-context'
 
 export default function DashboardPage() {
@@ -166,8 +163,8 @@ export default function DashboardPage() {
   const recentTransactions = useMemo(() => allTx.slice(0, 4), [allTx])
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-8 pt-6">
-      <div className="space-y-7">
+    <div className="mx-auto max-w-2xl px-4 pb-8 pt-5">
+      <div className="space-y-5">
         <motion.section initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
           <p className="text-sm leading-snug" style={{ color: 'var(--text-muted)' }}>
             {greeting},
@@ -198,10 +195,6 @@ export default function DashboardPage() {
           hidden={hidden}
         />
 
-        <QuickTemplates />
-
-        <StreakBanner />
-
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
           <WalletSection walletBalances={walletBalances} hidden={hidden} />
         </motion.div>
@@ -212,8 +205,6 @@ export default function DashboardPage() {
           stockValue={stockValue}
           depositValue={depositValue}
         />
-
-        <WeeklySummary transactions={allTx} hidden={hidden} />
 
         <SmartInsights
           transactions={allTx}
