@@ -11,7 +11,7 @@ import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
 import { isExpenseForWalletBalance } from '@/lib/transaction-rules'
 import type { GoldHolding, StockHolding, Deposit, WalletAccount, SBNHolding, ReksadanaHolding, Goal, Transaction } from '@/types'
 import { ArrowRight, RefreshCw, Wifi, WifiOff, Landmark, Wallet, X,
-         TrendingUp, TrendingDown, Lightbulb, AlertTriangle, CheckCircle2,
+         TrendingUp, TrendingDown, AlertTriangle, CheckCircle2,
          PlusCircle, Target } from 'lucide-react'
 import { InvestasiModal } from '@/components/investment/InvestasiModal'
 import { EmptyHint } from '@/components/shared/EmptyHint'
@@ -672,16 +672,10 @@ function PortfolioContent() {
 
       {/* ── Portfolio Insights ── */}
       {visibleInsights.length > 0 && (
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-2.5 px-1">
-            <Lightbulb size={12} style={{ color: 'var(--accent)' }} />
-            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-              Insight Portofolio
-            </p>
-          </div>
+        <div className="mb-3">
           <div className="flex flex-col gap-2">
             <AnimatePresence mode="popLayout">
-              {visibleInsights.map(insight => (
+              {visibleInsights.slice(0, 1).map(insight => (
                 <InsightCard
                   key={insight.id}
                   insight={insight}
@@ -689,6 +683,11 @@ function PortfolioContent() {
                 />
               ))}
             </AnimatePresence>
+            {visibleInsights.length > 1 && (
+              <p className="px-1 text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>
+                +{visibleInsights.length - 1} insight lain disimpan biar halaman tetap ringkas
+              </p>
+            )}
           </div>
         </div>
       )}
