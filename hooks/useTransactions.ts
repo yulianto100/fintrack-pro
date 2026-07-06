@@ -99,10 +99,6 @@ export function useTransactions() {
     try { await fetch('/api/wallet-accounts/sync', { method: 'POST' }) } catch { /* silent */ }
   }, [])
 
-  const updateStreak = useCallback(async () => {
-    try { await fetch('/api/streak', { method: 'POST' }) } catch { /* silent */ }
-  }, [])
-
   const addTransaction = useCallback(async (data: Partial<Transaction>) => {
     try {
       const res  = await fetch('/api/transactions', {
@@ -115,7 +111,6 @@ export function useTransactions() {
       toast.success('Transaksi berhasil ditambahkan! ✓')
       refetch()
       syncWalletBalances()
-      updateStreak()   // ← streak update
       return json.data
     } catch (err) {
       haptics.error()
@@ -123,7 +118,7 @@ export function useTransactions() {
       toast.error(message)
       throw err
     }
-  }, [refetch, syncWalletBalances, updateStreak])
+  }, [refetch, syncWalletBalances])
 
   const deleteTransaction = useCallback(async (id: string) => {
     try {

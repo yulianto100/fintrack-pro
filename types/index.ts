@@ -194,7 +194,7 @@ export interface Insight {
 export interface PushSubscriptionData { userId: string; subscription: PushSubscription; createdAt: string }
 export interface Notification {
   id: string; userId: string
-  type: 'deposit_maturity' | 'price_alert' | 'general' | 'budget_warning' | 'bill_due' | 'recurring_run' | 'streak_milestone' | 'cc_due'
+  type: 'deposit_maturity' | 'price_alert' | 'general' | 'budget_warning' | 'bill_due' | 'recurring_run' | 'cc_due'
   title: string; message: string; data?: Record<string, unknown>
   read: boolean; createdAt: string
   link?: string
@@ -233,15 +233,6 @@ export interface Goal {
   color:       string
   createdAt:   string
   updatedAt:   string
-}
-
-// ---- STREAK ----
-export interface UserStreak {
-  userId:         string
-  currentStreak:  number
-  bestStreak:     number
-  lastInputDate:  string
-  updatedAt:      string
 }
 
 // ---- NET WORTH HISTORY ----

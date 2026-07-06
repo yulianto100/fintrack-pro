@@ -301,49 +301,6 @@ function getTransactionTimestamp(tx: Transaction): number {
   const parsed = new Date(raw.includes('T') ? raw : `${raw}T12:00:00`).getTime()
   return Number.isFinite(parsed) ? parsed : 0
 }
-
-function deriveStreakContext(transactions: Transaction[]): { streak: number; lastInputISO?: string } {
-  const dates = new Set<string>()
-  let latestTs = 0
-
-  for (const tx of transactions) {
-    const day = (tx.date || '').split('T')[0]
-    if (day) dates.add(day)
-    latestTs = Math.max(latestTs, getTransactionTimestamp(tx))
-  }
-
-  if (dates.size === 0 || latestTs <= 0) return { streak: 0 }
-
-  const start = new Date(latestTs)
-  start.setHours(0, 0, 0, 0)
-  let streak = 0
-  const cursor = new Date(start)
-
-  while (dates.has(cursor.toISOString().slice(0, 10))) {
-    streak++
-    cursor.setDate(cursor.getDate() - 1)
-  }
-
-  return { streak, lastInputISO: new Date(latestTs).toISOString() }
-}
-
-function detectStreakRisk(streak: number, lastInputISO?: string): Insight | null {
-  if (streak < 5 || !lastInputISO) return null
-  const hoursSince = (Date.now() - new Date(lastInputISO).getTime()) / 3600000
-  if (hoursSince > 16 && hoursSince < 36) {
-    return {
-      type: 'warning',
-      icon: 'bell',
-      title: `Streak ${streak} hari berisiko`,
-      message: 'Catat transaksi hari ini biar streak tetap aman.',
-      actionLabel: 'Catat sekarang',
-      actionHref: '/?action=add',
-      priority: 90,
-    }
-  }
-  return null
-}
-
 export interface InsightEngineProps {
   transactions: Transaction[]
   goldHoldings: GoldHolding[]
@@ -529,10 +486,6 @@ export function generateAllInsights(props: InsightEngineProps): Insight[] {
 
   const extraSavings = detectExtraSavings(walletTotal, getMonthlyExpenseAverage(transactions))
   if (extraSavings) insights.push(extraSavings)
-
-  const streakContext = deriveStreakContext(transactions)
-  const streakRisk = detectStreakRisk(streakContext.streak, streakContext.lastInputISO)
-  if (streakRisk) insights.push(streakRisk)
 
   for (const budget of budgets) {
     if (budget.percent >= 80 && budget.percent < 100) {
