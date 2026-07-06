@@ -37,6 +37,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   const reservesFloatingControls =
     pathname === '/' ||
     pathname.startsWith('/transactions') ||
+    pathname.startsWith('/portfolio') ||
     pathname.startsWith('/akun') ||
     pathname.startsWith('/goals')
   const bottomControlReserve = reservesFloatingControls
