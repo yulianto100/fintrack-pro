@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { MouseEvent } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -31,6 +31,7 @@ function relativeTime(iso: string): string {
 }
 
 export function NotificationCenter({ open, onClose }: Props) {
+  const [filter, setFilter] = useState<'all' | 'unread' | 'money' | 'bills'>('all')
   const { data: notifications, refetch } = useApiList<Notification>('/api/notifications', {
     refreshMs: open ? 8000 : 60000,
   })
@@ -88,6 +89,18 @@ export function NotificationCenter({ open, onClose }: Props) {
   }, [subscribe, subscribed, unsubscribe])
 
   const hasUnread = notifications.some((notification) => !notification.read)
+  const visibleNotifications = useMemo(() => notifications.filter((notification) => {
+    if (filter === 'unread') return !notification.read
+    if (filter === 'money') return notification.type === 'budget_warning' || notification.type === 'price_alert'
+    if (filter === 'bills') return notification.type === 'bill_due' || notification.type === 'cc_due' || notification.type === 'deposit_maturity'
+    return true
+  }), [filter, notifications])
+  const filters = [
+    { key: 'all' as const, label: 'Semua' },
+    { key: 'unread' as const, label: 'Belum dibaca' },
+    { key: 'money' as const, label: 'Uang' },
+    { key: 'bills' as const, label: 'Jatuh tempo' },
+  ]
 
   return (
     <AnimatePresence>
@@ -140,6 +153,26 @@ export function NotificationCenter({ open, onClose }: Props) {
               </div>
             </div>
 
+            {notifications.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
+                {filters.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setFilter(item.key)}
+                    className="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold"
+                    style={{
+                      background: filter === item.key ? 'var(--accent-dim)' : 'var(--surface-2)',
+                      color: filter === item.key ? 'var(--accent)' : 'var(--text-muted)',
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="flex-1 overflow-y-auto">
               {notifications.length === 0 ? (
                 <div className="p-10 text-center">
@@ -151,9 +184,19 @@ export function NotificationCenter({ open, onClose }: Props) {
                     Aktivitas akan muncul di sini
                   </p>
                 </div>
+              ) : visibleNotifications.length === 0 ? (
+                <div className="p-10 text-center">
+                  <Bell size={28} style={{ color: 'var(--text-muted)', margin: '0 auto 12px' }} />
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    Kosong di filter ini
+                  </p>
+                  <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+                    Coba pilih Semua
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-1 p-2">
-                  {notifications.map((notification) => {
+                  {visibleNotifications.map((notification) => {
                     const content = (
                       <div
                         className="group flex items-start gap-3 rounded-xl p-3"
