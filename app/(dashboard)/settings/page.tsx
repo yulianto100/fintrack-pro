@@ -10,7 +10,6 @@ import { useApiList } from '@/hooks/useApiData'
 import { Bell, BellOff, ChevronDown, Download, Upload, LogOut, Tag, Plus, Trash2, X,
   Pencil, Check, Moon, Sun,
   Repeat, ToggleLeft, ToggleRight, Calendar,
-  LifeBuoy, Info, ChevronRight,
 } from 'lucide-react'
 import type { Category, RecurringTransaction, RecurringFrequency } from '@/types'
 import { useDarkMode } from '@/hooks/useDarkMode'
@@ -18,56 +17,6 @@ import toast from 'react-hot-toast'
 import { toastUndo } from '@/lib/toast-undo'
 import { SkeletonRow } from '@/components/shared/Skeleton'
 import { ACCENTS, applyAccent, getStoredAccent, storeAccent, type AccentId } from '@/lib/accent'
-
-function SettingSubItem({
-  title,
-  subtitle,
-  onClick,
-  value,
-}: {
-  title: string
-  subtitle: string
-  onClick?: () => void
-  value?: string
-}) {
-  const content = (
-    <>
-      <div className="flex-1 min-w-0 text-left">
-        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</p>
-        <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
-      </div>
-      {value ? (
-        <span className="text-xs font-semibold flex-shrink-0" style={{ color: 'var(--accent)' }}>
-          {value}
-        </span>
-      ) : onClick ? (
-        <ChevronRight size={16} className="flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-      ) : null}
-    </>
-  )
-
-  if (!onClick) {
-    return (
-      <div
-        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl"
-        style={{ background: 'var(--surface-subtle)', border: '1px solid var(--border)' }}
-      >
-        {content}
-      </div>
-    )
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-transform active:scale-[0.99]"
-      style={{ background: 'var(--surface-subtle)', border: '1px solid var(--border)' }}
-    >
-      {content}
-    </button>
-  )
-}
 
 export default function SettingsPage() {
   const { data: session } = useSession()
@@ -93,8 +42,6 @@ export default function SettingsPage() {
   const [expandKategori,  setExpandKategori ] = useState(false)
   const [expandPushNotif, setExpandPushNotif] = useState(false)
   const [expandExport,    setExpandExport   ] = useState(false)
-  const [expandSupport,   setExpandSupport  ] = useState(false)
-  const [expandLegal,     setExpandLegal    ] = useState(false)
   const [showPdfMonths,   setShowPdfMonths  ] = useState(false)
 
   // ── Recurring transactions ──
@@ -840,120 +787,6 @@ export default function SettingsPage() {
             />
           </button>
         </div>
-      </motion.div>
-
-      {/* Help & Support */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.19 }}
-        className="glass-card overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setExpandSupport((v) => !v)}
-          className="w-full flex items-center justify-between gap-3 p-5"
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--accent-dim)' }}>
-              <LifeBuoy size={18} color="var(--accent)" />
-            </div>
-            <div className="text-left min-w-0">
-              <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Bantuan & Dukungan</p>
-              <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-                FAQ, kontak support, dan laporan masalah
-              </p>
-            </div>
-          </div>
-          <ChevronDown size={16} style={{ color: 'var(--text-muted)', transform: expandSupport ? 'rotate(180deg)' : 'none', transition: 'transform 0.25s', flexShrink: 0 }} />
-        </button>
-        <AnimatePresence initial={false}>
-          {expandSupport && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              style={{ overflow: 'hidden' }}
-            >
-              <div className="px-5 pb-5 pt-1 space-y-2" style={{ borderTop: '1px solid var(--border)' }}>
-                <SettingSubItem
-                  title="Pusat Bantuan"
-                  subtitle="Temukan artikel dan panduan penggunaan"
-                />
-                <SettingSubItem
-                  title="FAQ"
-                  subtitle="Pertanyaan yang sering diajukan"
-                />
-                <SettingSubItem
-                  title="Hubungi Support"
-                  subtitle="Kirim pesan ke tim kami"
-                />
-                <SettingSubItem
-                  title="Laporkan Bug"
-                  subtitle="Laporkan masalah atau error"
-                />
-                <SettingSubItem
-                  title="Request Fitur"
-                  subtitle="Sampaikan ide fitur untuk Finuvo"
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-
-      {/* About & Legal */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-        className="glass-card overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setExpandLegal((v) => !v)}
-          className="w-full flex items-center justify-between gap-3 p-5"
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(96,165,250,0.12)' }}>
-              <Info size={18} color="#60a5fa" />
-            </div>
-            <div className="text-left min-w-0">
-              <p className="font-semibold" style={{ color: 'var(--text-primary)' }}>Tentang & Legal</p>
-              <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-                Versi aplikasi, privasi, dan ketentuan layanan
-              </p>
-            </div>
-          </div>
-          <ChevronDown size={16} style={{ color: 'var(--text-muted)', transform: expandLegal ? 'rotate(180deg)' : 'none', transition: 'transform 0.25s', flexShrink: 0 }} />
-        </button>
-        <AnimatePresence initial={false}>
-          {expandLegal && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              style={{ overflow: 'hidden' }}
-            >
-              <div className="px-5 pb-5 pt-1 space-y-2" style={{ borderTop: '1px solid var(--border)' }}>
-                <SettingSubItem
-                  title="Tentang Finuvo"
-                  subtitle="Informasi tentang aplikasi"
-                />
-                <SettingSubItem
-                  title="Kebijakan Privasi"
-                  subtitle="Cara kami melindungi data kamu"
-                />
-                <SettingSubItem
-                  title="Syarat & Ketentuan"
-                  subtitle="Aturan penggunaan aplikasi"
-                />
-                <SettingSubItem
-                  title="Lisensi Open Source"
-                  subtitle="Daftar library pihak ketiga"
-                />
-                <SettingSubItem
-                  title="Versi Aplikasi"
-                  subtitle="1.0.0"
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.div>
 
       {/* Sign out */}
