@@ -10,7 +10,6 @@ import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { useDarkMode } from '@/hooks/useDarkMode'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { PullIndicator } from '@/components/shared/PullIndicator'
-import { CommandPalette } from '@/components/shared/CommandPalette'
 import { RefreshProvider, useRefreshContext } from './refresh-context'
 
 /**
@@ -315,7 +314,6 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
-      <CommandPalette />
     </div>
   )
 }
