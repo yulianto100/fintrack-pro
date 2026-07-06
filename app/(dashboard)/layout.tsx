@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LayoutDashboard, ArrowLeftRight, TrendingUp, Settings, Target, Wallet } from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, TrendingUp, Target, Wallet } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { useDarkMode } from '@/hooks/useDarkMode'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
@@ -24,7 +24,6 @@ const NAV_TABS = [
   { href: '/portfolio',    icon: TrendingUp,      label: 'Aset'       },
   { href: '/goals',        icon: Target,          label: 'Target'     },
   { href: '/akun',         icon: Wallet,          label: 'Akun'       },
-  { href: '/settings',     icon: Settings,        label: 'Atur'       },
 ]
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
