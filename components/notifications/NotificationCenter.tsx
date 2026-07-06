@@ -121,7 +121,11 @@ export function NotificationCenter({ open, onClose }: Props) {
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
             className="fixed bottom-0 right-0 top-0 z-50 flex w-full flex-col sm:max-w-sm"
-            style={{ background: 'var(--surface-modal)', borderLeft: '1px solid var(--border)' }}
+            style={{
+              paddingTop: 'env(safe-area-inset-top, 0px)',
+              background: 'var(--surface-modal)',
+              borderLeft: '1px solid var(--border)',
+            }}
           >
             <div
               className="flex items-center justify-between px-4 py-4"
