@@ -80,7 +80,7 @@
   --font-jetbrains: 'JetBrains Mono', monospace;
 
   --nav-height:        56px;
-  --bottom-nav-height: 84px;
+  --bottom-nav-height: 72px;
   --fab-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 24px);
 }
 
