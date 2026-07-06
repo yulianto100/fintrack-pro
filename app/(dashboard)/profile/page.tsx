@@ -119,7 +119,7 @@ export default function EditProfilePage() {
   }, [profile?.image, session?.user?.image])
 
   const showAvatarPickerError = () => {
-    window.alert('Gagal\nTidak dapat memilih foto. Silakan coba lagi.')
+    toast.error('Tidak dapat memilih foto. Silakan coba lagi.')
   }
 
   const handlePickAvatar = () => {
