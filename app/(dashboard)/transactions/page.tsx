@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, SlidersHorizontal, X, ChevronDown, Tag, Trash2 } from 'lucide-react'
+import { AlertCircle, Search, SlidersHorizontal, X, ChevronDown, Tag, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTransactions }    from '@/hooks/useTransactions'
 import { useBalanceVisibility } from '@/hooks/useBalanceVisibility'
@@ -148,6 +148,7 @@ export default function TransactionsPage() {
     transactions,
     allTransactions,
     loading,
+    error,
     filters,
     setFilters,
     clearFilters,
@@ -353,6 +354,8 @@ export default function TransactionsPage() {
   const activeFilterCount = activeChips.length
   const filterIsActive = filterOpen || activeFilterCount > 0
   const hasSearchQuery = searchQuery.trim().length > 0
+  const isInitialLoading = loading && allTransactions.length === 0
+  const showError = !!error && allTransactions.length === 0
   const showFilteredEmpty = !loading && displayedTransactions.length === 0 && (hasActiveFilter || hasSearchQuery)
   const resetFiltersAndSearch = useCallback(() => {
     clearFilters()
@@ -706,14 +709,35 @@ export default function TransactionsPage() {
           filters={filters}
           setFilters={setFilters}
           hidden={hidden}
+          loading={isInitialLoading}
         />
 
-        {/* Loading skeleton */}
-        {loading && (
-          <div className="flex flex-col gap-3">
+        {isInitialLoading && (
+          <div className="rounded-3xl p-4" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Memuat transaksi</p>
+                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Sinkron data akun kamu...</p>
+              </div>
+              <div className="h-2 w-2 animate-pulse rounded-full" style={{ background: 'var(--accent)' }} />
+            </div>
+            <div className="flex flex-col gap-3">
             {[...Array(4)].map((_, i) => (
               <SkeletonRow key={i} className="rounded-2xl" style={{ animationDelay: `${i * 80}ms` }} />
             ))}
+            </div>
+          </div>
+        )}
+
+        {showError && (
+          <div className="glass-card">
+            <EmptyHint
+              icon={<AlertCircle size={28} />}
+              title="Data gagal dimuat"
+              description="Sesi atau koneksi API bermasalah. Coba refresh dulu."
+              primaryCta={{ label: 'Muat Ulang', onClick: refetch }}
+              variant="filtered"
+            />
           </div>
         )}
 
@@ -730,7 +754,7 @@ export default function TransactionsPage() {
           </div>
         )}
 
-        {!loading && displayedTransactions.length === 0 && !showFilteredEmpty && (
+        {!loading && !showError && displayedTransactions.length === 0 && !showFilteredEmpty && (
           <EmptyState onAddTransaction={() => openAdd('expense')} />
         )}
 

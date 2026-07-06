@@ -12,6 +12,7 @@ interface Props {
   filters: TransactionFilters
   setFilters: (f: TransactionFilters) => void
   hidden?: boolean
+  loading?: boolean
 }
 
 const MASKED_AMOUNT = '••••••'
@@ -28,7 +29,7 @@ function getDisplayAmount(value: number, hidden: boolean, showSign = false) {
   return `${sign}${formatCurrency(Math.abs(value))}`
 }
 
-export function SummaryCards({ allTransactions, filters, setFilters, hidden = false }: Props) {
+export function SummaryCards({ allTransactions, filters, setFilters, hidden = false, loading = false }: Props) {
   const activeMonth = useMemo(() => getActiveMonth(filters.month), [filters.month])
 
   const monthStats = useMemo(() => {
@@ -125,12 +126,16 @@ export function SummaryCards({ allTransactions, filters, setFilters, hidden = fa
                   <Icon size={12} strokeWidth={2.3} />
                 </div>
               </div>
-              <p
-                className="truncate text-[13px] font-bold leading-tight"
-                style={{ color: hidden ? 'var(--text-muted)' : card.color, letterSpacing: hidden ? 2 : 0 }}
-              >
-                {getDisplayAmount(card.value, hidden, card.key === 'balance')}
-              </p>
+              {loading ? (
+                <div className="h-[17px] w-14 animate-pulse rounded-md" style={{ background: 'var(--surface-3)' }} />
+              ) : (
+                <p
+                  className="truncate text-[13px] font-bold leading-tight"
+                  style={{ color: hidden ? 'var(--text-muted)' : card.color, letterSpacing: hidden ? 2 : 0 }}
+                >
+                  {getDisplayAmount(card.value, hidden, card.key === 'balance')}
+                </p>
+              )}
               <p className="mt-1 text-[10px] font-medium leading-none" style={{ color: 'var(--text-muted)' }}>
                 {card.subLabel}
               </p>

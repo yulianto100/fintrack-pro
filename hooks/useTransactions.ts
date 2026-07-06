@@ -31,7 +31,7 @@ export function useTransactions() {
     return `/api/transactions?${p.toString()}`
   }, [filters])
 
-  const { data: transactions, loading, refetch } = useApiList<Transaction>(url, { refreshMs: 30000 })
+  const { data: transactions, loading, error, refetch } = useApiList<Transaction>(url, { refreshMs: 30000 })
 
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<TransactionSortBy>(getInitialSort)
@@ -159,6 +159,7 @@ export function useTransactions() {
     transactions: filteredTransactions,
     allTransactions: transactions,
     loading,
+    error,
     filters,
     setFilters,
     clearFilters,
