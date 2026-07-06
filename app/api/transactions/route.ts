@@ -141,21 +141,27 @@ export async function POST(request: Request) {
     const needsBalanceCheck = (type === 'expense' || type === 'transfer') && !isCreditCardExpense
     if (needsBalanceCheck) {
       let currentBalance = 0
+      let hasBalanceSource = true
 
       if (walletAccountId) {
         const accSnap = await db.ref(`users/${userId}/walletAccounts/${walletAccountId}/balance`).get()
         currentBalance = accSnap.exists() ? Number(accSnap.val() || 0) : 0
       } else if (wallet) {
-        // Generic wallet: sum balances of all accounts of this type
-        const accountsSnap = await db.ref(`users/${userId}/walletAccounts`).orderByChild('type').equalTo(wallet).get()
-        if (accountsSnap.exists()) {
-          Object.values(accountsSnap.val()).forEach((acc: any) => {
+        // Generic wallet: sum balances only when sub-accounts exist.
+        // Cash often has no walletAccount row; treating that as 0 blocks valid cash transactions.
+        const accountsSnap = await db.ref(`users/${userId}/walletAccounts`).get()
+        if (!accountsSnap.exists()) hasBalanceSource = false
+        else {
+          const matchingAccounts = Object.values(accountsSnap.val() as Record<string, { type?: string; balance?: number }>)
+            .filter((acc) => acc.type === wallet)
+          hasBalanceSource = matchingAccounts.length > 0
+          matchingAccounts.forEach((acc) => {
             currentBalance += Number(acc.balance || 0)
           })
         }
       }
 
-      if (currentBalance < amt) {
+      if (hasBalanceSource && currentBalance < amt) {
         return NextResponse.json({
           success: false,
           error: `Saldo tidak cukup. Saldo tersedia: Rp ${currentBalance.toLocaleString('id-ID')}`,
