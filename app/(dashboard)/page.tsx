@@ -23,6 +23,7 @@ import { MonthlyCashflowCard } from '@/components/dashboard/MonthlyCashflowCard'
 import { NetWorthCard } from '@/components/dashboard/NetWorthCard'
 import { WalletSection } from '@/components/dashboard/WalletSection'
 import { BudgetPaceGuard } from '@/components/dashboard/BudgetPaceGuard'
+import { RecurringDueGuard } from '@/components/dashboard/RecurringDueGuard'
 import { SkeletonHero } from '@/components/shared/Skeleton'
 import { useRefreshContext } from './refresh-context'
 
@@ -199,6 +200,8 @@ export default function DashboardPage() {
         </motion.div>
 
         <BudgetPaceGuard transactions={allTx} budgets={budgets} />
+
+        <RecurringDueGuard />
 
         <SmartInsights
           transactions={allTx}
