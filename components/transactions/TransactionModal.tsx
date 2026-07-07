@@ -8,12 +8,13 @@ import { useTransactions } from '@/hooks/useTransactions'
 import { useApiList } from '@/hooks/useApiData'
 import type { Category, Transaction, TransactionType, WalletType, WalletAccount, CreditCard } from '@/types'
 import { capitalizeWords, formatCurrency } from '@/lib/utils'
-import { autoCategorize, learnCategoryMapping } from '@/lib/categorization'
+import { learnCategoryMapping } from '@/lib/categorization'
 import { isCreditCardPayment } from '@/lib/transaction-rules'
 import toast from 'react-hot-toast'
 import type { RecurringFrequency } from '@/types'
 import { SkeletonCard } from '@/components/shared/Skeleton'
 import { AttachmentLightbox } from '@/components/transactions/AttachmentLightbox'
+import { SmartCategorySuggestions } from '@/components/transactions/SmartCategorySuggestions'
 import { haptics } from '@/lib/haptics'
 
 const RECURRING_FREQS: { value: RecurringFrequency; label: string; icon: string }[] = [
@@ -137,7 +138,6 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
   // Recurring transaction toggle
   const [isRecurring,        setIsRecurring       ] = useState(false)
   const [recurringFrequency, setRecurringFrequency] = useState<RecurringFrequency>('monthly')
-  const [autoSuggestedCat,   setAutoSuggestedCat  ] = useState('')
 
   // All wallet accounts from the API
   const [walletAccounts, setWalletAccounts] = useState<WalletAccount[]>([])
@@ -156,14 +156,6 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
   // Auto-categorize on description change
   const handleDescriptionChange = (val: string) => {
     setDescription(capitalizeWords(val))
-    if (!categoryId && type !== 'transfer' && val.length >= 3) {
-      const suggested = autoCategorize(val, categories, type as 'income' | 'expense')
-      if (suggested) {
-        setCategoryId(suggested)
-        const catName = categories.find((c) => c.id === suggested)?.name || ''
-        setAutoSuggestedCat(catName)
-      }
-    }
   }
 
   const filteredCategories = categories.filter(
@@ -644,12 +636,6 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
                 Keterangan
                 <span className="ml-1 text-[9px] font-normal px-1.5 py-0.5 rounded-full"
                   style={{ background: 'rgba(34,197,94,0.10)', color: 'var(--accent)' }}>opsional</span>
-                {autoSuggestedCat && !categoryId && (
-                  <span className="ml-1 text-[9px] font-normal px-1.5 py-0.5 rounded-full"
-                    style={{ background: 'rgba(34,197,94,0.15)', color: 'var(--accent)' }}>
-                    🤖 Auto: {autoSuggestedCat}
-                  </span>
-                )}
               </label>
               <input type="text" className="input-glass text-sm" placeholder="Catatan transaksi"
                 value={description} onChange={(e) => handleDescriptionChange(e.target.value)} />
@@ -800,11 +786,23 @@ export function TransactionModal({ transaction, defaultType = 'expense', onClose
 
             {type !== 'transfer' && !isCCPaymentEdit && (
               <div>
-                <label className="text-xs mb-2 block font-semibold" style={{ color: 'var(--text-muted)' }}>
-                  Kategori {filteredCategories.length === 0 && !catsLoading && (
-                    <span style={{ color: 'var(--red)', fontWeight: 400 }}> — tambah di Pengaturan</span>
-                  )}
-                </label>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <label className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+                    Kategori {filteredCategories.length === 0 && !catsLoading && (
+                      <span style={{ color: 'var(--red)', fontWeight: 400 }}> — tambah di Pengaturan</span>
+                    )}
+                  </label>
+                  <SmartCategorySuggestions
+                    description={description}
+                    type={type}
+                    categories={categories}
+                    selectedCategoryId={categoryId}
+                    onSelect={(id, name) => {
+                      setCategoryId(id)
+                      toast.success(`Kategori: ${name}`)
+                    }}
+                  />
+                </div>
                 {catsLoading ? (
                   <div className="grid grid-cols-4 gap-2">
                     {[...Array(8)].map((_, i) => <SkeletonCard key={i} className="rounded-xl" style={{ height: 64 }} />)}
