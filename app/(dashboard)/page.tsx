@@ -24,6 +24,7 @@ import { NetWorthCard } from '@/components/dashboard/NetWorthCard'
 import { WalletSection } from '@/components/dashboard/WalletSection'
 import { BudgetPaceGuard } from '@/components/dashboard/BudgetPaceGuard'
 import { RecurringDueGuard } from '@/components/dashboard/RecurringDueGuard'
+import { TopSpendingCategories } from '@/components/dashboard/TopSpendingCategories'
 import { SkeletonHero } from '@/components/shared/Skeleton'
 import { useRefreshContext } from './refresh-context'
 
@@ -202,6 +203,8 @@ export default function DashboardPage() {
         <BudgetPaceGuard transactions={allTx} budgets={budgets} />
 
         <RecurringDueGuard />
+
+        <TopSpendingCategories transactions={allTx} />
 
         <SmartInsights
           transactions={allTx}
