@@ -21,6 +21,16 @@ export function useDarkMode() {
       document.documentElement.classList.remove('dark')
     }
     applyAccent(getStoredAccent())
+
+    // Listen for OS theme change
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = (e: MediaQueryListEvent) => {
+      if (localStorage.getItem(STORAGE_KEY)) return // user has explicit choice
+      setIsDark(e.matches)
+      document.documentElement.classList.toggle('dark', e.matches)
+    }
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
   }, [])
 
   const toggle = useCallback(() => {

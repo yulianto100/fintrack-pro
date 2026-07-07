@@ -3,6 +3,7 @@ import { Syne, Space_Grotesk, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
 import { Toaster } from 'react-hot-toast'
+import { themeScript } from '@/lib/theme'
 
 const syne         = Syne({ subsets: ['latin'], variable: '--font-syne', display: 'swap' })
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space', display: 'swap' })
@@ -42,7 +43,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" className="dark">
+    <html lang="id" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className={`${syne.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
         <Providers>
           {children}

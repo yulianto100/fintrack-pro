@@ -17,11 +17,12 @@ import toast from 'react-hot-toast'
 import { toastUndo } from '@/lib/toast-undo'
 import { SkeletonRow } from '@/components/shared/Skeleton'
 import { ACCENTS, applyAccent, getStoredAccent, storeAccent, type AccentId } from '@/lib/accent'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 export default function SettingsPage() {
   const { data: session } = useSession()
   const { supported, subscribed, loading: notifLoading, subscribe, unsubscribe } = usePushNotifications()
-  const { isDark, toggle: toggleDark } = useDarkMode()
+  const { isDark, toggle: toggleDark, mounted: themeMounted } = useDarkMode()
   const [profileAvatarFailed, setProfileAvatarFailed] = useState(false)
   const [savedProfileAvatar, setSavedProfileAvatar] = useState('')
   const [currentAccent, setCurrentAccent] = useState<AccentId>('green')
@@ -359,6 +360,24 @@ export default function SettingsPage() {
             ✏️ Edit Profil
           </div>
         </Link>
+
+        {/* Theme switch */}
+        <div className="mt-4 flex items-center justify-between rounded-xl p-3"
+          style={{ background: 'var(--surface-btn)', border: '1px solid var(--border)' }}>
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg"
+              style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
+              {themeMounted && isDark ? <Moon size={15} /> : <Sun size={15} />}
+            </div>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Tampilan</p>
+              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                {themeMounted ? (isDark ? 'Mode gelap' : 'Mode terang') : 'Memuat...'}
+              </p>
+            </div>
+          </div>
+          <ThemeToggle compact />
+        </div>
       </motion.div>
 
       {/* ── Transaksi Berulang ── */}
