@@ -25,6 +25,7 @@ import { WalletSection } from '@/components/dashboard/WalletSection'
 import { BudgetPaceGuard } from '@/components/dashboard/BudgetPaceGuard'
 import { RecurringDueGuard } from '@/components/dashboard/RecurringDueGuard'
 import { TopSpendingCategories } from '@/components/dashboard/TopSpendingCategories'
+import { SavingsGoalProgress } from '@/components/dashboard/SavingsGoalProgress'
 import { SkeletonHero } from '@/components/shared/Skeleton'
 import { useRefreshContext } from './refresh-context'
 
@@ -205,6 +206,8 @@ export default function DashboardPage() {
         <RecurringDueGuard />
 
         <TopSpendingCategories transactions={allTx} />
+
+        <SavingsGoalProgress transactions={allTx} />
 
         <SmartInsights
           transactions={allTx}
