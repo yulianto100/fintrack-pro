@@ -94,8 +94,8 @@ export function NetWorthCard({
         {hidden ? MASKED_MAIN : formatCurrency(animatedWealth)}
       </motion.p>
 
-      <div className="relative mt-4 min-h-[42px]">
-        {hasMonthlyChange && (
+      {hasMonthlyChange && (
+        <div className="relative mt-4">
           <motion.div
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
@@ -120,8 +120,8 @@ export function NetWorthCard({
               </span>
             </span>
           </motion.div>
-        )}
-      </div>
+        </div>
+      )}
     </motion.section>
   )
 }

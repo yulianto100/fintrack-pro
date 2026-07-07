@@ -161,8 +161,8 @@ export default function DashboardPage() {
   const recentTransactions = useMemo(() => allTx.slice(0, 4), [allTx])
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-8 pt-3">
-      <div className="space-y-5">
+    <div className="mx-auto max-w-2xl px-4 pb-8 pt-2">
+      <div className="space-y-4">
         <motion.section initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
           <p className="text-sm leading-snug" style={{ color: 'var(--text-muted)' }}>
             {greeting},

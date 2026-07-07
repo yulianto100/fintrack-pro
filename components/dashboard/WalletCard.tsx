@@ -54,11 +54,11 @@ export function WalletCard({ type, balance, hidden = false }: Props) {
     <button
       type="button"
       onClick={() => router.push(config.portfolioHref)}
-      className="glass-card flex min-h-[104px] w-full flex-col items-center justify-between p-3 text-center transition-transform active:scale-[0.97]"
+      className="glass-card flex min-h-[88px] w-full flex-col items-center justify-between p-2.5 text-center transition-transform active:scale-[0.97]"
       style={{ borderRadius: dashboardRadius.cardSm }}
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-2xl" style={{ background: config.bg, color: config.color }}>
-        <Icon size={19} strokeWidth={2.2} />
+      <div className="flex h-9 w-9 items-center justify-center rounded-2xl" style={{ background: config.bg, color: config.color }}>
+        <Icon size={18} strokeWidth={2.2} />
       </div>
       <div className="min-w-0">
         <p className="mb-1 text-xs leading-tight" style={{ color: dashboardColors.muted }}>
