@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getAdminDatabase } from '@/lib/firebase-admin'
-import { isExpenseForWalletBalance } from '@/lib/transaction-rules'
+import { isExpenseForWalletBalance, isIncomeForWalletBalance } from '@/lib/transaction-rules'
 import type { Transaction, WalletAccount } from '@/types'
 
 async function getUserId(): Promise<string | null> {
@@ -63,7 +63,7 @@ export async function POST() {
         const { type, amount, walletAccountId, toWalletAccountId } = tx
         if (!amount || !type) return
 
-        if (type === 'income' && walletAccountId && balances[walletAccountId] !== undefined) {
+        if (isIncomeForWalletBalance(tx) && walletAccountId && balances[walletAccountId] !== undefined) {
           balances[walletAccountId] += amount
         } else if (isExpenseForWalletBalance(tx) && walletAccountId && balances[walletAccountId] !== undefined) {
           balances[walletAccountId] -= amount
@@ -118,7 +118,7 @@ export async function GET() {
       transactions.forEach((tx) => {
         const { type, amount, walletAccountId, toWalletAccountId } = tx
         if (!amount || !type) return
-        if (type === 'income'  && walletAccountId   && balances[walletAccountId]   !== undefined) balances[walletAccountId]   += amount
+        if (isIncomeForWalletBalance(tx) && walletAccountId && balances[walletAccountId] !== undefined) balances[walletAccountId] += amount
         if (isExpenseForWalletBalance(tx) && walletAccountId && balances[walletAccountId] !== undefined) balances[walletAccountId] -= amount
         if (type === 'transfer') {
           if (walletAccountId   && balances[walletAccountId]   !== undefined) balances[walletAccountId]   -= amount

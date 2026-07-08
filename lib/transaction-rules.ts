@@ -22,9 +22,13 @@ export function isExpenseForSummary(tx: TransactionLike): boolean {
 }
 
 export function isExpenseForWalletBalance(tx: TransactionLike): boolean {
-  return tx.type === 'expense' &&
+  return (tx.type === 'expense' || tx.type === 'loan_given' || tx.type === 'loan_writeoff') &&
     tx.paymentMethod !== 'credit_card' &&
     tx.tags?.includes('credit_card_payment') !== true
+}
+
+export function isIncomeForWalletBalance(tx: TransactionLike): boolean {
+  return tx.type === 'income' || tx.type === 'loan_repayment'
 }
 
 export function getTransactionMethodLabel(tx: TransactionLike): string | null {

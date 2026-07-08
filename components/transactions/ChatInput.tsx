@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -459,11 +459,14 @@ export function ChatInput() {
 // ── Sub-components ───────────────────────────────────────────────────────────
 
 function TypeBadge({ type }: { type: TransactionType }) {
-  const config = {
+  const config: Record<TransactionType, { icon: ReactNode; label: string; bg: string; color: string }> = {
     expense: { icon: <ArrowDownCircle size={14} />, label: 'Keluar', bg: 'rgba(248,113,113,0.15)', color: '#f87171' },
     income: { icon: <ArrowUpCircle size={14} />, label: 'Masuk', bg: 'rgba(34,197,94,0.15)', color: '#4ade80' },
     transfer: { icon: <ArrowLeftRight size={14} />, label: 'Transfer', bg: 'rgba(96,165,250,0.15)', color: '#60a5fa' },
     credit_expense: { icon: <ArrowDownCircle size={14} />, label: 'Kredit', bg: 'rgba(251,191,36,0.15)', color: '#fbbf24' },
+    loan_given: { icon: <ArrowDownCircle size={14} />, label: 'Piutang', bg: 'rgba(34,197,94,0.15)', color: '#4ade80' },
+    loan_repayment: { icon: <ArrowUpCircle size={14} />, label: 'Bayar Piutang', bg: 'rgba(96,165,250,0.15)', color: '#60a5fa' },
+    loan_writeoff: { icon: <ArrowDownCircle size={14} />, label: 'Hapus Piutang', bg: 'rgba(148,163,184,0.15)', color: '#94a3b8' },
   }
 
   const c = config[type] || config.expense

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LayoutDashboard, ArrowLeftRight, TrendingUp, Target, Wallet } from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, TrendingUp, Target, Wallet, HandCoins } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { useDarkMode } from '@/hooks/useDarkMode'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
@@ -23,6 +23,7 @@ const NAV_TABS = [
   { href: '/transactions', icon: ArrowLeftRight,  label: 'Transaksi'  },
   { href: '/portfolio',    icon: TrendingUp,      label: 'Aset'       },
   { href: '/goals',        icon: Target,          label: 'Target'     },
+  { href: '/piutang',      icon: HandCoins,       label: 'Piutang'    },
   { href: '/akun',         icon: Wallet,          label: 'Akun'       },
 ]
 
@@ -39,7 +40,8 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith('/transactions') ||
     pathname.startsWith('/portfolio') ||
     pathname.startsWith('/akun') ||
-    pathname.startsWith('/goals')
+    pathname.startsWith('/goals') ||
+    pathname.startsWith('/piutang')
   const bottomControlReserve = reservesFloatingControls
     ? 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 112px)'
     : 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 24px)'

@@ -319,6 +319,9 @@ export default function TransactionsPage() {
         expense: 'Pengeluaran',
         transfer: 'Transfer',
         credit_expense: 'Kartu Kredit',
+        loan_given: 'Piutang Diberikan',
+        loan_repayment: 'Bayar Piutang',
+        loan_writeoff: 'Piutang Dihapuskan',
       }
       const label = typeLabels[filters.type]
       chips.push({ key: 'type', label, remove: () => setFilters({ ...filters, type: undefined }) })
@@ -498,7 +501,8 @@ export default function TransactionsPage() {
                   <div className="flex gap-2">
                     {(['income', 'expense', 'transfer'] as TransactionType[]).map(t => {
                       const labels: Record<TransactionType, string> = {
-                        income: 'Pemasukan', expense: 'Pengeluaran', transfer: 'Transfer', credit_expense: 'Kartu Kredit'
+                        income: 'Pemasukan', expense: 'Pengeluaran', transfer: 'Transfer', credit_expense: 'Kartu Kredit',
+                        loan_given: 'Piutang Diberikan', loan_repayment: 'Bayar Piutang', loan_writeoff: 'Piutang Dihapuskan'
                       }
                       const active = filters.type === t
                       return (

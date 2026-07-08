@@ -23,11 +23,11 @@ export interface WalletAccount {
 // ---- TRANSACTIONS ----
 export interface Category {
   id: string; name: string; icon: string
-  type: 'income' | 'expense' | 'credit_expense' | 'transfer'
+  type: 'income' | 'expense' | 'credit_expense' | 'transfer' | 'loan_given' | 'loan_repayment' | 'loan_writeoff'
   color: string; userId: string; createdAt: string
 }
 
-export type TransactionType = 'income' | 'expense' | 'credit_expense' | 'transfer'
+export type TransactionType = 'income' | 'expense' | 'credit_expense' | 'transfer' | 'loan_given' | 'loan_repayment' | 'loan_writeoff'
 
 export interface Transaction {
   id: string; userId: string; type: TransactionType
@@ -50,6 +50,8 @@ export interface Transaction {
   toUserName?: string
   fromUserId?: string
   fromUserName?: string
+  loanId?: string
+  loanPersonName?: string
 }
 
 export interface WalletBalance { cash: number; bank: number; ewallet: number; total: number }
@@ -199,6 +201,43 @@ export interface Notification {
   read: boolean; createdAt: string
   link?: string
   icon?: string
+}
+
+
+// ---- LOANS / PIUTANG ----
+export type LoanStatus = 'active' | 'paid' | 'overdue' | 'written_off'
+
+export interface Loan {
+  id: string
+  userId: string
+  personName: string
+  principalAmount: number
+  paidAmount: number
+  remainingAmount: number
+  status: LoanStatus
+  loanDate: string
+  dueDate?: string
+  note?: string
+  wallet?: WalletType
+  walletAccountId?: string
+  walletAccountName?: string
+  transactionId?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface LoanPayment {
+  id: string
+  userId: string
+  loanId: string
+  amount: number
+  paymentDate: string
+  wallet?: WalletType
+  walletAccountId?: string
+  walletAccountName?: string
+  note?: string
+  transactionId?: string
+  createdAt: string
 }
 
 // ---- API ----
